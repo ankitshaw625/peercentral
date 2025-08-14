@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller=function() {  /* widget controller */  var c = this;};]]></client_script>
+        <controller_as>c</controller_as>
+        <css/>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>recognition_feed</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Recognition Feed</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+  /* populate the 'data' object */
+  /* e.g., data.table = $sp.getValue('table'); */
+	
+	var recordLimit = options.limit || 10;
+	
+	data.recognitions = [];
+	
+	var grPeerRecognitions = new GlideRecord('x_1794402_peerce_0_peer_recognition');
+	grPeerRecognitions.orderByDesc('sys_created_on');
+	grPeerRecognitions.setLimit(recordLimit);
+	grPeerRecognitions.query();
+	
+	while (grPeerRecognitions.next()) {
+		data.recognitions.push({
+			sysId: grPeerRecognitions.sys_id.toString(),
+			recipient: grPeerRecognitions.recipient.name.toString(),
+			sender: grPeerRecognitions.sender.name.toString(),
+			category: grPeerRecognitions.category.name.toString(),
+			message: grPeerRecognitions.message.toString(),
+			createdOn: grPeerRecognitions.sys_created_on.getDisplayValue()
+		});	
+	}
+	
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-14 13:19:41</sys_created_on>
+        <sys_id>09377deec39b621075ea722ed4013146</sys_id>
+        <sys_mod_count>41</sys_mod_count>
+        <sys_name>Recognition Feed</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-14 14:12:31</sys_updated_on>
+        <template><![CDATA[<main>
+<!-- your widget template -->
+  
+<div class="panel panel-primary">
+  <!-- Default panel contents -->
+  <div class="panel-heading">
+  	<h3 class="panel-title">
+      Recognition activity feed
+    </h3>
+  </div>
+
+  <!-- List group -->
+  <ul class="list-group">
+    <li ng-repeat="recognition in data.recognitions" class="list-group-item">
+      <div class="media">
+        <div class="media-body">
+          <h4 class="media-heading">
+            <a href="#">{{ recognition.sender }}</a> <small class="text-muted">gave applause to</small> <a href="#">{{recognition.recipient}}</a>
+          </h4>
+          <p><em class="bg-success p-2">{{recognition.category}}</em></p>
+          <p>{{recognition.message}}</p>
+          <small class="text-muted">{{recognition.createdOn}}</small>
+        </div>
+      </div>
+    </li>
+  </ul>
+</div>
+
+</main>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>09377deec39b621075ea722ed4013146</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-14 13:19:41</sys_created_on>
+        <sys_id>8d377deec39b621075ea722ed4013148</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-14 13:19:41</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

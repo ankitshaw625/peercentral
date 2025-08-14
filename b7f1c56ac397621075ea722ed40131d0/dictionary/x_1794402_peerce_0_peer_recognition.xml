@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?><database>
     <element db_object_id="a8e889a2c3d7621075ea722ed40131b1" label="Peer Recognition" max_length="40" name="x_1794402_peerce_0_peer_recognition" type="collection">
-        <element label="Recipient" max_length="32" name="recipient" reference="sys_user" type="reference"/>
-        <element label="Category" max_length="40" name="category" type="string"/>
-        <element label="Sender" max_length="32" name="sender" reference="sys_user" type="reference"/>
-        <element label="Message" max_length="4000" name="message" type="string"/>
+        <element label="Recipient" mandatory="true" max_length="32" name="recipient" reference="sys_user" type="reference"/>
+        <element label="Category" mandatory="true" max_length="40" name="category" reference="x_1794402_peerce_0_recognition_category" type="reference"/>
+        <element label="Sender" mandatory="true" max_length="32" name="sender" reference="sys_user" type="reference"/>
+        <element label="Message" mandatory="true" max_length="4000" name="message" type="string"/>
         <index name="index">
             <element name="recipient"/>
         </index>
