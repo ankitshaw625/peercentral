@@ -1,7 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller=function() {  /* widget controller */  var c = this;};]]></client_script>
+        <client_script><![CDATA[api.controller = function() {
+  /* widget controller */
+  var c = this;
+	
+	
+	c.data.recognitions = c.data.recognitions.map(function(recognition) {
+		var senderInitials = recognition['sender.name'].split(' ').map(function(namePart) {
+			return namePart[0].toUpperCase();	
+		}).join('');
+		
+		return {...recognition, timeAgo: convertToTimeAgo(recognition.sys_created_on), senderInitials: senderInitials};
+	});
+	
+	console.log(c.data);
+
+	function convertToTimeAgo(dateTime) {
+		if (!dateTime) return '';
+		
+	moment.updateLocale('en', {
+		relativeTime: {
+			future: "in %s",
+			past:   "%s ago",
+			s:      "a few seconds", 
+			ss:     "%d seconds",    
+			m:      "a minute",      
+			mm:     "%d minutes",
+			h:      "an hour",      
+			hh:     "%d hours",
+			d:      "a day",      
+			dd:     "%d days",
+			M:      "a month",    
+			MM:     "%d months",
+			y:      "a year",      
+			yy:     "%d years"
+		}
+	});
+		
+		return moment(dateTime).fromNow();
+	}
+};]]></client_script>
         <controller_as>c</controller_as>
         <css/>
         <data_table>sp_instance</data_table>
@@ -25,20 +64,17 @@
 	
 	data.recognitions = [];
 	
-	var grPeerRecognitions = new GlideRecord('x_1794402_peerce_0_peer_recognition');
+	var grPeerRecognitions = new GlideRecordSecure('x_1794402_peerce_0_peer_recognition');
 	grPeerRecognitions.orderByDesc('sys_created_on');
 	grPeerRecognitions.setLimit(recordLimit);
 	grPeerRecognitions.query();
 	
 	while (grPeerRecognitions.next()) {
-		data.recognitions.push({
-			sysId: grPeerRecognitions.sys_id.toString(),
-			recipient: grPeerRecognitions.recipient.name.toString(),
-			sender: grPeerRecognitions.sender.name.toString(),
-			category: grPeerRecognitions.category.name.toString(),
-			message: grPeerRecognitions.message.toString(),
-			createdOn: grPeerRecognitions.sys_created_on.getDisplayValue()
-		});	
+		var recognition = {};
+		
+		$sp.getRecordValues(recognition, grPeerRecognitions, 'recipient.name, sender.name, category.name, message, sys_created_on');
+		
+		data.recognitions.push(recognition);	
 	}
 	
 })();]]></script>
@@ -47,17 +83,19 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>41</sys_mod_count>
+        <sys_mod_count>100</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-14 14:12:31</sys_updated_on>
+        <sys_updated_on>2025-08-15 16:23:23</sys_updated_on>
         <template><![CDATA[<main>
 <!-- your widget template -->
   
+
+
 <div class="panel panel-primary">
   <!-- Default panel contents -->
   <div class="panel-heading">
@@ -70,19 +108,33 @@
   <ul class="list-group">
     <li ng-repeat="recognition in data.recognitions" class="list-group-item">
       <div class="media">
+        <div class="media-left">
+           <span class="fa-stack fa-lg">
+            <i class="fa fa-circle fa-stack-2x text-info"></i>
+            <span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
+           </span>
+          
+  			</div>
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="#">{{ recognition.sender }}</a> <small class="text-muted">gave applause to</small> <a href="#">{{recognition.recipient}}</a>
+            <a href="#">{{recognition['sender.name']}}</a> <small class="text-muted">
+            gave applause to</small> <a href="#">{{recognition['recipient.name']}}</a>
+            <small>for <strong>{{recognition['category.name']}}</strong></small>
           </h4>
-          <p><em class="bg-success p-2">{{recognition.category}}</em></p>
           <p>{{recognition.message}}</p>
-          <small class="text-muted">{{recognition.createdOn}}</small>
+          <small class="text-muted">{{recognition.timeAgo}}</small>
         </div>
       </div>
     </li>
+    
+  <li ng-if="!data.recognitions.length" class="list-group-item text-muted">
+    No recognitions found.
+  </li>
+    
   </ul>
-</div>
+  
 
+</div>
 </main>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">
