@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="42bb5eb0c3276e1075ea722ed40131f9" label="Recognition Recipient" max_length="40" name="x_1794402_peerce_0_recognition_recipient" type="collection">
+        <element label="Recognition" max_length="32" name="recognition" reference="x_1794402_peerce_0_peer_recognition" type="reference"/>
+        <element label="Recipient (Group)" max_length="32" name="recipient_group" reference="sys_user_group" type="reference"/>
+        <element label="Is Team" max_length="40" name="is_team" type="boolean"/>
+        <element label="Recipient (User)" max_length="32" name="recipient_user" reference="sys_user" type="reference"/>
+        <index name="index">
+            <element name="recipient_group"/>
+        </index>
+        <index name="index2">
+            <element name="recipient_user"/>
+        </index>
+        <index name="index3">
+            <element name="recognition"/>
+        </index>
+    </element>
+</database>
