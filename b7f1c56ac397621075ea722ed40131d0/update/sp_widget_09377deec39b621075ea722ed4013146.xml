@@ -5,13 +5,12 @@
   /* widget controller */
   var c = this;
 	
-	
 	c.data.recognitions = c.data.recognitions.map(function(recognition) {
-		var senderInitials = recognition['sender.name'].split(' ').map(function(namePart) {
+		var senderInitials = recognition.senderDisplay.split(' ').map(function(namePart) {
 			return namePart[0].toUpperCase();	
 		}).join('');
 		
-		return {...recognition, timeAgo: convertToTimeAgo(recognition.sys_created_on), senderInitials: senderInitials};
+		return {...recognition, timeAgo: convertToTimeAgo(recognition.createdOn), senderInitials: senderInitials};
 	});
 	
 	console.log(c.data);
@@ -19,24 +18,24 @@
 	function convertToTimeAgo(dateTime) {
 		if (!dateTime) return '';
 		
-	moment.updateLocale('en', {
-		relativeTime: {
-			future: "in %s",
-			past:   "%s ago",
-			s:      "a few seconds", 
-			ss:     "%d seconds",    
-			m:      "a minute",      
-			mm:     "%d minutes",
-			h:      "an hour",      
-			hh:     "%d hours",
-			d:      "a day",      
-			dd:     "%d days",
-			M:      "a month",    
-			MM:     "%d months",
-			y:      "a year",      
-			yy:     "%d years"
-		}
-	});
+		moment.updateLocale('en', {
+			relativeTime: {
+				future: "in %s",
+				past:   "%s ago",
+				s:      "a few seconds", 
+				ss:     "%d seconds",    
+				m:      "a minute",      
+				mm:     "%d minutes",
+				h:      "an hour",      
+				hh:     "%d hours",
+				d:      "a day",      
+				dd:     "%d days",
+				M:      "a month",    
+				MM:     "%d months",
+				y:      "a year",      
+				yy:     "%d years"
+			}
+		});
 		
 		return moment(dateTime).fromNow();
 	}
@@ -57,25 +56,13 @@
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
-  /* populate the 'data' object */
-  /* e.g., data.table = $sp.getValue('table'); */
 	
-	var recordLimit = options.limit || 10;
+	var limit = options.limit || 10;
 	
-	data.recognitions = [];
+	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 	
-	var grPeerRecognitions = new GlideRecordSecure('x_1794402_peerce_0_peer_recognition');
-	grPeerRecognitions.orderByDesc('sys_created_on');
-	grPeerRecognitions.setLimit(recordLimit);
-	grPeerRecognitions.query();
-	
-	while (grPeerRecognitions.next()) {
-		var recognition = {};
-		
-		$sp.getRecordValues(recognition, grPeerRecognitions, 'recipient.name, sender.name, category.name, message, sys_created_on');
-		
-		data.recognitions.push(recognition);	
-	}
+	data.recognitions = recognitionDAO.getRecognitions(limit);
+
 	
 })();]]></script>
         <servicenow>false</servicenow>
@@ -83,19 +70,15 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>101</sys_mod_count>
+        <sys_mod_count>108</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-23 09:03:08</sys_updated_on>
+        <sys_updated_on>2025-08-23 13:10:17</sys_updated_on>
         <template><![CDATA[<main>
-<!-- your widget template -->
-  
-
-
 <div class="panel panel-primary">
   <!-- Default panel contents -->
   <div class="panel-heading">
@@ -117,9 +100,9 @@
   			</div>
         <div class="media-body">
           <h4 class="media-heading">
-            <a href="#">{{recognition['sender.name']}}</a> <small class="text-muted">
-            gave applause to</small> <a href="#">{{recognition['recipient.name']}}</a>
-            <small>for <strong>{{recognition['category.name']}}</strong></small>
+            <a href="#">{{recognition.senderDisplay}}</a> <small class="text-muted">
+            gave applause to</small> <a href="#">{{recognition.recipients.join(', ')}}</a>
+            <small>for <strong>{{recognition.categoryDisplay}}</strong></small>
           </h4>
           <p ng-bind-html="recognition.message"></p>
           <small class="text-muted">{{recognition.timeAgo}}</small>

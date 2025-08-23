@@ -5,28 +5,16 @@
   /* widget controller */
   var c = this;
 	
-	console.log(tinymce);
-	
-	c.tinyMCEOptions = {
-    // This setup function will be picked up by the directive
-    setup: function(editor) {
-      editor.on('OpenWindow', function() {
-        // This line disables the Bootstrap modal's focus trap
-        $(document).off('focusin.bs.modal');
-      });
-      editor.on('CloseWindow', function() {
-        // This line re-enables the focus trap after the editor's dialog closes
-        $(document).on('focusin.bs.modal');
-      });
-    }
-  };
+	var isTeam = false;
+	console.log(c.data);
 	
 	c.submitRecognition = function() {
 		alert('Recognition submitted');
 		var newRecognition = {
-			recipient: c.recipients.value,
+			recipients: c.recipients.value,
 			category: c.category.value,
 			message: c.data.message,
+			isTeam: isTeam,
 			action: 'createRecognition'
 		};
 		
@@ -66,54 +54,28 @@
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
-  /* populate the 'data' object */
-  /* e.g., data.table = $sp.getValue('table'); */
+	
+	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 	
 	if (input && input.action == 'createRecognition') {
-		createRecognition(input);
+		var result = recognitionDAO.createRecognition(input);
+		data.output = result;
 	}
 	
-	function createRecognition(recognitionData) {
-		var grPeerRecognitions = new GlideRecordSecure('x_1794402_peerce_0_peer_recognition');
-		grPeerRecognitions.newRecord();
-		
-		grPeerRecognitions.sender = gs.getUserID();
-		// grPeerRecognitions.recipient = recognitionData.recipient;
-		grPeerRecognitions.category = recognitionData.category;
-		grPeerRecognitions.message = recognitionData.message;
-		
-		var sysId = grPeerRecognitions.insert();
-		
-		
-		var output = {
-			status: 'success',
-			message: 'Recognition created successfully',
-			sys_id: sysId
-		};
-		
-		if (!sysId) {
-			output = {
-				status: 'failure',
-				message: 'An error happened while creating the recognition: ' + grPeerRecognitions.getLastErrorMessage()
-			};			
-		} 
-		
-		data.output = output;
-	}
 })();]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>82</sys_mod_count>
+        <sys_mod_count>92</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-23 10:53:07</sys_updated_on>
+        <sys_updated_on>2025-08-23 13:48:26</sys_updated_on>
         <template><![CDATA[<header>
 <h1>Recognize your teams and peers</h1>
   <p>
@@ -129,11 +91,11 @@
  
 
 <!-- Recognition Modal -->
-<div class="modal fade" id="recognition-modal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="recognition-modal" tabindex="-1" role="dialog" aria-labelledby="recognitionModal" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
-        <h4 class="modal-title" id="exampleModalLabel">Recognize your peers!</h4>
+        <h4 class="modal-title" id="recognitionModal">Recognize your peers!</h4>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -168,27 +130,6 @@
         
         <div class="form-group">
           <label for="message">Message: </label>
-          
-          <!--
-        <sp-tinymce-editor 
-						id="message" ng-model="c.data.message"
-           	ng-model-options="{
-                getterSetter: true, paste_as_text: false, selector: 'textarea',
-								plugins: [ 'image', 'table', 'link', 'media', 'fullscreen', 'lists', 'preview', 'autoresize', 'paste'],
-								toolbar: ['undo redo | styleselect preview | fontsize fontname bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent | table | link unlink | fullscreen'],
-								browser_spellcheck : true, resize: 'both'}"
-						attachment-guid="-1"
-            record-table-name="'x_1794402_peerce_0_peer_recognition'"
-           >
-            
-          </sp-tinymce-editor> -->
-         
-          
-					<!--<sp-tinymce-editor 
-						attachment-guid = "-1" record-table-name="'x_1794402_peerce_0_peer_recognition'"  
-						ng-model-options="c.tinyMCEOptions" ng-model="c.data.message" id="message">
-          </sp-tinymce-editor> -->
-          
           
           <cf-tiny-mce-custom
             ng-model="c.data.message"

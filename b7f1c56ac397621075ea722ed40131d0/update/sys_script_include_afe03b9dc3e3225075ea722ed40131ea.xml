@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1794402_peerce_0.RecognitionDAO</api_name>
+        <caller_access>1</caller_access>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>RecognitionDAO</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[/**
+ * Data Access Object for the Recognition application.
+ * Contains modular CRUD methods for both Recognition and Recipient tables,
+ * as well as high-level service methods to coordinate them.
+ */
+var RecognitionDAO = Class.create();
+RecognitionDAO.prototype = {
+    initialize: function() {},
+
+    // =======================================================================
+    // == Public callable methods
+    // =======================================================================
+
+    /**
+     * Creates a complete recognition with its recipient(s).
+     * @param {object} recognitionData - e.g., { recipient_id: '...', recipient_type: 'user', category_id: '...', message: '...' }
+     * @returns {string} The sys_id of the new recognition record.
+     */
+    createRecognition: function(recognitionData) {
+        recognitionData.sender = gs.getUserID();
+		
+		var isTeam = recognitionData.isTeam;
+        var recognitionSysId = null;
+
+        // Insert a new recognition record
+        var grRecognition = new GlideRecord('x_1794402_peerce_0_peer_recognition');
+        grRecognition.newRecord();
+        grRecognition.category = recognitionData.category;
+        grRecognition.message = recognitionData.message;
+        grRecognition.sender = recognitionData.sender;
+		grRecognition.is_team = isTeam;
+
+        recognitionSysId = grRecognition.insert();
+
+        // Handle error for recognition creation failure
+        if (!recognitionSysId) {
+            var errorMessage = grRecognition.getLastErrorMessage();
+
+            gs.error("RecognitionDAO: createRecognition failed at recognition creation step. Error: " + errorMessage);
+
+            return {
+                status: 'failure',
+                message: errorMessage
+            };
+        }
+
+        var recipients = recognitionData.recipients.split(',');
+
+        for (var i = 0; i < recipients.length; i++) {
+            var currentRecipient = recipients[i];
+
+            // Create individual recipients
+            var recognitionRecipientSysId = null;
+            var grRecognitionRecipient = new GlideRecord('x_1794402_peerce_0_recognition_recipient');
+
+            grRecognitionRecipient.newRecord();
+            grRecognitionRecipient.recognition = recognitionSysId;
+
+            if (isTeam) {
+                grRecognitionRecipient.recipient_group = currentRecipient;
+            } else {
+                grRecognitionRecipient.recipient_user = currentRecipient;
+            }
+
+            recognitionRecipientSysId = grRecognitionRecipient.insert();
+
+            // Add logs for recipient creation failure
+            if (!recognitionRecipientSysId) {
+                errorMessage = grRecognitionRecipient.getLastErrorMessage();
+
+                gs.error("RecognitionDAO: createRecognition failed at recognition recipient creation step. Error: " + errorMessage);
+            }
+        }
+
+        return {
+            status: 'success',
+            message: 'Recognition created successfully.'
+        };
+    },
+
+    /**
+     * Retrieves a  list of recognition records, including their recipients.
+     * @param {number} limit - The number of recognition records to retrieve.
+     * @returns {Array<object>} A complete data object for the recognition, or null.
+     */
+    getRecognitions: function(limit) {
+		var recognitions = [];
+
+        var grRecognitions = new GlideRecordSecure('x_1794402_peerce_0_peer_recognition');
+        grRecognitions.orderByDesc('sys_created_on');
+        grRecognitions.setLimit(limit);
+        grRecognitions.query();
+
+        while (grRecognitions.next()) {
+            var recognition = {
+				senderDisplay: grRecognitions.sender.name.toString(),
+				categoryDisplay: grRecognitions.category.name.toString(),
+				message: grRecognitions.message.toString(),
+				createdOn: grRecognitions.sys_created_on.toString(),
+				recipients: []
+			};
+
+            // $sp.getRecordValues(recognition, grPeerRecognitions, 'recipient.name,  ');
+
+			var grRecognitionRecipient = new GlideRecord('x_1794402_peerce_0_recognition_recipient');
+			grRecognitionRecipient.addQuery('recognition', grRecognitions.sys_id.toString());
+			// grRecognitionRecipient.order
+			grRecognitionRecipient.query();
+
+			while (grRecognitionRecipient.next()) {
+				// if (grRecognitionRecipient.is_team.toString() == 'true') {
+
+				// }
+				recognition.recipients.push(grRecognitionRecipient.recipient_user.name.toString());
+			}
+
+
+            recognitions.push(recognition);
+        }
+
+		return recognitions;
+    },
+
+    /**
+     * Retrieves a complete recognition record, including its recipients.
+     * @param {string} sysId - The sys_id of the recognition to retrieve.
+     * @returns {object} A complete data object for the recognition, or null.
+     */
+    getCompleteRecognition: function(sysId) {
+        var recognition = this._readRecognition(sysId);
+        if (!recognition)
+            return null;
+
+        recognition.recipients = this._readRecipientsForRecognition(sysId);
+        return recognition;
+    },
+
+    /**
+     * Deletes a complete recognition and its associated recipients.
+     * @param {string} sysId - The sys_id of the recognition to delete.
+     * @returns {boolean} True on success.
+     */
+    deleteCompleteRecognition: function(sysId) {
+        this._deleteRecipientsForRecognition(sysId);
+        return this._deleteRecognition(sysId);
+    },
+
+    // =======================================================================
+    // == Private Helper Methods
+    // =======================================================================
+
+    _createRecognition: function(data) {
+
+    },
+
+    _readRecognition: function(sysId) {
+        var recGr = new GlideRecord(this.recognitionTable);
+        if (!recGr.get(sysId))
+            return null;
+
+        return {
+            sys_id: recGr.getUniqueValue(),
+            message: recGr.getValue('message'),
+            sender: recGr.getDisplayValue('sender'),
+            category: recGr.getDisplayValue('category'),
+            created_on: recGr.getValue('sys_created_on')
+        };
+    },
+
+    _updateRecognition: function(sysId, data) {
+        var recGr = new GlideRecord(this.recognitionTable);
+        if (!recGr.get(sysId))
+            return false;
+
+        for (var key in data) {
+            if (recGr.isValidField(key))
+                recGr.setValue(key, data[key]);
+        }
+        return recGr.update();
+    },
+
+    _deleteRecognition: function(sysId) {
+        var recGr = new GlideRecord(this.recognitionTable);
+        if (recGr.get(sysId))
+            return recGr.deleteRecord();
+        return false;
+    },
+
+    // =======================================================================
+    // == LOW-LEVEL RECIPIENT METHODS (Private)
+    // =======================================================================
+
+    _readRecipientsForRecognition: function(recognitionSysId) {
+        var recipients = [];
+        var recGr = new GlideRecord(this.recipientTable);
+        recGr.addQuery('recognition', recognitionSysId);
+        recGr.query();
+        while (recGr.next()) {
+            var name = recGr.getDisplayValue('recipient_user') || recGr.getDisplayValue('recipient_group');
+            recipients.push({
+                name: name,
+                sys_id: recGr.getUniqueValue()
+            });
+        }
+        return recipients;
+    },
+
+    _deleteRecipientsForRecognition: function(recognitionSysId) {
+        var recGr = new GlideRecord(this.recipientTable);
+        recGr.addQuery('recognition', recognitionSysId);
+        recGr.deleteMultiple();
+    },
+
+    type: 'RecognitionDAO'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-23 11:20:40</sys_created_on>
+        <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
+        <sys_mod_count>11</sys_mod_count>
+        <sys_name>RecognitionDAO</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-23 13:41:00</sys_updated_on>
+    </sys_script_include>
+</record_update>
