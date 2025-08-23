@@ -5,6 +5,22 @@
   /* widget controller */
   var c = this;
 	
+	console.log(tinymce);
+	
+	c.tinyMCEOptions = {
+    // This setup function will be picked up by the directive
+    setup: function(editor) {
+      editor.on('OpenWindow', function() {
+        // This line disables the Bootstrap modal's focus trap
+        $(document).off('focusin.bs.modal');
+      });
+      editor.on('CloseWindow', function() {
+        // This line re-enables the focus trap after the editor's dialog closes
+        $(document).on('focusin.bs.modal');
+      });
+    }
+  };
+	
 	c.submitRecognition = function() {
 		alert('Recognition submitted');
 		var newRecognition = {
@@ -13,6 +29,8 @@
 			message: c.data.message,
 			action: 'createRecognition'
 		};
+		
+		console.log(newRecognition);
 
 		c.server.get(newRecognition).then(function(response) {
 			spUtil.addInfoMessage(response.data.output.message);
@@ -23,6 +41,16 @@
         <controller_as>c</controller_as>
         <css>.modal-title {
 	display: inline-block;
+}
+
+#message .mce-content-body:before {
+  /* The placeholder text you want to display */
+  content: "Write your recognition message here..."; 
+
+  /* Style the placeholder to look like typical placeholder text */
+  color: #999; 
+  font-style: italic;
+  cursor: text;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -50,7 +78,7 @@
 		grPeerRecognitions.newRecord();
 		
 		grPeerRecognitions.sender = gs.getUserID();
-		grPeerRecognitions.recipient = recognitionData.recipient;
+		// grPeerRecognitions.recipient = recognitionData.recipient;
 		grPeerRecognitions.category = recognitionData.category;
 		grPeerRecognitions.message = recognitionData.message;
 		
@@ -78,14 +106,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>50</sys_mod_count>
+        <sys_mod_count>82</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-15 16:18:31</sys_updated_on>
+        <sys_updated_on>2025-08-23 10:53:07</sys_updated_on>
         <template><![CDATA[<header>
 <h1>Recognize your teams and peers</h1>
   <p>
@@ -140,10 +168,39 @@
         
         <div class="form-group">
           <label for="message">Message: </label>
-          <textarea 
-					id="message" class="form-control" ng-model="c.data.message" 
-          placeholder="Write your recognition message here...">
-					</textarea>
+          
+          <!--
+        <sp-tinymce-editor 
+						id="message" ng-model="c.data.message"
+           	ng-model-options="{
+                getterSetter: true, paste_as_text: false, selector: 'textarea',
+								plugins: [ 'image', 'table', 'link', 'media', 'fullscreen', 'lists', 'preview', 'autoresize', 'paste'],
+								toolbar: ['undo redo | styleselect preview | fontsize fontname bold italic | alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent | table | link unlink | fullscreen'],
+								browser_spellcheck : true, resize: 'both'}"
+						attachment-guid="-1"
+            record-table-name="'x_1794402_peerce_0_peer_recognition'"
+           >
+            
+          </sp-tinymce-editor> -->
+         
+          
+					<!--<sp-tinymce-editor 
+						attachment-guid = "-1" record-table-name="'x_1794402_peerce_0_peer_recognition'"  
+						ng-model-options="c.tinyMCEOptions" ng-model="c.data.message" id="message">
+          </sp-tinymce-editor> -->
+          
+          
+          <cf-tiny-mce-custom
+            ng-model="c.data.message"
+						ng-model-options="{ plugins: 'image codesample code link fullscreen table autoresize',
+    					toolbar: 'undo redo | bold italic underline | bullist numlist | fontselect fontsizeselect fontfamily fontsize |link | image'}"
+                              
+            id="message"
+            table="'x_1794402_peerce_0_peer_recognition'"
+            attachment-sys-id="-1"
+            >
+          </cf-tiny-mce-custom>
+          
         </div>
       </div>
       
