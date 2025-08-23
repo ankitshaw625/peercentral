@@ -39,6 +39,13 @@
   color: #999; 
   font-style: italic;
   cursor: text;
+}
+
+.recognition-header {
+  background: url('x_1794402_peerce_0.recognition-header-banner.png') no-repeat right center;
+  background-size: contain;   
+  padding: 4rem 0rem;    
+  color: #333;          
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -68,15 +75,15 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>92</sys_mod_count>
+        <sys_mod_count>99</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-23 13:48:26</sys_updated_on>
-        <template><![CDATA[<header>
+        <sys_updated_on>2025-08-23 15:52:04</sys_updated_on>
+        <template><![CDATA[<header class="recognition-header">
 <h1>Recognize your teams and peers</h1>
   <p>
     Take a moment to give a shout-out to your peers for their great work!
