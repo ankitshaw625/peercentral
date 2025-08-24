@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sysevent_email_action">
+    <sysevent_email_action action="INSERT_OR_UPDATE">
+        <action_insert>false</action_insert>
+        <action_update>false</action_update>
+        <active>true</active>
+        <advanced_condition/>
+        <affected_field_on_event/>
+        <category display_value="Recognition" name="Recognition">26cf8279c32f621075ea722ed40131a0</category>
+        <collection>x_1794402_peerce_0_recognition_recipient</collection>
+        <condition table="x_1794402_peerce_0_recognition_recipient">recognition.is_team=false^EQ<item endquery="false" field="recognition.is_team" goto="false" newquery="false" operator="=" or="false" value="false"/>
+            <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
+        </condition>
+        <content_type>text/html</content_type>
+        <default_digest>false</default_digest>
+        <default_interval display_value="7 Days">78f157e07f1332007f005212bdfa91ee</default_interval>
+        <description/>
+        <digest_from/>
+        <digest_html/>
+        <digest_reply_to/>
+        <digest_separator_html><![CDATA[<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>]]></digest_separator_html>
+        <digest_separator_text><![CDATA[\n--------------------------------------------------------------------------------\n]]></digest_separator_text>
+        <digest_subject/>
+        <digest_template/>
+        <digest_text/>
+        <digest_type>multiple</digest_type>
+        <digestable>false</digestable>
+        <enable_dynamic_translation>false</enable_dynamic_translation>
+        <event_name>activate.life.cycle.migration</event_name>
+        <event_parm_1>false</event_parm_1>
+        <event_parm_2>false</event_parm_2>
+        <exclude_delegates>false</exclude_delegates>
+        <force_delivery>false</force_delivery>
+        <from/>
+        <generation_type>triggered</generation_type>
+        <importance/>
+        <include_attachments>false</include_attachments>
+        <item>event.parm1</item>
+        <item_table/>
+        <mandatory>false</mandatory>
+        <message/>
+        <message_html><![CDATA[<p>Dear team,</p>
+<p>Great news! <em>${recognition.sender.name}</em> has applauded your team for <em>${recognition.category}</em>. Here's what they said:<br><br>&nbsp; &nbsp; &nbsp;${recognition.message}</p>
+<p>&nbsp;</p>
+<p><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><a href="https://dev195269.service-now.com/pc?id=recognition_home" target="_blank" rel="noopener" data-ved="0CAAQ_4QMahgKEwib5ZjvhKOPAxUAAAAAHQAAAAAQgwE" data-hveid="0">View Recognition</a></p>
+<p>Congratulations on the great teamwork!<br><br>Best,<br>PeerCentral Team</p>]]></message_html>
+        <message_list/>
+        <message_text/>
+        <name>Recognition received - Team</name>
+        <omit_watermark>false</omit_watermark>
+        <order>100</order>
+        <push_message_only>false</push_message_only>
+        <recipient_fields>recipient_group</recipient_fields>
+        <recipient_groups/>
+        <recipient_users/>
+        <reply_to/>
+        <send_self>true</send_self>
+        <sms_alternate/>
+        <style/>
+        <subject>Your team ${recipient_group} has been applauded by ${recognition.sender}!</subject>
+        <subscribable>false</subscribable>
+        <sys_class_name>sysevent_email_action</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-24 18:04:11</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>d6385a35c36f621075ea722ed40131af</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>Recognition received - Team</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sysevent_email_action_d6385a35c36f621075ea722ed40131af</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-24 18:13:23</sys_updated_on>
+        <sys_version>2</sys_version>
+        <template display_value="Unsubscribe and Preferences">7ed0481f3b0b2200c869c2c703efc487</template>
+        <type>email</type>
+        <weight>0</weight>
+    </sysevent_email_action>
+</record_update>

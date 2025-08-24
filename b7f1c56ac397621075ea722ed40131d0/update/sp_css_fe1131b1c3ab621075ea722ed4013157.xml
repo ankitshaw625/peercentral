@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_css">
+    <sp_css action="INSERT_OR_UPDATE">
+        <css>/* Spacing scale: 0, 5, 10, 15, 20, 30, 40 (px) */&#13;
+&#13;
+/* Margin (m) */&#13;
+.m-0   { margin: 0 !important; }&#13;
+.m-5   { margin: 5px !important; }&#13;
+.m-10  { margin: 10px !important; }&#13;
+.m-15  { margin: 15px !important; }&#13;
+.m-20  { margin: 20px !important; }&#13;
+.m-30  { margin: 30px !important; }&#13;
+.m-40  { margin: 40px !important; }&#13;
+&#13;
+/* Margin per side */&#13;
+.mt-0  { margin-top: 0 !important; }&#13;
+.mt-5  { margin-top: 5px !important; }&#13;
+.mt-10 { margin-top: 10px !important; }&#13;
+.mt-15 { margin-top: 15px !important; }&#13;
+.mt-20 { margin-top: 20px !important; }&#13;
+.mt-30 { margin-top: 30px !important; }&#13;
+.mt-40 { margin-top: 40px !important; }&#13;
+&#13;
+.mb-0  { margin-bottom: 0 !important; }&#13;
+.mb-5  { margin-bottom: 5px !important; }&#13;
+.mb-10 { margin-bottom: 10px !important; }&#13;
+.mb-15 { margin-bottom: 15px !important; }&#13;
+.mb-20 { margin-bottom: 20px !important; }&#13;
+.mb-30 { margin-bottom: 30px !important; }&#13;
+.mb-40 { margin-bottom: 40px !important; }&#13;
+&#13;
+.ml-0  { margin-left: 0 !important; }&#13;
+.ml-5  { margin-left: 5px !important; }&#13;
+.ml-10 { margin-left: 10px !important; }&#13;
+.ml-15 { margin-left: 15px !important; }&#13;
+.ml-20 { margin-left: 20px !important; }&#13;
+.ml-30 { margin-left: 30px !important; }&#13;
+.ml-40 { margin-left: 40px !important; }&#13;
+&#13;
+.mr-0  { margin-right: 0 !important; }&#13;
+.mr-5  { margin-right: 5px !important; }&#13;
+.mr-10 { margin-right: 10px !important; }&#13;
+.mr-15 { margin-right: 15px !important; }&#13;
+.mr-20 { margin-right: 20px !important; }&#13;
+.mr-30 { margin-right: 30px !important; }&#13;
+.mr-40 { margin-right: 40px !important; }&#13;
+&#13;
+/* Padding (p) */&#13;
+.p-0   { padding: 0 !important; }&#13;
+.p-5   { padding: 5px !important; }&#13;
+.p-10  { padding: 10px !important; }&#13;
+.p-15  { padding: 15px !important; }&#13;
+.p-20  { padding: 20px !important; }&#13;
+.p-30  { padding: 30px !important; }&#13;
+.p-40  { padding: 40px !important; }&#13;
+&#13;
+/* Padding per side */&#13;
+.pt-0  { padding-top: 0 !important; }&#13;
+.pt-5  { padding-top: 5px !important; }&#13;
+.pt-10 { padding-top: 10px !important; }&#13;
+.pt-15 { padding-top: 15px !important; }&#13;
+.pt-20 { padding-top: 20px !important; }&#13;
+.pt-30 { padding-top: 30px !important; }&#13;
+.pt-40 { padding-top: 40px !important; }&#13;
+&#13;
+.pb-0  { padding-bottom: 0 !important; }&#13;
+.pb-5  { padding-bottom: 5px !important; }&#13;
+.pb-10 { padding-bottom: 10px !important; }&#13;
+.pb-15 { padding-bottom: 15px !important; }&#13;
+.pb-20 { padding-bottom: 20px !important; }&#13;
+.pb-30 { padding-bottom: 30px !important; }&#13;
+.pb-40 { padding-bottom: 40px !important; }&#13;
+&#13;
+.pl-0  { padding-left: 0 !important; }&#13;
+.pl-5  { padding-left: 5px !important; }&#13;
+.pl-10 { padding-left: 10px !important; }&#13;
+.pl-15 { padding-left: 15px !important; }&#13;
+.pl-20 { padding-left: 20px !important; }&#13;
+.pl-30 { padding-left: 30px !important; }&#13;
+.pl-40 { padding-left: 40px !important; }&#13;
+&#13;
+.pr-0  { padding-right: 0 !important; }&#13;
+.pr-5  { padding-right: 5px !important; }&#13;
+.pr-10 { padding-right: 10px !important; }&#13;
+.pr-15 { padding-right: 15px !important; }&#13;
+.pr-20 { padding-right: 20px !important; }&#13;
+.pr-30 { padding-right: 30px !important; }&#13;
+.pr-40 { padding-right: 40px !important; }&#13;
+</css>
+        <name>spacing-utilities.css</name>
+        <sys_class_name>sp_css</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-24 15:13:34</sys_created_on>
+        <sys_id>fe1131b1c3ab621075ea722ed4013157</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>spacing-utilities.css</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_css_fe1131b1c3ab621075ea722ed4013157</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-24 15:13:34</sys_updated_on>
+        <turn_off_scss_compilation>false</turn_off_scss_compilation>
+    </sp_css>
+</record_update>
