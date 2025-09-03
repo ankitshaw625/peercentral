@@ -112,14 +112,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>181</sys_mod_count>
+        <sys_mod_count>182</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-24 17:03:56</sys_updated_on>
+        <sys_updated_on>2025-08-31 17:41:03</sys_updated_on>
         <template><![CDATA[<main>
 <div class="panel panel-primary">
   <!-- Default panel contents -->
@@ -171,7 +171,7 @@
       </article>
     </li>
     
-    <p class="text-center p-5">Viewing {{data.recognitions.length}} out of {{data.recognitions.length}} total recognitions.</p>
+    <li class="text-center p-5">Viewing {{data.recognitions.length}} out of {{data.recognitions.length}} total recognitions.</li>
     
     <li ng-if="!data.recognitions.length" class="list-group-item text-muted">
       No recognitions found.

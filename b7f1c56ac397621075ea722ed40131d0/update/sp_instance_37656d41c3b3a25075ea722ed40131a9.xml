@@ -8,7 +8,7 @@
         <class_name/>
         <color>default</color>
         <css/>
-        <glyph>empty</glyph>
+        <glyph/>
         <id/>
         <order>1</order>
         <placeholder_dimensions>{&#13;	"mobile": {&#13;		"height": "250px",&#13;		"width": "100%"&#13;	},&#13;	"desktop": {&#13;		"height": "250px",&#13;		"width": "100%"&#13;	},&#13;	"tablet": {&#13;		"height": "250px",&#13;		"width": "100%"&#13;	}&#13;}</placeholder_dimensions>
@@ -32,32 +32,23 @@
         <roles/>
         <short_description/>
         <size>md</size>
-        <sp_column display_value="2">784d30a9c363221075ea722ed40131ed</sp_column>
-        <sp_widget display_value="Report">e41aa2d29f0222008252baac757fcfce</sp_widget>
+        <sp_column display_value="1">f1652d41c3b3a25075ea722ed40131a2</sp_column>
+        <sp_widget display_value="Recognition Feed">09377deec39b621075ea722ed4013146</sp_widget>
         <sys_class_name>sp_instance</sys_class_name>
         <sys_created_by>admin</sys_created_by>
-        <sys_created_on>2025-08-23 16:49:29</sys_created_on>
-        <sys_id>8e8df865c323221075ea722ed4013144</sys_id>
-        <sys_mod_count>3</sys_mod_count>
+        <sys_created_on>2025-09-03 16:42:32</sys_created_on>
+        <sys_id>37656d41c3b3a25075ea722ed40131a9</sys_id>
+        <sys_mod_count>0</sys_mod_count>
         <sys_name/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
-        <sys_update_name>sp_instance_8e8df865c323221075ea722ed4013144</sys_update_name>
+        <sys_update_name>sp_instance_37656d41c3b3a25075ea722ed40131a9</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-24 18:16:16</sys_updated_on>
+        <sys_updated_on>2025-09-03 16:42:32</sys_updated_on>
         <title/>
         <url/>
-        <widget_parameters><![CDATA[{
-	"report_id": {
-		"value": "113041edc363221075ea722ed401318e",
-		"displayValue": "Most individual recognitions in last 90 days"
-	},
-	"show_title": {
-		"value": "false",
-		"displayValue": "false"
-	}
-}]]></widget_parameters>
+        <widget_parameters/>
     </sp_instance>
-    <sys_translated_text action="delete_multiple" query="documentkey=8e8df865c323221075ea722ed4013144"/>
+    <sys_translated_text action="delete_multiple" query="documentkey=37656d41c3b3a25075ea722ed40131a9"/>
 </record_update>
