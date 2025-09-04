@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function($scope, $location) {
+        <client_script><![CDATA[api.controller = function($scope, $location, $timeout) {
   /* widget controller */
   var c = this;
 	
-	c.activeTab = 'you';
-	
-	// Initialize tab from URL hash if present
-  if ($location.hash()) {
-    c.activeTab = $location.hash();
-  }
+	c.activeTab = $location.hash() || 'you';
+	c.isLoading = true; // Start in a faded state for the load-in animation
 	
 	c.data.recognitions = c.data.recognitions.map(function(recognition) {
 		var senderInitials = recognition.senderDisplay.split(' ').map(function(namePart) {
@@ -20,13 +16,14 @@
 		return {...recognition, timeAgo: convertToTimeAgo(recognition.createdOn), senderInitials: senderInitials};
 	});
 	
-	console.log(c.data);
-	
+	// Filter recognitions onload based on tab
+	c.data.filteredRecognitions = getFilteredRecognitions(c.data.recognitions, c.activeTab);
 	
 	
 	// Controller methods
 	c.setTab = function(tabName) {
-		c.activeTab = tabName;
+		if (c.activeTab === tabName) return;
+		
 		$location.hash(tabName);
 	};
 	
@@ -35,11 +32,37 @@
 	// listen for back/forward navigation, switch to the tab as per hash
   $scope.$on('$locationChangeSuccess', function() {
     var newHash = $location.hash();
-    if (newHash)
-      c.activeTab = newHash;
+		
+		if (!newHash || newHash == c.activeTab) return;
+		
+		// Start fade animation
+		c.isLoading = true;
+		
+		c.activeTab = newHash;
+		
+		$timeout(function() {
+			// Filter recognitions on tab change
+			c.data.filteredRecognitions = getFilteredRecognitions(c.data.recognitions, c.activeTab);
+			
+			// Stop fade animation
+			c.isLoading = false;
+		}, 400);
+
   });
 	
+	// Triggers the initial fade-in animation when the feed first loads.
+	$timeout(function() {
+    c.isLoading = false;
+  }, 400);
+	
 	// Helper methods
+	function getFilteredRecognitions(recognitions, currentTab) {
+		if (currentTab === 'all') return recognitions;
+		
+		
+		return recognitions.filter((rec) => rec.feed.includes(currentTab));
+	}
+	
 	function convertToTimeAgo(dateTime) {
 		if (!dateTime) return '';
 		
@@ -83,6 +106,40 @@
 
 .nav-tabs &gt; li.analytics &gt; a:focus {
 	border: none;
+}
+
+/* This container is the positioning anchor for the overlay */
+.feed-container {
+  position: relative;
+}
+
+/* This is the spinner overlay itself */
+.feed-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  
+  align-items: flex-start;
+  
+  padding-top: 50px;
+  
+  background: white;
+}
+
+/* This is the list of recognitions */
+.feed-content {
+  opacity: 1;
+  transition: opacity 0.4s linear;
+}
+
+/* This class is applied to the list when the spinner is active */
+.feed-content.content-faded {
+  opacity: 0;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -106,20 +163,31 @@
 	data.recognitions = recognitionDAO.getRecognitions(limit);
 
 	
+	var analyticsRoles = ['admin', 'x_1794402_peerce_0.admin', 'x_1794402_peerce_0.manager', 'x_1794402_peerce_0.hr_analyst'];
+	
+	data.showAnalytics = false;
+	
+	for (var i = 0; i < analyticsRoles.length; i++) {
+		if (gs.hasRole(analyticsRoles[i])) {
+			data.showAnalytics = true;
+			break;
+		}
+	}
+	
 })();]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>182</sys_mod_count>
+        <sys_mod_count>252</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-31 17:41:03</sys_updated_on>
+        <sys_updated_on>2025-09-04 19:04:10</sys_updated_on>
         <template><![CDATA[<main>
 <div class="panel panel-primary">
   <!-- Default panel contents -->
@@ -140,45 +208,56 @@
       <li role="presentation" ng-class="{active: c.activeTab=='all'}">
         <a href="" ng-click="c.setTab('all')">All</a>
       </li>
-      <li role="presentation" class="analytics">
+      <li role="presentation" class="analytics" ng-show="c.data.showAnalytics">
         <a href="/pc?id=recognition_analytics" target="_blank">Analytics ➚</a>
       </li>
     </ul>
   </nav>
 
   <!-- List group -->
-  <ul class="list-group">
-    <li ng-repeat="recognition in data.recognitions" class="list-group-item">
-      <article class="media">
-        <div class="media-left">
-           <span class="fa-stack fa-lg">
-            	<i class="fa fa-circle fa-stack-2x text-info"></i>
-            	<span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
-           </span>  
-  			</div>
-        
-        <div class="media-body p-5">
-          <h4 class="media-heading">
-            <a href>{{recognition.senderDisplay}}</a> gave applause to
-            <a href>{{recognition.recipients.join(', ')}}</a> <small class="text-muted pull-right">{{recognition.timeAgo}}</small>
-          </h4>
-          
-          <p ng-bind-html="recognition.message"></p>
-          
-          <small class="label label-default"><strong>{{recognition.categoryDisplay}}</strong></small>
-          
-        </div>
-      </article>
-    </li>
+  <section class="feed-container">
     
-    <li class="text-center p-5">Viewing {{data.recognitions.length}} out of {{data.recognitions.length}} total recognitions.</li>
-    
-    <li ng-if="!data.recognitions.length" class="list-group-item text-muted">
-      No recognitions found.
-    </li>
-  </ul>
+    <div ng-if="c.isLoading" class="feed-loading-overlay">
+      <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
+    </div>
 
-</div>
+    <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
+      <li ng-repeat="recognition in c.data.filteredRecognitions" class="list-group-item">
+        <article class="media">
+          <div class="media-left">
+             <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x text-info"></i>
+                <span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
+             </span>  
+          </div>
+
+          <div class="media-body p-5">
+            <h4 class="media-heading">
+              <a href>{{recognition.senderDisplay}}</a> gave applause to
+              <a href>{{recognition.recipients.join(', ')}}</a> <small class="text-muted pull-right">{{recognition.timeAgo}}</small>
+            </h4>
+
+            <p ng-bind-html="recognition.message"></p>
+
+            <small class="label label-default"><strong>{{recognition.categoryDisplay}}</strong></small>
+
+          </div>
+        </article>
+      </li>
+
+
+
+      <li ng-if="data.filteredRecognitions.length" class="text-center p-5">Viewing {{data.filteredRecognitions.length}} out of {{data.filteredRecognitions.length}} total recognitions.</li>
+
+
+      <li ng-if="!data.filteredRecognitions.length" class="list-group-item text-muted">
+        No recognitions found.
+      </li>
+
+    </ul>
+   </section>
+
+ </div>
 </main>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">

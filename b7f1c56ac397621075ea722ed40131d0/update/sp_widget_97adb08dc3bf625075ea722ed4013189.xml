@@ -63,7 +63,7 @@
     gaGiven.addQuery('sys_created_on', '>=', gs.daysAgo(days));
     gaGiven.groupBy('sender');
     gaGiven.addHaving('COUNT', '>', '0');
-	gaGiven.orderByAggregate('COUNT', 'sender');
+		gaGiven.orderByAggregate('COUNT', 'sender');
     gaGiven.query();
 
     while (gaGiven.next()) {
@@ -94,7 +94,7 @@
     gaReceived.addQuery('sys_created_on', '>=', gs.daysAgo(days));
     gaReceived.groupBy('recipient_user');
     gaReceived.addHaving('COUNT', '>', '0');
-	gaReceived.orderByAggregate('COUNT', 'recipient_user');
+		gaReceived.orderByAggregate('COUNT', 'recipient_user');
     gaReceived.query();
 
     while (gaReceived.next()) {
@@ -140,14 +140,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-03 13:48:50</sys_created_on>
         <sys_id>97adb08dc3bf625075ea722ed4013189</sys_id>
-        <sys_mod_count>52</sys_mod_count>
+        <sys_mod_count>55</sys_mod_count>
         <sys_name>Top Contributors</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_97adb08dc3bf625075ea722ed4013189</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-03 16:39:58</sys_updated_on>
+        <sys_updated_on>2025-09-03 18:50:34</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary">
     <div class="panel-heading">
         <h3 class="panel-title"><i class="glyphicon glyphicon-stats"></i> Top Contributors (Last {{c.options.days}} Days)</h3>
@@ -171,7 +171,7 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Team member</th>
+                        <th>User</th>
                         <th>Recognitions</th>
                     </tr>
                 </thead>

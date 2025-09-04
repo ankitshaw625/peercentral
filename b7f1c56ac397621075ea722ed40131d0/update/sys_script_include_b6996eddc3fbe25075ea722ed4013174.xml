@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>package_private</access>
+        <active>true</active>
+        <api_name>x_1794402_peerce_0.RecognitionUtils</api_name>
+        <caller_access/>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>RecognitionUtils</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var RecognitionUtils = Class.create();
+RecognitionUtils.prototype = {
+    initialize: function() {
+        this.teamMembers = this.getUserTeamMembers();
+    },
+
+    isTeamRecognition: function(sender, recipients) {
+        if (!this.teamMembers) return false;
+
+        if (this.teamMembers.includes(sender)) return true;
+
+        return recipients.some(recipient => this.teamMembers.includes(recipient));
+    },
+
+    getUserTeamMembers: function(userId) {
+        userId = userId || gs.getUserID();
+
+        var userGroups = this.getUserGroups(userId);
+        var teamMembers = [];
+
+        var grGroupMember = new GlideRecord('sys_user_grmember');
+        grGroupMember.addQuery('group', 'IN', userGroups.toString());
+        grGroupMember.query();
+
+        while (grGroupMember.next()) {
+            teamMembers.push(grGroupMember.user.toString());
+        }
+
+        return new global.ArrayUtil().unique(teamMembers);
+    },
+
+    getUserGroups: function(userId) {
+        userId = userId || gs.getUserID();
+
+        var userGroups = [];
+
+        var grGroupMember = new GlideRecord('sys_user_grmember');
+        grGroupMember.addQuery('user', userId);
+        grGroupMember.addQuery('group.active', true);
+        grGroupMember.query();
+
+        while (grGroupMember.next()) {
+            userGroups.push(grGroupMember.group.toString());
+        }
+
+        return userGroups;
+    },
+
+    type: 'RecognitionUtils'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-04 16:33:59</sys_created_on>
+        <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
+        <sys_mod_count>4</sys_mod_count>
+        <sys_name>RecognitionUtils</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-04 16:50:10</sys_updated_on>
+    </sys_script_include>
+</record_update>

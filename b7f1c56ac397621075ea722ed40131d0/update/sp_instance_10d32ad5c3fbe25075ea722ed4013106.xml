@@ -32,23 +32,23 @@
         <roles/>
         <short_description/>
         <size>md</size>
-        <sp_column display_value="3">c2656d41c3b3a25075ea722ed401312f</sp_column>
-        <sp_widget display_value="My Recognition Snapshot">96a71101c373a25075ea722ed4013191</sp_widget>
+        <sp_column display_value="2">95018a45c337a25075ea722ed401313c</sp_column>
+        <sp_widget display_value="Recognition Highlights">346f5a51c3fbe25075ea722ed4013182</sp_widget>
         <sys_class_name>sp_instance</sys_class_name>
         <sys_created_by>admin</sys_created_by>
-        <sys_created_on>2025-09-03 16:43:23</sys_created_on>
-        <sys_id>08a5a181c3b3a25075ea722ed4013109</sys_id>
+        <sys_created_on>2025-09-04 15:53:34</sys_created_on>
+        <sys_id>10d32ad5c3fbe25075ea722ed4013106</sys_id>
         <sys_mod_count>0</sys_mod_count>
         <sys_name/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
-        <sys_update_name>sp_instance_08a5a181c3b3a25075ea722ed4013109</sys_update_name>
+        <sys_update_name>sp_instance_10d32ad5c3fbe25075ea722ed4013106</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-03 16:43:23</sys_updated_on>
+        <sys_updated_on>2025-09-04 15:53:34</sys_updated_on>
         <title/>
         <url/>
         <widget_parameters/>
     </sp_instance>
-    <sys_translated_text action="delete_multiple" query="documentkey=08a5a181c3b3a25075ea722ed4013109"/>
+    <sys_translated_text action="delete_multiple" query="documentkey=10d32ad5c3fbe25075ea722ed4013106"/>
 </record_update>
