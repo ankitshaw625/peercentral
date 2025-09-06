@@ -4,8 +4,6 @@
         <client_script><![CDATA[api.controller=function() {
   /* widget controller */
   var c = this;
-	
-	
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.recognition-highlights-title {
@@ -26,8 +24,6 @@
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
-  /* populate the 'data' object */
-  /* e.g., data.table = $sp.getValue('table'); */
 	
 	data.recognitionOptions = {days: options.days};
 	
@@ -37,14 +33,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 15:34:14</sys_created_on>
         <sys_id>346f5a51c3fbe25075ea722ed4013182</sys_id>
-        <sys_mod_count>30</sys_mod_count>
+        <sys_mod_count>31</sys_mod_count>
         <sys_name>Recognition Highlights</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_346f5a51c3fbe25075ea722ed4013182</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-05 09:52:17</sys_updated_on>
+        <sys_updated_on>2025-09-06 13:34:52</sys_updated_on>
         <template><![CDATA[<div class="recognition-highlights"> 
   <h3 class="recognition-highlights-title"><strong>Recognition highlights</strong></h3> 
   

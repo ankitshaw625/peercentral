@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update>
-    <sys_documentation element="is_team" label="Is team" language="en" table="x_1794402_peerce_0_peer_recognition">
+    <sys_documentation element="recognition" label="Recognition" language="en" table="x_1794402_peerce_0_rec_interaction">
         <sys_documentation action="INSERT_OR_UPDATE">
-            <element>is_team</element>
+            <element>recognition</element>
             <help/>
             <hint/>
-            <label>Is team</label>
+            <label>Recognition</label>
             <language>en</language>
-            <name>x_1794402_peerce_0_peer_recognition</name>
+            <name>x_1794402_peerce_0_rec_interaction</name>
             <plural/>
             <sys_class_name>sys_documentation</sys_class_name>
             <sys_created_by>admin</sys_created_by>
-            <sys_created_on>2025-08-23 13:38:45</sys_created_on>
-            <sys_mod_count>7</sys_mod_count>
-            <sys_name>Is team</sys_name>
+            <sys_created_on>2025-09-06 14:06:45</sys_created_on>
+            <sys_mod_count>3</sys_mod_count>
+            <sys_name>Recognition</sys_name>
             <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
             <sys_policy/>
             <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
-            <sys_update_name>sys_documentation_x_1794402_peerce_0_peer_recognition_is_team_en</sys_update_name>
+            <sys_update_name>sys_documentation_x_1794402_peerce_0_rec_interaction_recognition_en</sys_update_name>
             <sys_updated_by>admin</sys_updated_by>
-            <sys_updated_on>2025-09-06 13:38:38</sys_updated_on>
+            <sys_updated_on>2025-09-06 14:06:49</sys_updated_on>
             <url/>
             <url_target/>
         </sys_documentation>
