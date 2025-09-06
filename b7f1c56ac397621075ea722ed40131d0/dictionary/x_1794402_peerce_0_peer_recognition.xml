@@ -6,6 +6,7 @@
         <element label="Sender" mandatory="true" max_length="32" name="sender" reference="sys_user" type="reference"/>
         <element label="Message" mandatory="true" max_length="4000" name="message" type="translated_html"/>
         <element label="Notify to" max_length="1024" name="notify_to" reference="sys_user" type="glide_list"/>
+        <element default="javascript:getNextObjNumberPadded();" display="true" dynamic_default_value="fdcb83a85f220100a9ad2572f2b4773c" label="Number" max_length="40" name="u_number" type="string" use_dynamic_default="true"/>
         <index name="index">
             <element name="sender"/>
         </index>
