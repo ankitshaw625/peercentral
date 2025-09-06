@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller=function() {
+  /* widget controller */
+  var c = this;
+	
+	c.refreshReport = function() {};
+	
+	var nodes = null;
+  var edges = null;
+  var network = null;
+
+	function drawGraph() {
+		// create people.
+		// value corresponds with the age of the person
+		nodes = [
+			{ id: 2, value: 31, label: "Alston" },
+			{ id: 3, value: 12, label: "Barney" },
+			{ id: 4, value: 16, label: "Coley" },
+			{ id: 5, value: 17, label: "Grant" },
+			{ id: 6, value: 15, label: "Langdon" },
+			{ id: 7, value: 6, label: "Lee" },
+			{ id: 8, value: 5, label: "Merlin" },
+			{ id: 9, value: 30, label: "Mick" },
+			{ id: 10, value: 18, label: "Tod" },
+		];
+
+		// create connections between people
+		// value corresponds with the amount of contact between two people
+		edges = [
+			{ from: 2, to: 8, value: 2},
+			{ from: 8, to: 2, value: 2},
+			{ from: 2, to: 9 },
+			{ from: 2, to: 10},
+			{ from: 4, to: 6},
+			{ from: 5, to: 7},
+			{ from: 4, to: 5},
+			{ from: 9, to: 10},
+			{ from: 2, to: 3},
+			{ from: 3, to: 9},
+			{ from: 5, to: 3},
+			{ from: 2, to: 7},
+		];
+
+		// Instantiate our network object.
+		var container = document.getElementById("network-graph-container");
+		var data = {
+			nodes: nodes,
+			edges: edges,
+		};
+		
+		var options = {
+			nodes: {
+				shape: "dot"
+			},
+		};
+		
+		network = new vis.Network(container, data, options);
+	}
+	
+	drawGraph();
+};]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.network-container {
+  background:#fff;
+  margin: 0 0 15px 0;
+}
+
+.network-container .panel-heading  {
+	position: relative;
+}
+
+.network-graph-title {
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: $now-sp-font-family-sans-serif;
+  color: #eee;
+  font-size: 1.5rem;
+}
+
+.refresh-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.graph-container {
+  height: 512px;
+}</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>recognition_network_graph</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Recognition Network Graph</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+
+  // Node aggregation: counts how many recognitions each user received
+  var recvAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
+  recvAgg.addAggregate('COUNT', 'recognition');
+  recvAgg.addQuery('is_team', false);
+  recvAgg.groupBy('recipient_user');
+  recvAgg.query();
+
+  var nodes = [];
+  while (recvAgg.next()) {
+		var recognitionCountUser = parseInt(recvAgg.getAggregate('COUNT', 'recognition'), 10);
+		
+    nodes.push({
+      id: recvAgg.recipient_user.toString(),
+      label: recvAgg.recipient_user.getDisplayValue(),
+      total_received: recognitionCountUser,
+      value: recognitionCountUser // for vis size
+    });
+  }
+
+  // Edge aggregation: counts how many recognitions each sender-recipient pair has
+  var edgeAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
+  edgeAgg.addAggregate('COUNT', 'recognition');
+  edgeAgg.addQuery('recognition.is_team', false);
+  edgeAgg.groupBy('recognition');
+  edgeAgg.query();
+
+  var edges = [];
+  while (edgeAgg.next()) {
+    var recId = edgeAgg.recognition.toString();
+    var recognition = new GlideRecord('x_1794402_peerce_0_peer_recognition');
+    if (!recognition.get(recId)) continue;
+
+    var recipientGR = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
+    recipientGR.addQuery('recognition', recId);
+    recipientGR.addQuery('is_team', false);
+    recipientGR.query();
+
+    while (recipientGR.next()) {
+      if (recipientGR.recipient_user.toString() !== recognition.sender.toString()) {
+        edges.push({
+          from: recognition.sender.toString(),
+          to: recipientGR.recipient_user.toString(),
+          value: parseInt(edgeAgg.getAggregate('COUNT', 'recognition'), 10)
+        });
+      }
+    }
+  }
+	
+	
+
+  data.nodes = nodes;
+  data.edges = edges;
+
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-05 12:42:38</sys_created_on>
+        <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
+        <sys_mod_count>30</sys_mod_count>
+        <sys_name>Recognition Network Graph</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-06 08:13:12</sys_updated_on>
+        <template><![CDATA[<div class="panel panel-primary network-container">
+  
+	<div class="panel-heading">
+		<h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i>Recognition Network</h2>
+  	<span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.refreshReport()"></span>
+  </div>
+  
+      
+	<div id="network-graph-container" class="graph-container">  
+  </div>
+</div>
+	
+ <script type="text/javascript">
+   
+</script>
+]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>09b1cbe5c3b3665075ea722ed401316c</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-05 12:42:38</sys_created_on>
+        <sys_id>81b10fe5c3b3665075ea722ed401319b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-05 12:42:38</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>
