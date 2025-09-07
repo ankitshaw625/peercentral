@@ -5,17 +5,43 @@
   /* widget controller */
   var c = this;
 	
-	var isTeam = false;
+	c.data.recipientType = 'members';
+	
+	// Initialize objects for the record pickers.
+  c.recipients = {}; c.teams = {}; c.category = {};
+	
+	c.errors = {};	
 	
 	c.submitRecognition = function() {
+		c.errors = {};
+		
+    var isTeam = c.data.recipientType === 'teams';
+
+    if (!isTeam && !c.recipients.value) c.errors.recipients = true;
+		
+    if (isTeam && !c.teams.value)	c.errors.teams = true;
+		
+    if (!c.category.value)	c.errors.category = true;
+    
+    if (Object.keys(c.errors).length > 0) {
+      return;
+    }
+		
+		
+		var recipients = (c.data.recipientType === 'members') ? c.recipients.value : c.teams.value;
 		
 		var newRecognition = {
-			recipients: c.recipients.value,
+      recipients: recipients,
 			category: c.category.value,
 			message: c.data.message,
 			isTeam: isTeam,
 			action: 'createRecognition'
-		};		
+		};
+		
+		alert(newRecognition);
+		alert('Submission blocked for testing');
+		
+		return;
 
 		c.server.get(newRecognition).then(function(response) {
 			spUtil.addInfoMessage(response.data.output.message);
@@ -35,13 +61,31 @@
   color: #333;          
 }
 
-/* Target the main label of the form group */
+
 .form-group .control-label {
-  font-weight: 600; /* Make it semi-bold */
+  font-weight: 600; 
 }
 
-#message::placeholder { /* Standard */
+#message::placeholder { 
    color: #aaa;
+}
+
+
+.mandatory {
+  color: #c0392b;
+  font-size: 8px; 
+  padding-left: .25em;
+  transition: color 0.2s ease-in-out;
+}
+
+
+.mandatory-filled {
+  color: #777; 
+}
+
+.flex-label {
+  display: flex;
+  align-items: center;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -71,14 +115,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>134</sys_mod_count>
+        <sys_mod_count>151</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-06 22:45:34</sys_updated_on>
+        <sys_updated_on>2025-09-07 09:05:10</sys_updated_on>
         <template><![CDATA[<header class="recognition-header">
 <h1>Recognize your teams and peers</h1>
   <p>
@@ -105,24 +149,28 @@
       <div class="modal-body">
         <p>Tell us who to recognize and how they were awesome.</p>
         
+      <form role="form" novalidate>
         <fieldset class="form-group">
 
           <legend class="control-label">To</legend>
 
             <label class="radio-inline">
-              <input type="radio" name="recipientType" id="recipientTeamMembers" value="members" checked>
+              <input type="radio" name="recipientType" id="recipientTeamMembers" value="members" ng-model="c.data.recipientType">
               Team members
             </label>
 
             <label class="radio-inline">
-              <input type="radio" name="recipientType" id="recipientMyTeams" value="teams">
+              <input type="radio" name="recipientType" id="recipientMyTeams" value="teams" ng-model="c.data.recipientType">
               My teams
             </label>
 
         </fieldset>
         
-        <div class="form-group">
-          <label for="recipients" class="control-label">Team members </label>
+        <div class="form-group" ng-show="c.data.recipientType == 'members'">
+          <label for="recipients" class="control-label flex-label">
+            Team members
+            <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.recipients.value}"></span>
+          </label>
           
           <sn-record-picker 
     				field="c.recipients" 
@@ -135,18 +183,53 @@
 						multiple="true"
 						id="recipients">
 					</sn-record-picker>
+          
+          <div ng-if="c.errors.recipients && !c.recipients.value" class="text-danger mt-5">
+            Please select at least one team member.
+          </div>
+        </div>
+        
+        <div class="form-group" ng-show="c.data.recipientType == 'teams'">
+          <label for="teams" class="control-label flex-label">
+            Teams 
+            <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.teams.value}"></span>
+          </label>
+          
+          <sn-record-picker 
+    				field="c.teams" 
+    				table="'sys_user_group'" 
+    				display-field="'name'" 
+    				value-field="'sys_id'" 
+    				search-fields="'name'" 
+    				page-size="100" 
+    				default-query="'active=true'"
+						multiple="true"
+						id="teams">
+					</sn-record-picker>
+          
+          <div ng-if="c.errors.teams && !c.teams.value" class="text-danger mt-5">
+            Please select at least one team.
+          </div>
         </div>
         
         <div class="form-group">
-          <label for="category" class="control-label">Occasion </label>
+          <label for="category" class="control-label flex-label">
+            Occasion 
+    				<span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.category.value}"></span>
+          </label>
+          
           <sn-record-picker 
     				field="c.category" 
     				table="'x_1794402_peerce_0_recognition_category'" 
     				display-field="'name'" 
     				value-field="'sys_id'" 
     				search-fields="'name'" 
-    				page-size="100" id="category">
+    				page-size="100" id="category" required="true">
 					</sn-record-picker>
+          
+          <div ng-if="c.errors.category && !c.category.value" class="text-danger mt-5">
+            Please select an occasion for this recognition.
+          </div>
         </div>
         
         <div class="form-group">
@@ -209,6 +292,7 @@
           </div>
 
       	</fieldset>
+       </form>
         
       </div>
       
