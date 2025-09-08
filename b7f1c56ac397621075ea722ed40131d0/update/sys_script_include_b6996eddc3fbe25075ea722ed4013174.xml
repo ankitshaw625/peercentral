@@ -12,49 +12,87 @@
         <script><![CDATA[var RecognitionUtils = Class.create();
 RecognitionUtils.prototype = {
     initialize: function() {
-        this.teamMembers = this.getUserTeamMembers();
+        this.userTeam = '';
+    },
+
+    canReadPrivateRecognition: function(grRecognition, userId) {
+        userId = userId || gs.getUserID();
+		
+        var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+
+        // Check if current user is the sender
+        if (userId == grRecognition.sender.toString()) return true;
+
+        // Check if current user is part of the notify to list
+        if (grRecognition.notify_to.toString().includes(userId)) return true;
+
+        var recognitionSysId = grRecognition.sys_id.toString();
+        var isTeam = grRecognitions.is_team.toString() == 'true';
+
+        var recipientData = recognitionDAO.getRecognitionRecipients(recognitionSysId, isTeam);
+
+        var recognitionRecipients = recipientData.userIds || [];
+
+        // If it's a team fetch and add the team members
+        if (isTeam) {
+            var teamMembers = this.getGroupMembers(recognitionRecipients);
+            recognitionRecipients.concat(teamMembers);
+        }
+
+        // Check if the current user is one of the recipients
+        return recognitionRecipients.includes(userId);
     },
 
     isTeamRecognition: function(sender, recipients) {
-        if (!this.teamMembers) return false;
+        if (!this.userTeam) {
+            this.userTeam = this.getUserTeam();
+        }
 
-        if (this.teamMembers.includes(sender)) return true;
+        if (this.userTeam.includes(sender)) return true;
 
-        return recipients.some(recipient => this.teamMembers.includes(recipient));
+        return recipients.some(recipient => this.userTeam.includes(recipient));
     },
 
-    getUserTeamMembers: function(userId) {
+    getUserTeam: function(userId) {
         userId = userId || gs.getUserID();
 
         var userGroups = this.getUserGroups(userId);
-        var teamMembers = [];
+        // var teamMembers = new Set(userGroups);
+
+        var teamMembers = this.getGroupMembers(userGroups);
+
+        return userGroups.concat(teamMembers);
+    },
+
+    getGroupMembers: function(groupIds) {
+        var groupMembers = new Set();
 
         var grGroupMember = new GlideRecord('sys_user_grmember');
         grGroupMember.addQuery('group', 'IN', userGroups.toString());
         grGroupMember.query();
 
         while (grGroupMember.next()) {
-            teamMembers.push(grGroupMember.user.toString());
+            groupMembers.add(grGroupMember.user.toString());
         }
 
-        return new global.ArrayUtil().unique(teamMembers);
+        return Array.from(groupMembers);
     },
 
     getUserGroups: function(userId) {
         userId = userId || gs.getUserID();
 
-        var userGroups = [];
+        var userGroups = new Set();
 
         var grGroupMember = new GlideRecord('sys_user_grmember');
-        grGroupMember.addQuery('user', userId);
         grGroupMember.addQuery('group.active', true);
+        grGroupMember.addQuery('user', userId).addOrCondition('group.manager', userId);
         grGroupMember.query();
 
         while (grGroupMember.next()) {
-            userGroups.push(grGroupMember.group.toString());
+            userGroups.add(grGroupMember.group.toString())
         }
 
-        return userGroups;
+        return Array.from(userGroups);
     },
 
     type: 'RecognitionUtils'
@@ -63,13 +101,13 @@ RecognitionUtils.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>4</sys_mod_count>
+        <sys_mod_count>8</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-04 16:50:10</sys_updated_on>
+        <sys_updated_on>2025-09-08 18:00:51</sys_updated_on>
     </sys_script_include>
 </record_update>

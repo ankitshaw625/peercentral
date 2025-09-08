@@ -140,6 +140,25 @@
 /* This class is applied to the list when the spinner is active */
 .feed-content.content-faded {
   opacity: 0;
+}
+
+.recognition-indicators abbr {
+	display: inline-block;
+  cursor: pointer;
+}
+
+.private-indicator {
+	color: #7B6EA2;
+}
+
+.team-indicator {
+	color: #007BFF;
+}
+
+
+.occasion-tag {
+  font-size: 1.2rem;
+  border-radius: 3px
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -151,12 +170,12 @@
         <internal>false</internal>
         <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
         <name>Recognition Feed</name>
-        <option_schema/>
+        <option_schema>[{"hint":"Number of records displayed in a page.","name":"record_limit","section":"Data","default_value":"15","label":"Record Limit","type":"integer"}]</option_schema>
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
 	
-	var limit = options.limit || 10;
+	var limit = options.record_limit || 10;
 	
 	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 	
@@ -180,14 +199,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>252</sys_mod_count>
+        <sys_mod_count>291</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-04 19:04:10</sys_updated_on>
+        <sys_updated_on>2025-09-08 15:53:50</sys_updated_on>
         <template><![CDATA[<main>
 <div class="panel panel-primary">
   <!-- Default panel contents -->
@@ -202,12 +221,15 @@
       <li role="presentation" ng-class="{active: c.activeTab=='you'}">
         <a href="" ng-click="c.setTab('you')">You</a>
       </li>
+      
       <li role="presentation" ng-class="{active: c.activeTab=='team'}">
         <a href="" ng-click="c.setTab('team')">Team</a>
       </li>
+      
       <li role="presentation" ng-class="{active: c.activeTab=='all'}">
         <a href="" ng-click="c.setTab('all')">All</a>
       </li>
+      
       <li role="presentation" class="analytics" ng-show="c.data.showAnalytics">
         <a href="/pc?id=recognition_analytics" target="_blank">Analytics ➚</a>
       </li>
@@ -224,23 +246,42 @@
     <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
       <li ng-repeat="recognition in c.data.filteredRecognitions" class="list-group-item">
         <article class="media">
+          
           <div class="media-left">
              <span class="fa-stack fa-lg">
                 <i class="fa fa-circle fa-stack-2x text-info"></i>
                 <span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
-             </span>  
+             </span>
           </div>
 
           <div class="media-body p-5">
             <h4 class="media-heading">
-              <a href>{{recognition.senderDisplay}}</a> gave applause to
-              <a href>{{recognition.recipients.join(', ')}}</a> <small class="text-muted pull-right">{{recognition.timeAgo}}</small>
+              <a href>{{recognition.senderDisplay}}</a> gave applause to <a href>{{recognition.recipients.join(', ')}}</a> 
+							
+              <small class="text-muted pull-right">{{recognition.timeAgo}}</small> 
+              
             </h4>
+            
+            <span class="recognition-indicators mb-5 pull-right">
+              <abbr title="Private Recognition" class="private-indicator initialism ml-10" ng-if="recognition.isPrivate">
+                <i class="fa fa-lock" aria-hidden="true"></i>
+              </abbr>
+
+              <abbr  title="Team Recognition" class="team-indicator initialism ml-10" ng-if="recognition.isTeam">
+                <i class="fa fa-users" aria-hidden="true"></i>
+              </abbr>
+            </span>
+            
+
 
             <p ng-bind-html="recognition.message"></p>
-
-            <small class="label label-default"><strong>{{recognition.categoryDisplay}}</strong></small>
-
+            
+						<span ng-repeat="occasion in recognition.occasions">
+            	<small class="label label-default occasion-tag">
+                <strong>{{occasion}}</strong>
+              </small>&nbsp;
+          	</span>
+            
           </div>
         </article>
       </li>

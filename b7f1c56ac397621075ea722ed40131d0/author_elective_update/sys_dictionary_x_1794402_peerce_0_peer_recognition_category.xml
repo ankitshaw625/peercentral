@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_dictionary action="DELETE" element="category" table="x_1794402_peerce_0_peer_recognition">
+        <active>false</active>
+        <array>false</array>
+        <attributes/>
+        <audit>false</audit>
+        <calculation/>
+        <choice/>
+        <choice_field/>
+        <choice_table/>
+        <column_label>Category</column_label>
+        <comments/>
+        <create_roles/>
+        <default_value/>
+        <defaultsort/>
+        <delete_roles/>
+        <dependent/>
+        <dependent_on_field/>
+        <display>false</display>
+        <dynamic_creation>false</dynamic_creation>
+        <dynamic_creation_script/>
+        <dynamic_default_value/>
+        <dynamic_ref_qual/>
+        <element>category</element>
+        <element_reference>false</element_reference>
+        <foreign_database/>
+        <formula/>
+        <function_definition/>
+        <function_field>false</function_field>
+        <internal_type display_value="Reference">reference</internal_type>
+        <mandatory>true</mandatory>
+        <max_length>40</max_length>
+        <name>x_1794402_peerce_0_peer_recognition</name>
+        <next_element/>
+        <primary>false</primary>
+        <read_only>false</read_only>
+        <read_roles/>
+        <reference display_value="" name="x_1794402_peerce_0_recognition_category">x_1794402_peerce_0_recognition_category</reference>
+        <reference_cascade_rule/>
+        <reference_floats>false</reference_floats>
+        <reference_key/>
+        <reference_qual/>
+        <reference_qual_condition/>
+        <reference_type/>
+        <spell_check>false</spell_check>
+        <staged>false</staged>
+        <sys_class_name>sys_dictionary</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-14 10:00:46</sys_created_on>
+        <sys_id>6ba98de2c3d7621075ea722ed40131b3</sys_id>
+        <sys_name>Category</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_dictionary_x_1794402_peerce_0_peer_recognition_category</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-07 17:02:19</sys_updated_on>
+        <table_reference>false</table_reference>
+        <text_index>false</text_index>
+        <unique>false</unique>
+        <use_dependent_field>false</use_dependent_field>
+        <use_dynamic_default>false</use_dynamic_default>
+        <use_reference_qualifier>simple</use_reference_qualifier>
+        <virtual>false</virtual>
+        <virtual_type>script</virtual_type>
+        <widget/>
+        <write_roles/>
+        <xml_view>false</xml_view>
+    </sys_dictionary>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>sys_dictionary_x_1794402_peerce_0_peer_recognition_category</name>
+        <payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update><sys_dictionary action="INSERT_OR_UPDATE" element="category" table="x_1794402_peerce_0_peer_recognition"><active>false</active><array>false</array><attributes/><audit>false</audit><calculation/><choice/><choice_field/><choice_table/><column_label>Category</column_label><comments/><create_roles/><default_value/><defaultsort/><delete_roles/><dependent/><dependent_on_field/><display>false</display><dynamic_creation>false</dynamic_creation><dynamic_creation_script/><dynamic_default_value/><dynamic_ref_qual/><element>category</element><element_reference>false</element_reference><foreign_database/><formula/><function_definition/><function_field>false</function_field><internal_type display_value="Reference">reference</internal_type><mandatory>true</mandatory><max_length>40</max_length><name>x_1794402_peerce_0_peer_recognition</name><next_element/><primary>false</primary><read_only>false</read_only><read_roles/><reference display_value="" name="x_1794402_peerce_0_recognition_category">x_1794402_peerce_0_recognition_category</reference><reference_cascade_rule/><reference_floats>false</reference_floats><reference_key/><reference_qual/><reference_qual_condition/><reference_type/><spell_check>false</spell_check><staged>false</staged><sys_class_name>sys_dictionary</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2025-08-14 10:00:46</sys_created_on><sys_id>6ba98de2c3d7621075ea722ed40131b3</sys_id><sys_name>Category</sys_name><sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package><sys_policy/><sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope><sys_update_name>sys_dictionary_x_1794402_peerce_0_peer_recognition_category</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2025-09-07 17:02:19</sys_updated_on><table_reference>false</table_reference><text_index>false</text_index><unique>false</unique><use_dependent_field>false</use_dependent_field><use_dynamic_default>false</use_dynamic_default><use_reference_qualifier>simple</use_reference_qualifier><virtual>false</virtual><virtual_type>script</virtual_type><widget/><write_roles/><xml_view>false</xml_view></sys_dictionary></record_update>]]></payload>
+        <payload_hash>456463722</payload_hash>
+        <record_name>Recognition.Category</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>previous</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-07 17:02:19</sys_created_on>
+        <sys_id>e450de56c33f2a5075ea722ed401317b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>1992520ef070000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-07 17:02:19</sys_updated_on>
+        <type>Dictionary</type>
+        <update_guid>6c50de56fd3f2a5075f4aa8256a1e87a</update_guid>
+        <update_guid_history>6c50de56fd3f2a5075f4aa8256a1e87a:456463722,088e05eaadd762104746b4897620f3ec:-480585355,472e4daa4fd76210a9471d058456e4ab:-422552370,ffa9cde25fd76210f39365de5117cb17:-1294638485,a7a98de2bbd762102a5e313f11889bd9:-1297301592</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete/>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-08 08:47:54</sys_created_on>
+        <sys_db_object display_value="" name="sys_dictionary">sys_dictionary</sys_db_object>
+        <sys_id>962c55c4c99142848bc3989795472411</sys_id>
+        <sys_metadata>6ba98de2c3d7621075ea722ed40131b3</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>Category</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent display_value="Recognition">a8e889a2c3d7621075ea722ed40131b1</sys_parent>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>sys_dictionary_x_1794402_peerce_0_peer_recognition_category</sys_update_name>
+        <sys_update_version display_value="sys_dictionary_x_1794402_peerce_0_peer_recognition_category">e450de56c33f2a5075ea722ed401317b</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-08 08:47:54</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>
