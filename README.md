@@ -1,2 +1,2 @@
 # peercentral
-Employee recognition and appreciation platform for ServiceNow.
+Employee recognition application for ServiceNow.
