@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller=function($scope, $timeout) {
+  /* widget controller */
+  var c = this;
+	
+	//console.log(c.data);
+	
+	
+	// This function runs automatically when the widget initializes
+  c.$onInit = function() {
+		c.loadGraphData();
+  };
+	
+	c.loadGraphData = function() {
+		// Set a flag to show the loading indicator
+    c.isLoading = true;
+    
+    // Call the server to get the graph data
+    c.server.get({
+      action: 'get_graph_data'
+    }).then(function(response) {
+      // Once the data comes back, store it
+      c.data.nodes = response.data.nodes;
+      c.data.edges = response.data.edges;
+      
+      // Turn off the loading indicator
+      c.isLoading = false;
+      
+      // Now, initialize the graph (inside a $timeout to ensure the container is visible)
+      $timeout(function() {
+        initializeGraph();
+      });
+    });
+	};
+	
+	
+	 function initializeGraph() {
+		
+		// Check if the server script found any data to display
+    if (!c.data.nodes || c.data.nodes.length === 0) {
+      // You could optionally display a "No data to display" message here
+      return;
+    }
+    
+    // 1. Create vis.js DataSets from the server data
+    var nodes = new vis.DataSet(c.data.nodes);
+    var edges = new vis.DataSet(c.data.edges);
+
+    // 2. Get the container element from the HTML
+    var container = document.getElementById('recognition-graph-container');
+
+    // 3. Provide the data in the format vis.js expects
+    var data = {
+      nodes: nodes,
+      edges: edges
+    };
+
+    // 4. Define display options for the graph's appearance and physics
+    var options = {
+      nodes: {
+        shape: 'dot',
+				
+        scaling: {
+          min: 10,
+          max: 30,
+        },
+        
+				font: {
+          size: 12,
+          face: 'Tahoma'
+        }
+      },
+			
+      edges: {
+				scaling: {
+					min: 0.2,
+					max: 2.0
+				},
+        
+				color: {
+          inherit: 'from'
+        },
+        
+				smooth: {
+          type: 'continuous'
+        },
+				
+        arrows: {
+          to: {
+            enabled: true,
+            scaleFactor: 0.5
+          }
+        }
+      },
+			
+      physics: {
+        barnesHut: {
+          gravitationalConstant: -2000
+        },
+				
+        stabilization: {
+          iterations: 2000
+        }
+      },
+			
+      interaction: {
+        tooltipDelay: 200
+      }
+    };
+
+    // 5. Initialize the Network Graph
+    var network = new vis.Network(container, data, options);
+	}
+	
+};]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.network-container {
+  background:#fff;
+  margin: 0 0 15px 0;
+}
+
+.network-container .panel-heading  {
+	position: relative;
+}
+
+.network-graph-title {
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 0;
+  font-family: $now-sp-font-family-sans-serif;
+  color: #eee;
+  font-size: 1.5rem;
+}
+
+.refresh-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.graph-container {
+  height: 512px;
+  width: 85%;
+}</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>recognition_network_graph</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Recognition Network Graph</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+	
+	// We only generate the data if the client has requested it (for async loading).
+	if (input && input.action === 'get_graph_data') {
+		var graphData = getGraphData();
+		data.nodes = graphData.nodes;
+		data.edges = graphData.edges;
+	}
+	
+	
+ /**
+  * Main function to generate all node and edge data for the graph.
+  * This encapsulates all the data processing logic.
+  * @returns {object} An object containing the nodes and edges arrays.
+  */
+	function getGraphData() {
+		
+		const userNodes = new Map();
+		let edges = [], nodes = [];
+
+	  // Get all users who received recognitions as nodes
+		const sentAgg = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
+		sentAgg.addQuery('is_team', false);
+		sentAgg.addNotNullQuery('sender');
+		sentAgg.addAggregate('COUNT');
+		sentAgg.groupBy('sender');
+		sentAgg.query();
+
+		while (sentAgg.next()) {
+			const senderId = sentAgg.sender.toString();
+			const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
+
+			userNodes.set(senderId, {
+				id: senderId,
+				label: sentAgg.sender.getDisplayValue(),
+				sent: count,
+				received: 0,
+				value: 0
+			});
+		}
+
+		// Get all users who received recognitions as nodes
+		const receivedAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
+		receivedAgg.addQuery('recognition.is_team', false);
+		receivedAgg.addNotNullQuery('recipient_user');
+		receivedAgg.addAggregate('COUNT');
+		receivedAgg.groupBy('recipient_user');
+		receivedAgg.query();
+		while (receivedAgg.next()) {
+			const recipientId = receivedAgg.recipient_user.toString();
+			const count = parseInt(receivedAgg.getAggregate('COUNT'), 10);
+
+			if (userNodes.has(recipientId)) {
+				const existingNode = userNodes.get(recipientId);
+				existingNode.received = count;
+				existingNode.value = count;
+
+				continue;
+			}
+
+			userNodes.set(recipientId, {
+				id: recipientId,
+				label: receivedAgg.recipient_user.getDisplayValue(),
+				sent: 0,
+				received: count,
+				value: count
+			});
+		}
+
+		// Get all the computed notes with statistics
+		nodes = Array.from(userNodes.values());
+
+		// Get all the edges with counts
+		const edgeCounts = new Map();
+		const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
+		recipientGr.addQuery('recognition.is_team', false);
+		recipientGr.addNotNullQuery('recognition.sender');
+		recipientGr.addNotNullQuery('recipient_user');
+		recipientGr.query();
+
+		while (recipientGr.next()) {
+			const senderId = recipientGr.recognition.sender.toString(); 
+			const recipientId = recipientGr.recipient_user.toString(); 
+
+			if (senderId !== recipientId) {
+				const key = senderId + '->' + recipientId;
+				const currentCount = edgeCounts.get(key) || 0;
+				edgeCounts.set(key, currentCount + 1);
+			}
+		}
+
+
+		// Conver the edges into the required format
+		for (const [key, value] of edgeCounts.entries()) {
+			const [fromId, toId] = key.split('->');
+
+			edges.push({
+				from: fromId,
+				to: toId,
+				value: value,
+				title: value + ' recognition(s).'
+			});
+		}
+		
+		// Return the final data object
+		return {
+			nodes: nodes,
+			edges: edges
+		};
+	}
+
+
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-05 12:42:38</sys_created_on>
+        <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
+        <sys_mod_count>61</sys_mod_count>
+        <sys_name>Recognition Network Graph</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-06 11:25:57</sys_updated_on>
+        <template><![CDATA[<div class="panel panel-primary network-container">
+  
+	<div class="panel-heading">
+		<h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i> Recognition Network</h2>
+  	<span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
+  </div>
+  
+  <div ng-if="c.isLoading" class="text-center mt-10">
+    <i class="fa fa-spinner fa-spin fa-2x"></i>
+    <p>Loading graph data...</p>
+  </div>
+      
+	<div ng-if="!c.isLoading" id="recognition-graph-container" class="graph-container">  
+  </div>
+</div>
+	
+
+]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>09b1cbe5c3b3665075ea722ed401316c</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-05 12:42:38</sys_created_on>
+        <sys_id>81b10fe5c3b3665075ea722ed401319b</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-05 12:42:38</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

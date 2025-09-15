@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function($scope, spUtil) {
+  var c = this;	
+	
+	c.initializeModels = function () {
+    c.recipients = {value: ''};
+    c.teams = {value: ''};
+    c.category = {value: ''};
+    c.notifyTo = {value: ''};
+    c.visibility = { isPrivate: false };
+    c.errors = {};
+    
+		c.recipientType = 'members';
+    c.message = '';
+  };
+	
+	c.onRecipientTypeChange = function() {
+    c.errors = {};
+  };
+	
+	c.submitRecognition = function() {
+		c.errors = {};
+		
+    var isTeam = c.recipientType === 'teams';
+
+    if (!isTeam && !c.recipients.value) c.errors.recipients = true;
+		
+    if (isTeam && !c.teams.value)	c.errors.teams = true;
+		
+    if (!c.category.value) c.errors.category = true;
+    
+    if (Object.keys(c.errors).length > 0) return;
+		
+		
+		var recipients = isTeam ? c.teams.value : c.recipients.value;
+		
+		var newRecognition = {
+      recipients: recipients,
+			category: c.category.value,
+			message: c.message,
+			isTeam: isTeam,
+			notifyTo: c.notifyTo.value,
+			isPrivate: c.visibility.isPrivate,
+			action: 'createRecognition'
+		};
+		
+		c.server.get(newRecognition).then(function(response) {
+			var status = response.data.output.status;
+			if (status == 'success') {
+				spUtil.addInfoMessage(c.data.successMessage);				
+			}
+			
+			$('#recognition-modal').modal('hide');
+			
+			// Clear form data
+			c.initializeModels();
+		});
+	};
+	
+	
+	c.initializeModels();
+};]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.modal-title {
+	display: inline-block;
+}
+
+.recognition-header {
+  background: url('x_1794402_peerce_0.recognition-header-banner.png') no-repeat right center;
+  background-size: contain;   
+  padding: 0 0 4rem 0;    
+  color: #333;          
+}
+
+
+.form-group .control-label {
+  font-weight: 600; 
+}
+
+#message::placeholder { 
+   color: #aaa;
+}
+
+
+.mandatory {
+  color: #c0392b;
+  font-size: 8px; 
+  padding-left: .25em;
+  transition: color 0.2s ease-in-out;
+}
+
+
+.mandatory-filled {
+  color: #777; 
+}
+
+.flex-label {
+  display: flex;
+  align-items: center;
+}
+
+.field-error {
+  font-size: 10px;
+  font-weight: 500;
+}</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>recognition_header</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Recognition Header</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {
+	
+	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+	
+	if (input && input.action == 'createRecognition') {
+		var result = recognitionDAO.createRecognition(input);
+		data.output = result;
+	}
+	
+	data.successMessage = gs.getMessage('Thank you! Your recognition has been sent.');
+	
+	data.showTeams = gs.hasRole('x_1794402_peerce_0.manager') || gs.hasRole('x_1794402_peerce_0.hr_analyst');
+
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-14 11:22:22</sys_created_on>
+        <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
+        <sys_mod_count>176</sys_mod_count>
+        <sys_name>Recognition Header</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-08 16:28:16</sys_updated_on>
+        <template><![CDATA[<header class="recognition-header">
+<h1>Recognize your teams and peers</h1>
+  <p>
+    Take a moment to give a shout-out to your peers for their great work!
+  </p>
+  
+  <button class="btn btn-primary" data-toggle="modal" data-target="#recognition-modal">
+    <strong>Give recognition</strong>
+  </button>
+</header>
+ 
+
+<!-- Recognition Modal -->
+<div class="modal fade" id="recognition-modal" tabindex="-1" role="dialog" aria-labelledby="recognitionModal" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title" id="recognitionModal">Send a Recognition</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <p>Tell us who to recognize and how they were awesome.</p>
+        
+      <form role="form" novalidate>
+        <fieldset class="form-group" ng-show="c.data.showTeams">
+
+          <legend class="control-label">To</legend>
+
+            <label class="radio-inline">
+              <input type="radio" name="recipientType" id="recipientTeamMembers" value="members" ng-model="c.recipientType" ng-change="c.onRecipientTypeChange()">
+              Team members
+            </label>
+
+            <label class="radio-inline">
+              <input type="radio" name="recipientType" id="recipientMyTeams" value="teams" ng-model="c.recipientType" ng-change="c.onRecipientTypeChange()">
+              My teams
+            </label>
+
+        </fieldset>
+        
+        <div class="form-group" ng-show="c.recipientType == 'members'">
+          <label for="recipients" class="control-label flex-label">
+            Team members
+            <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.recipients.value}"></span>
+          </label>
+          
+          <sn-record-picker 
+    				field="c.recipients" 
+    				table="'sys_user'" 
+    				display-field="'name'" 
+    				value-field="'sys_id'" 
+    				search-fields="'name'" 
+    				page-size="100" 
+    				default-query="'active=true'"
+						multiple="true"
+						id="recipients">
+					</sn-record-picker>
+          
+          <div ng-if="c.errors.recipients && !c.recipients.value" class="text-danger mt-5 field-error">
+            Please select at least one team member.
+          </div>
+        </div>
+        
+        <div class="form-group" ng-show="c.recipientType == 'teams'">
+          <label for="teams" class="control-label flex-label">
+            Teams 
+            <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.teams.value}"></span>
+          </label>
+          
+          <sn-record-picker 
+    				field="c.teams" 
+    				table="'sys_user_group'" 
+    				display-field="'name'" 
+    				value-field="'sys_id'" 
+    				search-fields="'name'" 
+    				page-size="100" 
+    				default-query="'active=true'"
+						multiple="true"
+						id="teams">
+					</sn-record-picker>
+          
+          <div ng-if="c.errors.teams && !c.teams.value" class="text-danger mt-5 field-error">
+            Please select at least one team.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="category" class="control-label flex-label">
+            Occasion 
+    				<span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.category.value}"></span>
+          </label>
+          
+          <sn-record-picker 
+    				field="c.category" 
+    				table="'x_1794402_peerce_0_recognition_category'" 
+    				display-field="'name'" 
+    				value-field="'sys_id'" 
+    				search-fields="'name'" 
+    				page-size="100" id="category"
+						default-query="'active=true'"
+            multiple="true">
+					</sn-record-picker>
+          
+          <div ng-if="c.errors.category && !c.category.value" class="text-danger mt-5 field-error">
+            Please select an occasion for this recognition.
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="message">Add a message (Optional) </label>
+
+          <textarea ng-model="c.message" class="form-control" 
+                    id="message" rows="2" 
+                    placeholder="Tell them what they did and why it mattered">
+          </textarea>  
+				</div>
+        
+        <!--<div class="form-group">
+          <label for="message" class="control-label">Add a message (Optional) </label>
+          
+          <cf-tiny-mce-custom
+            ng-model="c.data.message"
+						ng-model-options="{ plugins: 'image codesample code link fullscreen table autoresize',
+    					toolbar: 'undo redo | bold italic underline | bullist numlist | fontselect fontsizeselect fontfamily fontsize'}"
+                              
+            id="message"
+            table="'x_1794402_peerce_0_peer_recognition'"
+            attachment-sys-id="-1"
+            >
+          </cf-tiny-mce-custom>
+          
+        </div>-->
+        
+        <fieldset class="form-group">
+  
+          <legend class="control-label">Visibility & Sharing</legend>
+
+          <p class="help-block">
+            By default, this recognition is public and visible to everyone in the organization.
+          </p>
+
+          <div class="checkbox">
+            <label class="control-label">
+              <input type="checkbox" name="is_private" ng-model="c.visibility.isPrivate">
+              Make this recognition private
+            </label>
+            
+            <span class="help-block mt-5">
+              Visible only to the recipient(s) and anyone you add in Notify other people.
+            </span>
+          </div>
+
+          <div class="form-group mt-20">
+            <label for="notifyTo" class="control-label">Notify other people</label>
+            <sn-record-picker 
+              field="c.notifyTo" 
+              table="'sys_user'" 
+              display-field="'name'" 
+              value-field="'sys_id'" 
+              search-fields="'name'" 
+              page-size="100" 
+              default-query="'active=true'"
+              multiple="true"
+              id="notifyTo">
+            </sn-record-picker>
+          </div>
+
+      	</fieldset>
+       </form>
+        
+      </div>
+      
+      <div class="modal-footer text-right">
+        <button type="button" class="btn btn-secondary" ng-click="c.initializeModels()" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" ng-click="c.submitRecognition()">Submit</button>
+      </div>
+    </div>
+  </div>
+</div>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>a65c596ec31b621075ea722ed4013181</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-14 11:22:22</sys_created_on>
+        <sys_id>ae5c596ec31b621075ea722ed4013184</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-14 11:22:22</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

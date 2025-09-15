@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="par_visualization">
+    <par_visualization action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <certified>false</certified>
+        <description/>
+        <macroponent display_value="Horizontal bar">85855283b7e03010097cb81cde11a91d</macroponent>
+        <name>Breakdown by category</name>
+        <properties>{"configVersion":"23.0.0-ci-SNAPSHOT","yAxisHidden":false,"yAxisPosition":"bottom","yAxisShowGrid":true,"xAxisWrapLabels":false,"xAxisMaxLabelSize":100,"xAxisTruncationType":"end","yAxisStyle":"clean","showDataLabels":false,"dataLabelPosition":"top","showStackedValues":"none","showOverlappingLabels":false,"newReporting":false,"dataSources":[{"isDatabaseView":false,"allowRealTime":true,"sourceType":"table","tableOrViewName":"x_1794402_peerce_0_peer_recognition","filterQuery":"","preferredVisualizations":["d24d53f60350de7a652caf3188a46ed2"],"id":"dGFibGV4XzE3OTQ0MDJfcGVlcmNlXzBfcGVlcl9yZWNvZ25pdGlvbjE3NTcxNjQxMjEyMjA3MDQzMDk1MC4yMDY1MTkyMw==","dataCategories":["trend","group","simple"]}],"headerTitle":"Breakdown by category","showHeader":true,"titleColor":{},"headerColor":{},"showBorder":true,"showTotalAggregate":false,"showSubAggregate":false,"showFirstGroupAggregate":false,"showSecondGroupAggregate":false,"hideMatrixAggregate":false,"wrapTitle":false,"showHeaderSeparator":false,"bareBorder":false,"telemetry":"null","showDataPassthrough":false,"metrics":[{"dataSource":"dGFibGV4XzE3OTQ0MDJfcGVlcmNlXzBfcGVlcl9yZWNvZ25pdGlvbjE3NTcxNjQxMjEyMjA3MDQzMDk1MC4yMDY1MTkyMw==","id":"ZEdGaWJHVjRYekUzT1RRME1ESmZjR1ZsY21ObFh6QmZjR1ZsY2w5eVpXTnZaMjVwZEdsdmJqRTNOVGN4TmpReE1qRXlNakEzTURRek1EazFNQzR5TURZMU1Ua3lNdz09MTc1NzE2NDEyMTIyMDcxNTMxODUuOTAzNTUxOTg0","aggregateFunction":"COUNT","axisId":"primary","numberFormat":{"customFormat":true,"abbreviationEnabled":true,"numberInTooltipsEnabled":true},"durationFormat":{"customFormat":false},"dateFormat":{"customFormat":false},"stringFormat":{"customFormat":false}}],"groupBy":[{"groupBy":[{"dataSource":"dGFibGV4XzE3OTQ0MDJfcGVlcmNlXzBfcGVlcl9yZWNvZ25pdGlvbjE3NTcxNjQxMjEyMjA3MDQzMDk1MC4yMDY1MTkyMw==","groupByField":"category","isRange":false,"isChoice":false,"isPaBucket":false}],"maxNumberOfGroups":12,"numberOfGroupsBasedOn":"NO_OF_GROUP_BASED_ON_PER_METRIC","showOthers":true}],"sortBy":"value","sortByOrder":"desc","showChange":false,"showChangePercentage":false,"showTarget":false,"showForecast":false,"showForecastRange":false,"showTrend":false,"showConfidenceBand":false,"showGapPercentage":false,"showSparkline":false,"showMetricLabel":false,"showThreshold":false,"showComment":false,"followFilters":false,"showFilterIcon":false,"enableRealTimeUpdate":false,"enableDrilldown":true,"enableCustomEmptyState":false,"emptyStateIllustration":"no-data","emptyStateHeading":"No data available.","emptyStateContent":"There are no scores available for the selected criteria. Contact your admin for more info.","emptyStateAlignment":"vertical-centered","showMaximumRange":false,"applyDateRange":false,"numberOfPeriods":3,"showAbsolutePeriod":false,"showChangeFrom":"previous","period":"M","dateFormat":"default","showDataTable":false,"showLegend":false,"showLegendValue":false,"legendExpandToFit":false,"legendPosition":"bottom","legendHorizontalAlignment":"center","chartVariation":"grouped","colorConfig":{"type":"singleColor","values":[{"metric":"ZEdGaWJHVjRYekUzT1RRME1ESmZjR1ZsY21ObFh6QmZjR1ZsY2w5eVpXTnZaMjVwZEdsdmJqRTNOVGN4TmpReE1qRXlNakEzTURRek1EazFNQzR5TURZMU1Ua3lNdz09MTc1NzE2NDEyMTIyMDcxNTMxODUuOTAzNTUxOTg0","color":"de699435d7033100b4964ebfae610331"}]}}</properties>
+        <requested_by/>
+        <scheduled_count>0</scheduled_count>
+        <sys_class_name>par_visualization</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-06 13:08:39</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>3b949027ce5feda028714f8771d1db14</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>Breakdown by category</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>par_visualization_3b949027ce5feda028714f8771d1db14</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-06 13:08:43</sys_updated_on>
+        <type>Horizontal bar</type>
+    </par_visualization>
+</record_update>

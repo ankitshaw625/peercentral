@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="par_visualization">
+    <par_visualization action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <certified>false</certified>
+        <description/>
+        <macroponent display_value="List">7ff373544303121093711347efb8f23c</macroponent>
+        <name>Records</name>
+        <properties>{"metrics":[{"aggregateFunction":"COUNT","axisId":"primary","dataSource":"dGFibGV4XzE3OTQ0MDJfcGVlcmNlXzBfcGVlcl9yZWNvZ25pdGlvbjE3NTY4OTgwMjE3MTA5OTI0MzMwNy45NjY3MjM4OQ==","id":"ZEdGaWJHVjRYekUzT1RRME1ESmZjR1ZsY21ObFh6QmZjR1ZsY2w5eVpXTnZaMjVwZEdsdmJqRTNOVFk0T1Rnd01qRTNNVEE1T1RJME16TXdOeTQ1TmpZM01qTTRPUT09MTc1Njg5ODAyMTcxMTE5MTQ2MDg5LjkxMDg3NjM3NQ==","numberFormat":{"customFormat":true,"abbreviationEnabled":true,"numberInTooltipsEnabled":true},"durationFormat":{"customFormat":false},"dateFormat":{"customFormat":false},"stringFormat":{"customFormat":false}}],"table":"x_1794402_peerce_0_peer_recognition","columns":"sender,message,category","dataSources":[{"allowRealTime":true,"dataCategories":["trend","group","simple"],"id":"dGFibGV4XzE3OTQ0MDJfcGVlcmNlXzBfcGVlcl9yZWNvZ25pdGlvbjE3NTY4OTgwMjE3MTA5OTI0MzMwNy45NjY3MjM4OQ==","isDatabaseView":false,"sourceType":"table","tableOrViewName":"x_1794402_peerce_0_peer_recognition"}],"emptyStateAlignment":"vertical-centered","emptyStateContent":"There are no scores available for the selected criteria. Contact your admin for more info.","emptyStateHeading":"No data available.","emptyStateHeadingLevel":3,"emptyStateIllustration":"no-data","enableCustomEmptyState":false,"enableDrilldown":true,"enableRealTimeUpdate":false,"filterConfigurations":"@state.parFilters","followFilters":false,"hideDotwalk":false,"limit":10,"maxCharLimit":4000,"showColumnFiltering":true,"showColumnGrouping":true,"showColumnReorder":true,"showColumnResizing":true,"showColumnSorting":true,"showFilterIcon":false,"showHeader":true,"headerTitle":"Records","showHeaderSeparator":false,"showInlineEditing":true,"showLinks":true,"showPersonalization":true,"showViewAll":true,"allowListPagination":true,"preferredVisualizations":["d24d53f60350de7a652caf3188a46ed2"],"showBorder":true,"wrapTitle":false,"showLoadingIndicator":false}</properties>
+        <requested_by/>
+        <scheduled_count>0</scheduled_count>
+        <sys_class_name>par_visualization</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-03 11:13:41</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>6be474d075dfe6ebeb5fd2ff18cad8e5</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>Records</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>par_visualization_6be474d075dfe6ebeb5fd2ff18cad8e5</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-03 11:13:43</sys_updated_on>
+        <type>List</type>
+    </par_visualization>
+</record_update>

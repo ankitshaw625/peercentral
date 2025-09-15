@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="6a9dce52c33f2a5075ea722ed401316e" label="Applied Recognition Occasion" max_length="40" name="x_1794402_peerce_0_applied_recognition_occasion" type="collection">
+        <element label="Occasion" mandatory="true" max_length="32" name="occasion" reference="x_1794402_peerce_0_recognition_category" type="reference"/>
+        <element label="Recognition" mandatory="true" max_length="32" name="recognition" reference="x_1794402_peerce_0_peer_recognition" type="reference"/>
+        <element display="true" label="Occasion Text" mandatory="true" max_length="40" name="occasion_text" type="string"/>
+        <index name="index">
+            <element name="occasion"/>
+        </index>
+        <index name="index2">
+            <element name="recognition"/>
+        </index>
+    </element>
+</database>

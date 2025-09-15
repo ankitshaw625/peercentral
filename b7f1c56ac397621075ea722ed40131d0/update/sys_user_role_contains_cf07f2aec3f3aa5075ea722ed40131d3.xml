@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_user_role_contains">
+    <sys_user_role_contains action="INSERT_OR_UPDATE">
+        <contains display_value="x_1794402_peerce_0.user" name="x_1794402_peerce_0.user">0402096ac397621075ea722ed4013175</contains>
+        <role display_value="x_1794402_peerce_0.admin" name="x_1794402_peerce_0.admin">c002096ac397621075ea722ed4013159</role>
+        <sys_class_name>sys_user_role_contains</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-08 14:30:00</sys_created_on>
+        <sys_id>cf07f2aec3f3aa5075ea722ed40131d3</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_1794402_peerce_0.user.x_1794402_peerce_0.admin</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_user_role_contains_cf07f2aec3f3aa5075ea722ed40131d3</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-08 14:30:00</sys_updated_on>
+    </sys_user_role_contains>
+</record_update>

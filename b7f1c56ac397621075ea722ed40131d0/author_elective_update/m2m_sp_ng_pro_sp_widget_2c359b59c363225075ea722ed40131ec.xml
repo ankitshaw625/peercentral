@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="m2m_sp_ng_pro_sp_widget">
+    <m2m_sp_ng_pro_sp_widget action="DELETE">
+        <sp_angular_provider display_value="cfTinyMce">b9a8567f87d43300cd693a0548cb0b8f</sp_angular_provider>
+        <sp_widget display_value="Recognition Header">a65c596ec31b621075ea722ed4013181</sp_widget>
+        <sys_class_name>m2m_sp_ng_pro_sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-23 09:13:37</sys_created_on>
+        <sys_id>2c359b59c363225075ea722ed40131ec</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>cfTinyMce.Recognition Header</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>m2m_sp_ng_pro_sp_widget_2c359b59c363225075ea722ed40131ec</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-23 09:13:37</sys_updated_on>
+    </m2m_sp_ng_pro_sp_widget>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>m2m_sp_ng_pro_sp_widget_2c359b59c363225075ea722ed40131ec</name>
+        <payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="m2m_sp_ng_pro_sp_widget"><m2m_sp_ng_pro_sp_widget action="INSERT_OR_UPDATE"><sp_angular_provider display_value="cfTinyMce">b9a8567f87d43300cd693a0548cb0b8f</sp_angular_provider><sp_widget display_value="Recognition Header">a65c596ec31b621075ea722ed4013181</sp_widget><sys_class_name>m2m_sp_ng_pro_sp_widget</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2025-08-23 09:13:37</sys_created_on><sys_id>2c359b59c363225075ea722ed40131ec</sys_id><sys_mod_count>0</sys_mod_count><sys_name>cfTinyMce.Recognition Header</sys_name><sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package><sys_policy/><sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope><sys_update_name>m2m_sp_ng_pro_sp_widget_2c359b59c363225075ea722ed40131ec</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2025-08-23 09:13:37</sys_updated_on></m2m_sp_ng_pro_sp_widget></record_update>]]></payload>
+        <payload_hash>-139318044</payload_hash>
+        <record_name>cfTinyMce.Recognition Header</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>previous</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-23 09:13:37</sys_created_on>
+        <sys_id>6835db59c363225075ea722ed40131a9</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>198d63470610000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-23 09:13:37</sys_updated_on>
+        <type>Angular Providers</type>
+        <update_guid>ec35db59cb6322506d2732d0043582a8</update_guid>
+        <update_guid_history>ec35db59cb6322506d2732d0043582a8:-139318044</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete display_value="cfTinyMce.Recognition Header">75a4279dc3a3225075ea722ed401316e</sys_audit_delete>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-08-23 10:21:10</sys_created_on>
+        <sys_db_object display_value="" name="m2m_sp_ng_pro_sp_widget">m2m_sp_ng_pro_sp_widget</sys_db_object>
+        <sys_id>394d3e068d3e427a9699cc2ade404604</sys_id>
+        <sys_metadata>2c359b59c363225075ea722ed40131ec</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>cfTinyMce.Recognition Header</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent/>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>m2m_sp_ng_pro_sp_widget_2c359b59c363225075ea722ed40131ec</sys_update_name>
+        <sys_update_version display_value="m2m_sp_ng_pro_sp_widget_2c359b59c363225075ea722ed40131ec">6835db59c363225075ea722ed40131a9</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-08-23 10:21:10</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>

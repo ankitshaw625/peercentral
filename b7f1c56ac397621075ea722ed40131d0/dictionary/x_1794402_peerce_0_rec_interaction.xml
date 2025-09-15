@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="b4ec1846c3bfa65075ea722ed4013166" label="Recognition Interaction" max_length="40" name="x_1794402_peerce_0_rec_interaction" type="collection">
+        <element label="Active" max_length="40" name="active" type="boolean"/>
+        <element label="User" max_length="32" name="user" reference="sys_user" type="reference"/>
+        <element label="Recognition" max_length="32" name="recognition" reference="x_1794402_peerce_0_peer_recognition" type="reference"/>
+        <element label="Comment" max_length="40" name="comment" type="html"/>
+        <element choice="1" label="Type" max_length="40" name="type" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="reaction" sequence="0" value="reaction"/>
+                <element inactive_on_update="false" label="comment" sequence="1" value="comment"/>
+            </choice>
+        </element>
+        <element label="Parent" max_length="32" name="parent" reference="x_1794402_peerce_0_rec_interaction" type="reference"/>
+        <element choice="1" label="Reaction" max_length="40" name="reaction" type="choice">
+            <choice>
+                <element inactive_on_update="false" label="clap" sequence="1" value="clap"/>
+                <element inactive_on_update="false" label="like" sequence="0" value="like"/>
+                <element inactive_on_update="false" label="heart" sequence="2" value="heart"/>
+            </choice>
+        </element>
+        <index name="index">
+            <element name="parent"/>
+        </index>
+        <index name="index2">
+            <element name="recognition"/>
+        </index>
+        <index name="index3">
+            <element name="user"/>
+        </index>
+    </element>
+</database>
