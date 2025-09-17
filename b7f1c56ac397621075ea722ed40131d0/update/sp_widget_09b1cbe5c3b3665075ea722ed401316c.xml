@@ -6,6 +6,11 @@
   var c = this;
 	
 	//console.log(c.data);
+	c.currentScale = 'total';       // ← Default value for dropdown
+	
+	var networkInstance = null;     // ← Will hold reference to the vis network
+	var originalNodes = [];         // ← Store clean copy of original node data
+
 	
 	
 	// This function runs automatically when the widget initializes
@@ -24,6 +29,8 @@
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
       c.data.edges = response.data.edges;
+			
+			originalNodes = c.data.nodes.map(n => ({ ...n }));
       
       // Turn off the loading indicator
       c.isLoading = false;
@@ -35,83 +42,193 @@
     });
 	};
 	
+	c.updateScale = function() {
+		if (!networkInstance || !originalNodes.length) return;
+
+		const currentView = saveView();
+		const scaleBy = c.currentScale;
+
+		// First, update tooltips instantly (no need to animate text)
+		const currentNodes = networkInstance.body.data.nodes;
+		var targetValues = {};
+
+		originalNodes.forEach(function(node) {
+			var value, tooltip;
+
+			if (scaleBy === 'sent') {
+				value = node.sent || 0;
+				tooltip = node.label + " - Sent: " + (node.sent || 0);
+			} else if (scaleBy === 'received') {
+				value = node.received || 0;
+				tooltip = node.label + " - Received: " + (node.received || 0);
+			} else {
+				value = (node.sent || 0) + (node.received || 0);
+				tooltip = node.label + " - Recognitions (Sent: " + (node.sent || 0) + ", Received: " + (node.received || 0) + ")";
+			}
+
+			// Update tooltip immediately
+			currentNodes.update({
+				id: node.id,
+				title: tooltip
+			});
+
+			targetValues[node.id] = value;
+		});
+
+		// Animate size change over 600ms
+		animateNodeSizes(targetValues, 600);
+
+		if (currentView) {
+			setTimeout(function() {
+				restoreView(currentView);
+			}, 650); // Slightly after animation ends
+		}
+	};
+
+	// Helper functions
+	function animateNodeSizes(targetValues, duration) {
+		if (!networkInstance) return;
+
+		var startTime = null;
+		var nodesDataset = networkInstance.body.data.nodes;
+
+		// Get current values
+		var currentValues = {};
+		originalNodes.forEach(function(node) {
+			var current = nodesDataset.get(node.id);
+			currentValues[node.id] = current ? current.value : 0;
+		});
+
+		var frame = function(timestamp) {
+			if (!startTime) startTime = timestamp;
+			var progress = Math.min((timestamp - startTime) / duration, 1);
+
+			originalNodes.forEach(function(node) {
+				var start = currentValues[node.id] || 0;
+				var end = targetValues[node.id] || 0;
+				var currentValue = start + (end - start) * progress;
+
+				nodesDataset.update({
+					id: node.id,
+					value: currentValue
+				});
+			});
+
+			if (progress < 1) {
+				requestAnimationFrame(frame);
+			}
+		};
+
+		requestAnimationFrame(frame);
+	}
 	
-	 function initializeGraph() {
-		
-		// Check if the server script found any data to display
-    if (!c.data.nodes || c.data.nodes.length === 0) {
-      // You could optionally display a "No data to display" message here
-      return;
-    }
-    
-    // 1. Create vis.js DataSets from the server data
-    var nodes = new vis.DataSet(c.data.nodes);
-    var edges = new vis.DataSet(c.data.edges);
+	function saveView() {
+		if (!networkInstance) return null;
+		return {
+			position: networkInstance.getViewPosition(),
+			scale: networkInstance.getScale()
+		};
+	}
 
-    // 2. Get the container element from the HTML
-    var container = document.getElementById('recognition-graph-container');
+	function restoreView(view) {
+		if (!networkInstance || !view) return;
+		networkInstance.moveTo({
+			position: view.position,
+			scale: view.scale,
+			animation: false
+		});
+	}
+	
+	
+	function initializeGraph() {
+		if (!c.data.nodes || c.data.nodes.length === 0) return;
 
-    // 3. Provide the data in the format vis.js expects
-    var data = {
-      nodes: nodes,
-      edges: edges
-    };
-
-    // 4. Define display options for the graph's appearance and physics
-    var options = {
-      nodes: {
-        shape: 'dot',
-				
-        scaling: {
-          min: 10,
-          max: 30,
-        },
-        
-				font: {
-          size: 12,
-          face: 'Tahoma'
-        }
-      },
+		var processedNodes = c.data.nodes.map(function(node) {
+			var newNode = { ...node };
 			
-      edges: {
-				scaling: {
-					min: 0.2,
-					max: 2.0
+			newNode.value = node.sent + node.received;
+			
+			newNode.color = {
+				background: '#4A90E2',    
+				border: '#357ABD',        
+				highlight: {
+					background: '#6BB5FF',   
+					border: '#2C5AA0'        
+				}
+			};
+			
+			
+			newNode.shape = 'dot';
+			newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' +  node.received + ')';
+			return newNode;
+			
+		});
+
+		var nodes = new vis.DataSet(processedNodes);
+		var edges = new vis.DataSet(c.data.edges);
+
+		var container = document.getElementById('recognition-graph-container');
+		var data = { nodes, edges };
+
+		var options = {
+			nodes: {
+				shape: 'dot',
+				size: 10,
+				font: { size: 14, face: 'Source Sans Pro', color: '#333' },
+				borderWidth: 2,
+				scaling: { min: 10, max: 30 }
+			},
+			
+			edges: {
+				scaling: { min: 0.2, max: 2.0 },
+				color: { inherit: 'from' },
+				smooth: { type: 'continuous' },
+				arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+			},
+			
+			physics: {
+				solver: 'barnesHut',
+				
+				barnesHut: {
+					gravitationalConstant: -2000,
+					centralGravity: 0.3,
+					springLength: 95,
+					avoidOverlap: 1.0
 				},
-        
-				color: {
-          inherit: 'from'
-        },
-        
-				smooth: {
-          type: 'continuous'
-        },
 				
-        arrows: {
-          to: {
-            enabled: true,
-            scaleFactor: 0.5
-          }
-        }
-      },
+				stabilization: { iterations: 2000 }
+			},
 			
-      physics: {
-        barnesHut: {
-          gravitationalConstant: -2000
-        },
-				
-        stabilization: {
-          iterations: 2000
-        }
-      },
-			
-      interaction: {
-        tooltipDelay: 200
-      }
-    };
+			interaction: {
+				tooltipDelay: 200,
+				navigationButtons: true
+			}
+		};
 
-    // 5. Initialize the Network Graph
-    var network = new vis.Network(container, data, options);
+		networkInstance = new vis.Network(container, data, options);
+
+		networkInstance.once("stabilizationIterationsDone", () => {
+			
+			const positions = networkInstance.getPositions();
+			let sumX = 0, sumY = 0, count = 0;
+			
+			for (const id in positions) {
+				sumX += positions[id].x;
+				sumY += positions[id].y;
+				count++;
+			}
+			
+			const center = { x: sumX / count, y: sumY / count };
+
+			networkInstance.moveTo({
+				position: center,
+				scale: 1.2,
+				animation: {
+					duration: 600,
+					easingFunction: "easeOutCubic"
+				}
+			});
+		});
 	}
 	
 };]]></client_script>
@@ -143,7 +260,32 @@
 
 .graph-container {
   height: 512px;
-  width: 85%;
+}
+
+/* ✅ FILTER STYLES */
+.graph-filter {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-label {
+  font-family: 'Source Sans Pro', sans-serif;
+  font-weight: 600;
+  margin: 0;
+  color: #495057;
+}
+
+.filter-select {
+  width: auto;
+  min-width: 200px;
+  font-family: 'Source Sans Pro', sans-serif;
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -168,6 +310,18 @@
 	}
 	
 	
+	
+	function getInitials(fullName) {
+		// Trim leading/trailing spaces and split the string into an array of words
+		const nameParts = fullName.trim().split(' ');
+
+		// Map over the array to get the first letter of each part, converting to uppercase
+		const initials = nameParts.map(part => part.charAt(0).toUpperCase());
+
+		// Join the initials into a single string
+		return initials.join('');
+	}
+	
  /**
   * Main function to generate all node and edge data for the graph.
   * This encapsulates all the data processing logic.
@@ -189,13 +343,16 @@
 		while (sentAgg.next()) {
 			const senderId = sentAgg.sender.toString();
 			const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
+			
+			const senderName = sentAgg.sender.name.toString();
 
 			userNodes.set(senderId, {
 				id: senderId,
-				label: sentAgg.sender.getDisplayValue(),
+				label: senderName,
 				sent: count,
 				received: 0,
-				value: 0
+				value: 0,
+				initials: getInitials(senderName)
 			});
 		}
 
@@ -217,13 +374,16 @@
 
 				continue;
 			}
+			
+			const recipientName = receivedAgg.recipient_user.getDisplayValue();
 
 			userNodes.set(recipientId, {
 				id: recipientId,
-				label: receivedAgg.recipient_user.getDisplayValue(),
+				label: recipientName,
 				sent: 0,
 				received: count,
-				value: count
+				value: count,
+				initials: getInitials(recipientName)
 			});
 		}
 
@@ -276,19 +436,30 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>61</sys_mod_count>
+        <sys_mod_count>130</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-06 11:25:57</sys_updated_on>
+        <sys_updated_on>2025-09-10 09:30:06</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
   
 	<div class="panel-heading">
 		<h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i> Recognition Network</h2>
   	<span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
+  </div>
+  
+  
+    <!-- ✅ ADD THIS FILTER -->
+  <div class="graph-filter" ng-if="!c.isLoading">
+    <label for="scaleMetric" class="filter-label">Scale nodes by:</label>
+    <select id="scaleMetric" class="form-control filter-select" ng-change="c.updateScale()" ng-model="c.currentScale">
+      <option value="total">Total Recognitions</option>
+      <option value="sent">Sent Only</option>
+      <option value="received">Received Only</option>
+    </select>
   </div>
   
   <div ng-if="c.isLoading" class="text-center mt-10">
