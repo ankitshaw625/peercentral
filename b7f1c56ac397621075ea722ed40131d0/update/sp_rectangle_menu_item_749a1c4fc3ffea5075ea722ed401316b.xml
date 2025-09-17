@@ -18,7 +18,54 @@
         <kb_topic/>
         <label/>
         <order>200</order>
-        <record_script/>
+        <record_script><![CDATA[// only show 30 in header menu dropdown
+var max = 30;
+
+var t = data;
+t.items = [];
+t.count = 0;
+
+// t.hint = 'Recent Recognitions';
+
+
+// use record watchers to tell header when to update dropdown counts
+var watchFilter = 'notification=ceafce39c32f621075ea722ed4013143^user=' + gs.getUserID();
+t.record_watchers = [];
+t.record_watchers.push({'table':'sn_ex_sp_notifs_portal_notification_content','filter':watchFilter});
+
+var z = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+z.addEncodedQuery(watchFilter);
+z.orderByDesc('sys_updated_on');
+z.setLimit(max);
+z.query();
+
+
+var link = {};
+link.title = gs.getMessage('View all your recognitions');
+link.type = 'link';
+link.href = '?id=recognition_home#you';
+
+link.items = [];
+t.items.push(link);
+
+while (z.next()) {
+  var a = {};
+  
+  var template = z.content_template.toString();
+  var params = JSON.parse(z.content_params.toString() || '[]');
+  a.short_description = gs.getMessage(template, params);
+  
+  $sp.getRecordValues(a, z, 'sys_id');
+  a.sys_updated_on = z.sys_created_on.toString();
+  a.number = z.getDisplayValue();
+  a.__table = z.getTableName();
+  a.type = 'record';
+  a.__page = 'form';
+  t.items.push(a);
+  t.count++;
+}
+
+data.badgeHint = gs.getMessage('{0} pending recognition(s)', [''+t.count]);]]></record_script>
         <sc_cat_item/>
         <sc_category/>
         <short_description/>
@@ -29,16 +76,16 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-09 16:40:59</sys_created_on>
         <sys_id>749a1c4fc3ffea5075ea722ed401316b</sys_id>
-        <sys_mod_count>0</sys_mod_count>
+        <sys_mod_count>4</sys_mod_count>
         <sys_name/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_rectangle_menu_item_749a1c4fc3ffea5075ea722ed401316b</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-09 16:40:59</sys_updated_on>
+        <sys_updated_on>2025-09-17 14:32:37</sys_updated_on>
         <table>sn_ex_sp_notifs_portal_notification_content</table>
-        <type>filtered</type>
+        <type>scripted</type>
         <url/>
         <url_target/>
     </sp_rectangle_menu_item>

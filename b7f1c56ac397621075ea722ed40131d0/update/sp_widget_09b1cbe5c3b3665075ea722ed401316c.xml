@@ -10,7 +10,6 @@
 	
 	var networkInstance = null;     // ← Will hold reference to the vis network
 	var originalNodes = [];         // ← Store clean copy of original node data
-
 	
 	
 	// This function runs automatically when the widget initializes
@@ -57,10 +56,10 @@
 
 			if (scaleBy === 'sent') {
 				value = node.sent || 0;
-				tooltip = node.label + " - Sent: " + (node.sent || 0);
+				tooltip = node.label + " - Recognitions Sent: " + (node.sent || 0);
 			} else if (scaleBy === 'received') {
 				value = node.received || 0;
-				tooltip = node.label + " - Received: " + (node.received || 0);
+				tooltip = node.label + " - Recognitions Received: " + (node.received || 0);
 			} else {
 				value = (node.sent || 0) + (node.received || 0);
 				tooltip = node.label + " - Recognitions (Sent: " + (node.sent || 0) + ", Received: " + (node.received || 0) + ")";
@@ -86,7 +85,7 @@
 	};
 
 	// Helper functions
-	function animateNodeSizes(targetValues, duration) {
+	/*function animateNodeSizes(targetValues, duration) {
 		if (!networkInstance) return;
 
 		var startTime = null;
@@ -121,6 +120,37 @@
 
 		requestAnimationFrame(frame);
 	}
+	*/
+	
+	function animateNodeSizes(targetValues, duration) {
+		if (!networkInstance) return;
+		
+		const nodes = networkInstance.body.data.nodes;
+		const startValues = {};
+		const startTime = performance.now();
+
+		originalNodes.forEach(node => {
+			const current = nodes.get(node.id);
+			startValues[node.id] = current?.value || 0;
+		});
+
+		function step(now) {
+			const progress = Math.min((now - startTime) / duration, 1);
+
+			originalNodes.forEach(node => {
+				const start = startValues[node.id];
+				const end = targetValues[node.id];
+				const value = start + (end - start) * progress;
+
+				nodes.update({ id: node.id, value });
+			});
+
+			if (progress < 1) requestAnimationFrame(step);
+		}
+
+		requestAnimationFrame(step);
+	}
+
 	
 	function saveView() {
 		if (!networkInstance) return null;
@@ -132,6 +162,7 @@
 
 	function restoreView(view) {
 		if (!networkInstance || !view) return;
+		
 		networkInstance.moveTo({
 			position: view.position,
 			scale: view.scale,
@@ -436,14 +467,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>130</sys_mod_count>
+        <sys_mod_count>133</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-10 09:30:06</sys_updated_on>
+        <sys_updated_on>2025-09-17 14:51:33</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
   
 	<div class="panel-heading">
