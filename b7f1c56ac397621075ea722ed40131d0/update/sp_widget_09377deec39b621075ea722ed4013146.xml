@@ -2,70 +2,102 @@
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
         <client_script><![CDATA[api.controller = function($scope, $location, $timeout) {
-  /* widget controller */
-  var c = this;
+	var c = this;
 	
 	c.activeTab = $location.hash() || 'you';
-	c.isLoading = true; // Start in a faded state for the load-in animation
+	c.isLoading = true;           
+	c.isLoadingMore = false;
+	c.canLoadMore = true;   
 	
-	c.data.recognitions = c.data.recognitions.map(function(recognition) {
-		var senderInitials = recognition.senderDisplay.split(' ').map(function(namePart) {
-			return namePart[0].toUpperCase();	
-		}).join('');
-		
-		return {...recognition, timeAgo: convertToTimeAgo(recognition.createdOn), senderInitials: senderInitials};
-	});
+	c.offset = 0;                 
+	c.limit = c.options.limit;                 
+	c.data.filteredRecognitions = [];
 	
-	// Filter recognitions onload based on tab
-	c.data.filteredRecognitions = getFilteredRecognitions(c.data.recognitions, c.activeTab);
+	loadFeed(c.activeTab, 0, false);
 	
-	
-	// Controller methods
 	c.setTab = function(tabName) {
-		if (c.activeTab === tabName) return;
+		if (c.activeTab === tabName) return; 
+    $location.hash(tabName); 
+	};
+	
+	c.loadMore = function() {
+		if (!c.canLoadMore || c.isLoadingMore) return;
 		
-		$location.hash(tabName);
+		loadFeed(c.activeTab, c.offset, true);
 	};
 	
 	
-	// Even listeners
-	// listen for back/forward navigation, switch to the tab as per hash
-  $scope.$on('$locationChangeSuccess', function() {
-    var newHash = $location.hash();
-		
-		if (!newHash || newHash == c.activeTab) return;
-		
-		// Start fade animation
-		c.isLoading = true;
-		
-		c.activeTab = newHash;
-		
-		$timeout(function() {
-			// Filter recognitions on tab change
-			c.data.filteredRecognitions = getFilteredRecognitions(c.data.recognitions, c.activeTab);
-			
-			// Stop fade animation
-			c.isLoading = false;
-		}, 400);
+	$scope.$on('$locationChangeSuccess', function() {
+		var newTab = $location.hash();
+    if (!newTab || newTab === c.activeTab) return;
 
-  });
-	
-	// Triggers the initial fade-in animation when the feed first loads.
-	$timeout(function() {
-    c.isLoading = false;
-  }, 400);
-	
-	// Helper methods
-	function getFilteredRecognitions(recognitions, currentTab) {
-		if (currentTab === 'all') return recognitions;
+    c.isLoading = true;     
+    c.activeTab = newTab; 
 		
+		c.offset = 0; // Reset offset when switching tabs
+		c.canLoadMore = true;
+		loadFeed(newTab, 0, false);       
+	});
+	
+	function loadFeed(feedType, offset, append) {
 		
-		return recognitions.filter((rec) => rec.feed.includes(currentTab));
+		if (!append) c.isLoading = true;
+		if (append) c.isLoadingMore = true;
+		
+    c.server.get({ feedType: feedType, limit: c.limit, offset: offset, action: 'getFeed' })
+        .then(function(response) {
+            const newRecognitions = transformRecognitions(response.data.recognitions || []);
+			
+						if (append) {
+							c.data.filteredRecognitions = c.data.filteredRecognitions.concat(newRecognitions);
+						} else {
+							c.data.filteredRecognitions = newRecognitions;
+						}
+
+						// Update offset
+						c.offset += newRecognitions.length;
+
+						// If we got fewer than limit, no more to load
+						c.canLoadMore = newRecognitions.length >= c.limit;
+
+						// Reset loading states
+						c.isLoading = false;
+						c.isLoadingMore = false;
+        })
+        .catch(function(error) {
+            console.error('Failed to load feed:', error);
+						if (!append) c.data.filteredRecognitions = [];
+						c.isLoading = false;
+						c.isLoadingMore = false;
+        });
 	}
 	
-	function convertToTimeAgo(dateTime) {
-		if (!dateTime) return '';
+	function transformRecognitions(recognitions) {
+    return recognitions.map(function(rec) {
+        return {
+            ...rec,                         
+            senderInitials: generateInitials(rec.senderDisplay),
+            timeAgo: formatTimeAgo(rec.createdOn)
+        };
+    });
+	}
+	
+	function generateInitials(name) {
+    if (!name) return '?';
 		
+    return name.split(' ')              
+               .map(part => part[0] ? part[0].toUpperCase() : '') 
+               .join('')                   
+               .substring(0, 2) || '?';    
+	}
+	
+	
+	function formatTimeAgo(dateTime) {
+    if (!dateTime) return '';
+    
+    var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
+    if (!m.isValid()) return dateTime; 
+
 		moment.updateLocale('en', {
 			relativeTime: {
 				future: "in %s",
@@ -84,8 +116,8 @@
 				yy:     "%d years"
 			}
 		});
-		
-		return moment(dateTime).fromNow();
+
+    return m.fromNow();
 	}
 };]]></client_script>
         <controller_as>c</controller_as>
@@ -170,28 +202,23 @@
         <internal>false</internal>
         <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
         <name>Recognition Feed</name>
-        <option_schema>[{"hint":"Number of records displayed in a page.","name":"record_limit","section":"Data","default_value":"15","label":"Record Limit","type":"integer"}]</option_schema>
+        <option_schema>[{"hint":"Number of records displayed in a page.","name":"limit","section":"Data","default_value":"15","label":"Record Limit","type":"integer"}]</option_schema>
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
 	
-	var limit = options.record_limit || 10;
+	if (input && input.action == 'getFeed') {
 	
-	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
-	
-	data.recognitions = recognitionDAO.getRecognitions(limit);
+		const currentFeed = input.feedType || 'you';
+		const limit = parseInt(input.limit, 10) || 15;
+		const offset   = parseInt(input.offset, 10) || 0; // ]]>👈<![CDATA[ Read offset
 
-	
-	var analyticsRoles = ['admin', 'x_1794402_peerce_0.admin', 'x_1794402_peerce_0.manager', 'x_1794402_peerce_0.hr_analyst'];
-	
-	data.showAnalytics = false;
-	
-	for (var i = 0; i < analyticsRoles.length; i++) {
-		if (gs.hasRole(analyticsRoles[i])) {
-			data.showAnalytics = true;
-			break;
-		}
+		const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+
+		data.recognitions = recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset) || [];
+		
 	}
+
 	
 })();]]></script>
         <servicenow>false</servicenow>
@@ -199,14 +226,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>293</sys_mod_count>
+        <sys_mod_count>349</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-09 15:43:46</sys_updated_on>
+        <sys_updated_on>2025-09-18 20:10:49</sys_updated_on>
         <template><![CDATA[<main>
 <div class="panel panel-primary">
   <!-- Default panel contents -->
@@ -230,9 +257,7 @@
         <a href="" ng-click="c.setTab('all')">All</a>
       </li>
       
-      <!--<li role="presentation" class="analytics" ng-show="c.data.showAnalytics">
-        <a href="/pc?id=recognition_analytics" target="_blank">Analytics ➚</a>
-      </li>-->
+
       
     </ul>
   </nav>
@@ -286,14 +311,35 @@
           </div>
         </article>
       </li>
+      
+      <li class="text-center">
+        <div class="well well-sm text-center mb-0"> 
+          <p class="text-muted small">
+            Showing <strong>{{c.data.filteredRecognitions.length}}</strong> 
+            {{c.data.filteredRecognitions.length === 1 ? 'recognition' : 'recognitions'}}
+          </p>
 
+          <div ng-if="c.canLoadMore">
+            <button class="btn btn-primary btn-sm" ng-click="c.loadMore()" ng-disabled="c.isLoadingMore">
+              <i class="fa" ng-class="{'fa-spin fa-spinner': c.isLoadingMore, 'fa-arrow-down': !c.isLoadingMore}"></i>
+              {{c.isLoadingMore ? 'Loading...' : 'Load More'}}
+            </button>
+          </div>
+          
+          <p ng-if="!c.canLoadMore && c.data.filteredRecognitions.length > 0" class="text-center text-muted small m-0">
+          	<em>— You've reached the end of the list —</em>
+        	</p>
+          
+        </div>
+      </li>
 
-
-      <li ng-if="data.filteredRecognitions.length" class="text-center p-5">Viewing {{data.filteredRecognitions.length}} out of {{data.filteredRecognitions.length}} total recognitions.</li>
-
-
-      <li ng-if="!data.filteredRecognitions.length" class="list-group-item text-muted">
-        No recognitions found.
+      <li ng-if="!c.data.filteredRecognitions.length" class="list-group-item text-center pt-20 pb-20">
+        <div class="p-20"> <p class="text-muted">
+            <i class="fa fa-trophy fa-3x" aria-hidden="true"></i>
+          </p>
+          <h4 class="text-muted">No Recognitions Found</h4>
+          <p class="small text-muted">Try adjusting your filters or check back later.</p>
+        </div>
       </li>
 
     </ul>

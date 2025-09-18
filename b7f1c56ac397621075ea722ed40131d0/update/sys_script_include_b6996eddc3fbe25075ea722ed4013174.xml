@@ -12,22 +12,22 @@
         <script><![CDATA[var RecognitionUtils = Class.create();
 RecognitionUtils.prototype = {
     initialize: function() {
-        this.userTeam = '';
+        this.userTeam = null;
     },
 
     canReadPrivateRecognition: function(grRecognition, userId) {
         userId = userId || gs.getUserID();
-		
+
         var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
         // Check if current user is the sender
-        if (userId == grRecognition.sender.toString()) return true;
+        if (userId == grRecognition.getValue('sender')) return true;
 
         // Check if current user is part of the notify to list
         if (grRecognition.notify_to.toString().includes(userId)) return true;
 
         var recognitionSysId = grRecognition.sys_id.toString();
-        var isTeam = grRecognitions.is_team.toString() == 'true';
+        var isTeam = grRecognition.is_team.toString() == 'true';
 
         var recipientData = recognitionDAO.getRecognitionRecipients(recognitionSysId, isTeam);
 
@@ -36,7 +36,7 @@ RecognitionUtils.prototype = {
         // If it's a team fetch and add the team members
         if (isTeam) {
             var teamMembers = this.getGroupMembers(recognitionRecipients);
-            recognitionRecipients.concat(teamMembers);
+            recognitionRecipients = recognitionRecipients.concat(teamMembers);
         }
 
         // Check if the current user is one of the recipients
@@ -48,20 +48,27 @@ RecognitionUtils.prototype = {
             this.userTeam = this.getUserTeam();
         }
 
-        if (this.userTeam.includes(sender)) return true;
+		gs.info(JSON.stringify(this.userTeam));
 
-        return recipients.some(recipient => this.userTeam.includes(recipient));
+        var allTeam = this.userTeam.combined;
+
+        if (allTeam.includes(sender)) return true;
+
+        return recipients.some(recipient => allTeam.includes(recipient));
     },
 
     getUserTeam: function(userId) {
         userId = userId || gs.getUserID();
 
         var userGroups = this.getUserGroups(userId);
-        // var teamMembers = new Set(userGroups);
 
         var teamMembers = this.getGroupMembers(userGroups);
 
-        return userGroups.concat(teamMembers);
+        return {
+            userGroups: userGroups,
+            teamMembers: teamMembers,
+            combined: userGroups.concat(teamMembers)
+        };
     },
 
     getGroupMembers: function(groupIds) {
@@ -89,7 +96,7 @@ RecognitionUtils.prototype = {
         grGroupMember.query();
 
         while (grGroupMember.next()) {
-            userGroups.add(grGroupMember.group.toString())
+            userGroups.add(grGroupMember.group.toString());
         }
 
         return Array.from(userGroups);
@@ -101,13 +108,13 @@ RecognitionUtils.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>9</sys_mod_count>
+        <sys_mod_count>15</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-09 15:32:28</sys_updated_on>
+        <sys_updated_on>2025-09-18 18:57:47</sys_updated_on>
     </sys_script_include>
 </record_update>
