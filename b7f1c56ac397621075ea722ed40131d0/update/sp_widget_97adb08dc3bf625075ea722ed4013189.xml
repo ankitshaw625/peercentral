@@ -2,7 +2,7 @@
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
         <client_script><![CDATA[api.controller=function() {
-  /* widget controller */
+
   var c = this;
 	
 	c.activeTab = 'all';
@@ -10,6 +10,28 @@
 	// Controller methods
 	c.setTab = function(tabName) {
 		c.activeTab = tabName;
+	};
+	
+	c.hasData = function() {
+		var data = c.data.topContributors;
+		var tab = c.activeTab;
+		return data && data[tab] && data[tab].length > 0;
+	};
+	
+
+	c.getEmptyMessage = function() {
+    var tab = c.activeTab;
+    var days = c.data.days;
+
+    switch(tab) {
+        case 'given':
+            return 'No one has given recognition in the last ' + days + ' days. Start the wave!';
+        case 'received':
+            return 'No one has received recognition yet. Give someone a boost!';
+        case 'all':
+        default:
+            return 'No recognition activity in the last ' + days + ' days. Be the first to send one!';
+    }
 	};
 
 };
@@ -49,90 +71,11 @@
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
+	var defaultState = { all: [], given: [], received: [] };
+	
+	data.topContributors = options.topContributors || defaultState;
+	data.days = options.days || 90;
 
-    var all = [],
-        given = [],
-        received = [];
-
-    var days = options.days || 90; // Default to 90 if not provided
-		var userCount = options.users || 3;
-
-    // Aggregate recognitions given by each user
-    var gaGiven = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
-    gaGiven.addAggregate('COUNT', 'sender');
-    gaGiven.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-    gaGiven.groupBy('sender');
-    gaGiven.addHaving('COUNT', '>', '0');
-		gaGiven.orderByAggregate('COUNT', 'sender');
-    gaGiven.query();
-
-    while (gaGiven.next()) {
-
-        var sender = gaGiven.sender.toString();
-        var senderDisplay = gaGiven.sender.name.toString();
-
-        var givenCount = parseInt(gaGiven.getAggregate('COUNT', 'sender'));
-
-        given.push({
-            user: sender,
-            displayName: senderDisplay,
-            count: givenCount
-        });
-
-        all.push({
-            user: sender,
-            displayName: senderDisplay,
-            count: givenCount
-        });
-    }
-
-
-    // Aggregate recognitions received by each user
-    var gaReceived = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
-    gaReceived.addNotNullQuery('recipient_user');
-    gaReceived.addAggregate('COUNT', 'recipient_user');
-    gaReceived.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-    gaReceived.groupBy('recipient_user');
-    gaReceived.addHaving('COUNT', '>', '0');
-		gaReceived.orderByAggregate('COUNT', 'recipient_user');
-    gaReceived.query();
-
-    while (gaReceived.next()) {
-        var recipient = gaReceived.getValue('recipient_user');
-        var recipientDisplay = gaReceived.recipient_user.name.toString();
-
-        var receivedCount = parseInt(gaReceived.getAggregate('COUNT', 'recipient_user'));
-
-        received.push({
-            user: recipient,
-            displayName: recipientDisplay,
-            count: receivedCount
-        });
-
-        var user = all.find(function(u) {
-            return u.user == recipient;
-        });
-
-        if (user) {
-            user.count += receivedCount;
-        } else {
-            all.push({
-                user: recipient,
-                displayName: recipientDisplay,
-                count: receivedCount
-            });
-        }
-    }
-
-    // Sort recognitions by total
-    all.sort(function(a, b) {
-        return b.count - a.count;
-    });
-
-    // Limit to top 5
-    data.all = all.slice(0, userCount);
-    data.given = given.slice(0, userCount);
-    data.received = received.slice(0, userCount);
 
 })();]]></script>
         <servicenow>false</servicenow>
@@ -140,19 +83,20 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-03 13:48:50</sys_created_on>
         <sys_id>97adb08dc3bf625075ea722ed4013189</sys_id>
-        <sys_mod_count>55</sys_mod_count>
+        <sys_mod_count>69</sys_mod_count>
         <sys_name>Top Contributors</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_97adb08dc3bf625075ea722ed4013189</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-03 18:50:34</sys_updated_on>
+        <sys_updated_on>2025-09-20 12:46:56</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary">
-    <div class="panel-heading">
-        <h3 class="panel-title"><i class="glyphicon glyphicon-stats"></i> Top Contributors (Last {{c.options.days}} Days)</h3>
+    <div class="panel-heading" ng-if="c.options.show_title">
+        <h3 class="panel-title"><i class="glyphicon glyphicon-stats"></i> Top Contributors (Last {{c.data.days}} Days)</h3>
     </div>
     <div class="panel-body pb-0">
+      
      <nav>
       <ul class="nav nav-tabs">
         <li role="presentation" ng-class="{active: c.activeTab=='all'}">
@@ -167,22 +111,27 @@
       </ul>
   	</nav>
       
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Recognitions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr ng-repeat="user in c.data[c.activeTab]">
-                      <td><a href>{{user.displayName}}</a></td>
-                      <td><strong>{{user.count}}</strong></td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+      <div ng-if="!c.hasData()" class="no-data">
+         <i class="glyphicon glyphicon-stats"></i>
+         <p>{{c.getEmptyMessage()}}</p>
+      </div>
+      
+      <div class="table-responsive" ng-if="c.hasData()">
+        <table class="table table-striped">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Recognitions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="user in c.data.topContributors[c.activeTab]">
+              <td><a href>{{user.displayName}}</a></td>
+              <td><strong>{{user.count}}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 </div>
 

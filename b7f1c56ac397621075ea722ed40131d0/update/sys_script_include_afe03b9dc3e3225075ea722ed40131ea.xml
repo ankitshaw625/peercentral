@@ -122,15 +122,21 @@ RecognitionDAO.prototype = {
      * @returns {Array<object>} A complete data object for the recognition, or empty array.
      */
 
-    getRecognitionsForFeed: function(feedType, limit, offset) {
+    getRecognitionsForFeed: function(feedType, limit, offset, sortOrder) {
         limit = limit || 15;
-		offset = offset || 0;
+        offset = offset || 0;
 
         const recognitions = [];
 
         const grRecognitions = new GlideRecordSecure('x_1794402_peerce_0_peer_recognition');
         grRecognitions.orderByDesc('sys_created_on');
         grRecognitions.setLimit(limit);
+
+        if (sortOrder === 'oldest') {
+            grRecognitions.orderBy('sys_created_on'); // or 'created_on' depending on your field
+        } else {
+            grRecognitions.orderByDesc('sys_created_on');
+        }
 
         this._applyFeedFilter(grRecognitions, feedType);
 
@@ -151,7 +157,8 @@ RecognitionDAO.prototype = {
                 createdOn: grRecognitions.getValue('sys_created_on'),
                 recipients: [],
                 occasions: [],
-                feed: feedType
+                feed: feedType,
+                id: recognitionSysId
             };
 
             const recognitionData = this.getRecognitionRecipients(recognitionSysId, recognition.isTeam);
@@ -253,7 +260,7 @@ RecognitionDAO.prototype = {
             case 'all':
                 break;
             default:
-                grRecognitions.addQuery('sys_id', NULL);
+                grRecognitions.addEncodedQuery('sys_idISEMPTY');
         }
     },
 
@@ -374,13 +381,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>51</sys_mod_count>
+        <sys_mod_count>55</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-18 19:10:44</sys_updated_on>
+        <sys_updated_on>2025-09-20 15:04:00</sys_updated_on>
     </sys_script_include>
 </record_update>

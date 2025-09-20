@@ -1,14 +1,155 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller=function() {
-  /* widget controller */
+        <client_script><![CDATA[api.controller = function($scope) {
   var c = this;
-};]]></client_script>
+
+	  c.days = c.options.days;
+
+	  c.isLoading = false; 
+
+    c.setDays = function() {
+			if (c.data.days === c.days) {
+				return;
+			}
+
+			c.isLoading = true;
+			c.data.days = c.days;
+
+			c.server.update().then(function() {
+				c.isLoading = false;
+			});
+    };
+	
+}]]></client_script>
         <controller_as>c</controller_as>
-        <css>.recognition-highlights-title {
-  font-size: 1.6rem;
-  margin: 0 0 1.5rem 0;
+        <css>.recognition-highlights {
+	margin-top: 1rem;
+  position: relative;
+}
+
+.recognition-highlights-title {
+  font-size: 1.75rem;
+  padding: 0 1.5rem;
+  margin: 1rem 0;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 4px;
+}
+
+.spinner .glyphicon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+
+.filter-controls {
+  padding: 0 15px; 
+}
+
+.filter-controls .form-control {
+  box-shadow: none !important;
+}
+
+.recognition-highlights .report-container {
+	padding: 0;
+}
+
+
+.recognition-highlights.panel-group {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+
+.recognition-highlights .panel {
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  margin: 0 !important; 
+}
+
+.recognition-highlights .panel-heading {
+  padding: 0;
+  border-top: 1px solid #ddd;
+}
+
+.recognition-highlights .panel:first-of-type .panel-heading {
+  border-top: none;
+}
+
+
+.recognition-highlights .panel-title a {
+  display: block;
+  padding: 15px;
+  text-decoration: none;
+  color: #333;
+  position: relative; 
+  transition: background-color 0.2s ease;
+}
+
+.recognition-highlights .panel-title a:hover {
+  background-color: #f5f5f5;
+}
+
+.recognition-highlights .panel-title a::after {
+  font-family: 'Glyphicons Halflings'; 
+  content: "\e258"; 
+  position: absolute;
+  right: 15px;
+  color: #999;
+  transition: transform 0.2s ease;
+}
+
+.recognition-highlights .panel-title a[aria-expanded="true"]::after {
+  transform: rotate(90deg);
+}
+
+
+
+
+/* Child widget styles for empty state*/
+.no-data {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: #666;
+    border: 1px dashed #ddd;
+    border-radius: 4px;
+    background-color: #fafafa;
+    margin: 1rem 0;
+}
+
+.no-data .glyphicon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #999;
+}
+
+.no-data h4 {
+    margin: 0.5rem 0;
+    font-weight: 500;
+}
+
+.no-data p {
+    margin: 0.5rem 0 1rem;
+}
+
+.no-data .btn {
+    margin-top: 1rem;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -25,7 +166,26 @@
         <roles/>
         <script><![CDATA[(function() {
 	
-	data.recognitionOptions = {days: options.days};
+	data.days = input ? input.days : options.days;
+	
+	var userCount = options.users || 3;
+	
+	var topContributors = new x_1794402_peerce_0.RecognitionUtils().getTopRecognitionContributors(data.days, userCount);
+	
+	data.topContributorOptions = {
+    days: Number(data.days),
+    show_title: false,
+		topContributors: topContributors
+	};
+	
+
+	var myRecognitionSnapshot = new x_1794402_peerce_0.RecognitionUtils().getUserRecognitionSnapshot(gs.getUserID(), data.days);
+
+  data.recognitionSnapshotOptions = {
+    days: Number(data.days),
+    show_title: false,
+		recognitionSnapshot: myRecognitionSnapshot
+  };
 	
 })();]]></script>
         <servicenow>false</servicenow>
@@ -33,19 +193,66 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 15:34:14</sys_created_on>
         <sys_id>346f5a51c3fbe25075ea722ed4013182</sys_id>
-        <sys_mod_count>31</sys_mod_count>
+        <sys_mod_count>89</sys_mod_count>
         <sys_name>Recognition Highlights</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_346f5a51c3fbe25075ea722ed4013182</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-06 13:34:52</sys_updated_on>
-        <template><![CDATA[<div class="recognition-highlights"> 
-  <h3 class="recognition-highlights-title"><strong>Recognition highlights</strong></h3> 
+        <sys_updated_on>2025-09-20 14:24:03</sys_updated_on>
+        <template><![CDATA[<div class="panel-group recognition-highlights" id="highlightsAccordion">
+
+  <h3 class="recognition-highlights-title"><strong>Recognition highlights</strong></h3>
+	
+  <!-- Loading Overlay -->
+  <div ng-if="c.isLoading" class="loading-overlay">
+    <div class="spinner">
+      <i class="glyphicon glyphicon-refresh spinning"></i> Loading...
+    </div>
+  </div>
   
-  <widget id="top_contributors" options='data.recognitionOptions'></widget> 
-  <widget id="my_recognition_snapshot" options='data.recognitionOptions'></widget> 
+  <div class="form-group filter-controls">
+    <label for="daysFilter" class="sr-only">Timeframe</label>
+    <select id="daysFilter" class="form-control" ng-model="c.days" ng-change="c.setDays()">
+      <option value="90">Last 90 Days</option>
+      <option value="30">Last 30 Days</option>      
+      <option value="7">Last 7 days</option>
+    </select>
+  </div>
+  
+  
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#highlightsAccordion" data-target="#collapseContributors" style="cursor: pointer;">
+          <i class="glyphicon glyphicon-stats"></i> Top Contributors (Last {{c.data.days}} Days)
+        </a>
+      </h4>
+    </div>
+    
+    <div id="collapseContributors" class="panel-collapse collapse in">
+      <div class="panel-body report-container">
+        <widget id="top_contributors" options='data.topContributorOptions'></widget>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4 class="panel-title">
+        <a data-toggle="collapse" data-parent="#highlightsAccordion" data-target="#collapseSnapshot" style="cursor: pointer;">
+          <i class="glyphicon glyphicon-stats"></i> My Recognition Snapshot (Last {{c.data.days}} Days)
+        </a>
+      </h4>
+    </div>
+    <div id="collapseSnapshot" class="panel-collapse collapse">
+      <div class="panel-body report-container">
+        <widget id="my_recognition_snapshot" options='data.recognitionSnapshotOptions'></widget>
+      </div>
+    </div>
+  </div>
+
 </div>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">

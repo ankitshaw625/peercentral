@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[function($scope, $rootScope) {
+  var c = this;
+
+  // This holds the final, confirmed selections
+  c.selectedOptions = [];
+
+  // This object holds the temporary state of the modal while it's open
+  c.modal = {
+    visible: false,
+    available: [],
+    selected: [],
+    selections: {
+      available: [],
+      selected: []
+    }
+  };
+
+  // --- Modal Control ---
+  c.openModal = function() {
+    // Reset modal state every time it opens
+    // This ensures the two lists are correct based on the current selection
+    var selectedValues = c.selectedOptions.map(function(item) { return item.value; });
+
+    c.modal.selected = angular.copy(c.selectedOptions);
+    c.modal.available = c.data.availableOptions.filter(function(item) {
+      return selectedValues.indexOf(item.value) === -1;
+    });
+
+    c.modal.visible = true;
+  };
+
+  c.closeModal = function() {
+    c.modal.visible = false;
+  };
+
+  c.applySelection = function() {
+    // 1. Update the widget's display with the new selections
+    c.selectedOptions = c.modal.selected;
+
+    // 2. Broadcast an event with the event name from widget options
+    // Any other widget on the page can listen for this event
+    $rootScope.$broadcast(c.data.eventName, {
+      selected: c.selectedOptions
+    });
+
+    // 3. Close the modal
+    c.closeModal();
+  };
+
+  // --- Slushbucket Logic ---
+  // These functions operate on the temporary 'c.modal' object
+  c.addSelected = function() {
+    c.modal.selected = c.modal.selected.concat(c.modal.selections.available);
+    c.modal.available = c.modal.available.filter(function(item) {
+      return c.modal.selections.available.indexOf(item) < 0;
+    });
+    c.modal.selections.available = [];
+  };
+
+  c.addAll = function() {
+    c.modal.selected = c.modal.selected.concat(c.modal.available);
+    c.modal.available = [];
+  };
+
+  c.removeSelected = function() {
+    c.modal.available = c.modal.available.concat(c.modal.selections.selected);
+    c.modal.selected = c.modal.selected.filter(function(item) {
+      return c.modal.selections.selected.indexOf(item) < 0;
+    });
+    c.modal.selections.selected = [];
+  };
+
+  c.removeAll = function() {
+    c.modal.available = c.modal.available.concat(c.modal.selected);
+    c.modal.selected = [];
+  };
+}]]></client_script>
+        <controller_as>c</controller_as>
+        <css>/* Main clickable display box */
+.filter-display {
+  display: inline-flex; /* This makes the container only as wide as its content */
+  max-width: 100%; /* Ensures it doesn't overflow its parent container */
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 12px;
+  background-color: #fff;
+  cursor: pointer;
+  min-height: 38px;
+  transition: border-color 0.2s ease-in-out;
+
+  &amp;:hover {
+    border-color: #999;
+  }
+}
+
+/* Container for the label and selection text */
+.filter-content {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The label text (e.g., "Category:") */
+.filter-label {
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* The text that shows the selection status */
+.filter-selection-text {
+  font-weight: 600;
+  color: #337ab7; // Bootstrap primary blue
+}
+
+/* The dropdown arrow on the right */
+.filter-caret {
+  margin-left: 10px;
+  color: #888;
+}
+
+/* Modal specific styles (no change here) */
+.slush-select {
+  height: 280px;
+}
+
+.slush-buttons {
+  padding-top: 60px;
+  .btn {
+    margin-bottom: 10px;
+  }
+}</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>true</has_preview>
+        <id>enhanced_slushbucket</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Enhanced Slushbucket</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[
+(function() {
+		var availableOptions = [];
+	
+		var gr = new GlideRecord('sp_dependency');
+		gr.orderBy('name');
+		gr.query();
+
+		while (gr.next()) {
+			availableOptions.push({
+				value: gr.getValue('sys_id'),
+				display: gr.getDisplayValue('name')
+			});
+		}
+
+  // Get configuration from widget options
+  data.title = options.title || 'Filter';
+  data.eventName = options.event_name || 'slushbucket.filter.updated';
+  data.availableOptions = availableOptions || [];
+
+  // Safely parse the JSON from the options
+  if (options.choices) {
+    try {
+      data.availableOptions = JSON.parse(options.choices);
+    } catch (e) {
+      gs.error("Reusable Slushbucket Filter: Invalid JSON in 'Choices' option.");
+    }
+  }
+	
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-20 18:10:13</sys_created_on>
+        <sys_id>bd8c55a2c38c361075ea722ed40131dc</sys_id>
+        <sys_mod_count>56</sys_mod_count>
+        <sys_name>Enhanced Slushbucket</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_bd8c55a2c38c361075ea722ed40131dc</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-20 20:30:57</sys_updated_on>
+        <template><![CDATA[<div class="slush-filter-widget">
+  <div class="filter-display" ng-click="c.openModal()" title="Click to edit filter">
+
+    <div class="filter-content">
+      <span class="filter-label">{{c.data.title}}:</span>
+
+      <span class="filter-selection-text">
+        <span ng-if="!c.selectedOptions.length" class="text-muted">Select...</span>
+        <span ng-if="c.selectedOptions.length === 1">{{c.selectedOptions[0].display}}</span>
+        <span ng-if="c.selectedOptions.length > 1">({{c.selectedOptions.length}} Selected)</span>
+      </span>
+      </div>
+
+    <i class="fa fa-caret-down filter-caret"></i>
+  </div>
+
+  <div ng-if="c.modal.visible" class="modal-backdrop fade in"></div>
+  <div ng-if="c.modal.visible" class="modal fade in" style="display: block;">
+    <div class="modal-dialog"> <div class="modal-content">
+        <div class="modal-header">
+          <button ng-click="c.closeModal()" type="button" class="close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">Select {{c.data.title}}</h4>
+        </div>
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-xs-5">
+              <label>Available</label>
+              <select multiple class="form-control slush-select" ng-model="c.modal.selections.available" ng-options="item as item.display for item in c.modal.available | orderBy: 'display'" ng-dblclick="c.addSelected()"></select>
+            </div>
+            <div class="col-xs-2 text-center slush-buttons">
+              <button class="btn btn-default btn-block" ng-click="c.addAll()" title="Add all"><i class="fa fa-angle-double-right"></i></button>
+              <button class="btn btn-primary btn-block" ng-click="c.addSelected()" title="Add selected"><i class="fa fa-angle-right"></i></button>
+              <button class="btn btn-primary btn-block" ng-click="c.removeSelected()" title="Remove selected"><i class="fa fa-angle-left"></i></button>
+              <button class="btn btn-default btn-block" ng-click="c.removeAll()" title="Remove all"><i class="fa fa-angle-double-left"></i></button>
+            </div>
+            <div class="col-xs-5">
+              <label>Selected</label>
+              <select multiple class="form-control slush-select" ng-model="c.modal.selections.selected" ng-options="item as item.display for item in c.modal.selected | orderBy: 'display'" ng-dblclick="c.removeSelected()"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-default" ng-click="c.closeModal()">Cancel</button>
+          <button class="btn btn-primary" ng-click="c.applySelection()">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>bd8c55a2c38c361075ea722ed40131dc</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-20 18:10:13</sys_created_on>
+        <sys_id>bd8c5d2ac340761075ea722ed4013108</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-20 18:10:13</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

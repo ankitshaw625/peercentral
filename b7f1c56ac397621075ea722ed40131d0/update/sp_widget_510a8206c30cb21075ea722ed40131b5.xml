@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function($scope, $window, $timeout) {
+  var c = this;
+  c.showButton = false;
+
+  // Find the actual scrollable container on the page.
+  // We use a timeout to make sure the element has loaded.
+  var scrollContainer = null;
+  $timeout(function() {
+    scrollContainer = document.querySelector('.sp-scroll');
+    if (!scrollContainer) {
+      // Fallback to the window if .sp-scroll isn't found
+      scrollContainer = $window;
+    }
+    // Attach the scroll handler to the correct element.
+    angular.element(scrollContainer).on('scroll', handleScroll);
+  }, 100);
+
+
+  function handleScroll() {
+    if (!scrollContainer) return;
+
+    // Use scrollTop for elements, or scrollY for the window.
+    var scrollPosition = scrollContainer.scrollTop || scrollContainer.scrollY || 0;
+    var shouldShow = (scrollPosition > 300);
+
+    if (c.showButton !== shouldShow) {
+      c.showButton = shouldShow;
+      $scope.$applyAsync();
+    }
+  }
+
+  c.scrollToTop = function() {
+    if (!scrollContainer) return;
+    
+    // This provides a much smoother animation than spUtil.scrollTo.
+    scrollContainer.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
+  // Cleanup the event listener on the correct element when the widget is destroyed.
+  $scope.$on('$destroy', function() {
+    if (scrollContainer) {
+      angular.element(scrollContainer).off('scroll', handleScroll);
+    }
+  });
+}]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.button-to-top {
+  /* Positioning */
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+
+  /* Appearance */
+  background-color: #007bff; /* A standard primary blue */
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%; /* Makes the button circular */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  border: none;
+  
+  /* Animation */
+  animation: fadeIn 0.3s;
+}
+
+/* Simple fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.button-to-top:hover {
+  background-color: #0056b3; /* Darker blue on hover */
+}
+
+.button-to-top:focus, .button-to-top:active {
+  border-radius: 50% !important; /* Keep it circular */
+  outline: none !important;      /* Remove the default browser outline */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important; /* Keep the shadow */
+}</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>pc_scroll_to_top</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>PC Scroll To Top</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function() {  /* populate the 'data' object */  /* e.g., data.table = $sp.getValue('table'); */})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-19 08:12:00</sys_created_on>
+        <sys_id>510a8206c30cb21075ea722ed40131b5</sys_id>
+        <sys_mod_count>5</sys_mod_count>
+        <sys_name>PC Scroll To Top</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_510a8206c30cb21075ea722ed40131b5</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-19 08:19:33</sys_updated_on>
+        <template><![CDATA[<button ng-if="c.showButton"
+        class="btn btn-primary fa fa-arrow-up fa-lg button-to-top"
+        ng-click="c.scrollToTop()"
+        aria-label="Scroll to top"
+        title="Scroll to top">
+</button>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>510a8206c30cb21075ea722ed40131b5</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-19 08:12:00</sys_created_on>
+        <sys_id>dd0a4a06c30cb21075ea722ed4013178</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-19 08:12:00</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

@@ -4,47 +4,80 @@
         <client_script><![CDATA[api.controller = function($scope, $location, $timeout) {
 	var c = this;
 	
-	c.activeTab = $location.hash() || 'you';
-	c.isLoading = true;           
+	c.data.filteredRecognitions = [];
+	c.isLoading = false;           
 	c.isLoadingMore = false;
-	c.canLoadMore = true;   
+	c.canLoadMore = true;
 	
 	c.offset = 0;                 
-	c.limit = c.options.limit;                 
-	c.data.filteredRecognitions = [];
+	c.limit = c.options.limit || 10;                 
+	c.sortOrder = 'newest';
 	
-	loadFeed(c.activeTab, 0, false);
+	// State
+	c.filters = {
+		activity: 'all',
+		timeframe: 'all',
+		occasion: ''
+	};
+
+	c.availableTags = ['Kudos', 'Milestone', 'Welcome', 'Farewell'];
+
+	// Reset filters
+	c.resetFilters = function() {
+		c.filters = { activity: 'all', timeframe: 'all', occasion: '' };
+		c.setTab(c.activeTab);
+	};
+
+	// Check if any filter is active
+	c.hasActiveFilters = function() {
+		return c.filters.activity !== 'all' ||
+			c.filters.timeframe !== 'all' ||
+			c.filters.occasion !== '';
+	};
+
+	c.setSortOrder = function(order) {
+			if (c.sortOrder === order) return;
+		
+			c.sortOrder = order;
+			c.setTab(c.activeTab);
+	};
+	
 	
 	c.setTab = function(tabName) {
-		if (c.activeTab === tabName) return; 
-    $location.hash(tabName); 
+		if (!tabName) return;
+		
+		c.activeTab = tabName;
+		$location.hash(tabName);
+		
+		c.offset = 0;
+		c.canLoadMore = true;
+		c.isLoading = true;
+		loadFeed(tabName, 0, false);
 	};
 	
 	c.loadMore = function() {
 		if (!c.canLoadMore || c.isLoadingMore) return;
 		
+		c.isLoadingMore = true;
+		
 		loadFeed(c.activeTab, c.offset, true);
 	};
 	
 	
+	var initialTab = $location.hash() || 'you';
+	c.setTab(initialTab);
+	
 	$scope.$on('$locationChangeSuccess', function() {
 		var newTab = $location.hash();
-    if (!newTab || newTab === c.activeTab) return;
-
-    c.isLoading = true;     
-    c.activeTab = newTab; 
 		
-		c.offset = 0; // Reset offset when switching tabs
-		c.canLoadMore = true;
-		loadFeed(newTab, 0, false);       
+		if (newTab && newTab !== c.activeTab) {
+			c.setTab(newTab);
+		}
 	});
 	
 	function loadFeed(feedType, offset, append) {
 		
-		if (!append) c.isLoading = true;
-		if (append) c.isLoadingMore = true;
-		
-    c.server.get({ feedType: feedType, limit: c.limit, offset: offset, action: 'getFeed' })
+    c.server.get({ feedType, limit: c.limit, offset, sortOrder: c.sortOrder, action: 'getFeed' })
         .then(function(response) {
             const newRecognitions = transformRecognitions(response.data.recognitions || []);
 			
@@ -54,22 +87,21 @@
 							c.data.filteredRecognitions = newRecognitions;
 						}
 
-						// Update offset
-						c.offset += newRecognitions.length;
+						// Update the offset
+						c.offset = offset + newRecognitions.length;
 
-						// If we got fewer than limit, no more to load
+						// If we got fewer than the limit, no more records left to load
 						c.canLoadMore = newRecognitions.length >= c.limit;
 
-						// Reset loading states
-						c.isLoading = false;
-						c.isLoadingMore = false;
         })
         .catch(function(error) {
             console.error('Failed to load feed:', error);
 						if (!append) c.data.filteredRecognitions = [];
+
+        }).finally(function() {
 						c.isLoading = false;
 						c.isLoadingMore = false;
-        });
+				});
 	}
 	
 	function transformRecognitions(recognitions) {
@@ -85,7 +117,7 @@
 	function generateInitials(name) {
     if (!name) return '?';
 		
-    return name.split(' ')              
+    return name.split(/\s+/)              
                .map(part => part[0] ? part[0].toUpperCase() : '') 
                .join('')                   
                .substring(0, 2) || '?';    
@@ -96,29 +128,29 @@
     if (!dateTime) return '';
     
     var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
-    if (!m.isValid()) return dateTime; 
-
-		moment.updateLocale('en', {
-			relativeTime: {
-				future: "in %s",
-				past:   "%s ago",
-				s:      "a few seconds", 
-				ss:     "%d seconds",    
-				m:      "a minute",      
-				mm:     "%d minutes",
-				h:      "an hour",      
-				hh:     "%d hours",
-				d:      "a day",      
-				dd:     "%d days",
-				M:      "a month",    
-				MM:     "%d months",
-				y:      "a year",      
-				yy:     "%d years"
-			}
-		});
 
     return m.fromNow();
 	}
+	
+	
+	moment.updateLocale('en', {
+		relativeTime: {
+			future: "in %s",
+			past:   "%s ago",
+			s:      "a few seconds", 
+			ss:     "%d seconds",    
+			m:      "a minute",      
+			mm:     "%d minutes",
+			h:      "an hour",      
+			hh:     "%d hours",
+			d:      "a day",      
+			dd:     "%d days",
+			M:      "a month",    
+			MM:     "%d months",
+			y:      "a year",      
+			yy:     "%d years"
+		}
+	});
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.nav-tabs li a:hover {
@@ -136,9 +168,127 @@
   border-bottom: 0.2rem solid #2D7524;
 }
 
-.nav-tabs &gt; li.analytics &gt; a:focus {
-	border: none;
+
+.refresh-btn {
+	border-bottom: .1rem solid #CFD5D7;
 }
+
+.refresh-btn .fa-refresh {
+  font-size: 18px !important;
+  color: #666;   
+  transition: transform 0.1s ease; 
+}
+
+
+.refresh-btn:active .fa-refresh {
+  transform: scale(0.9);
+}
+
+.refresh-btn:focus,
+.refresh-btn:active {
+  outline: none;
+  box-shadow: none !important;
+  background-color: transparent !important; 
+  border-color: transparent !important; 
+}
+
+/* ───────────────────────────────
+   Control Bar
+   ─────────────────────────────── */
+.controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.filters &gt; *:not(:first-child) {
+  margin-left: 6px;
+}
+
+/* ───────────────────────────────
+   Filter Select (Pill Style)
+   ─────────────────────────────── */
+.filter-select, .sort-select {
+  padding: 4px 24px 4px 10px; /* 👈 Add right padding for arrow */
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+  cursor: pointer;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333'%3E%3Cpath d='M6 9l-5-5h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 8px;
+  min-width: 100px; /* Prevents too-narrow sizing */
+}
+
+.filter-select:hover,
+.filter-select:focus,
+.sort-select:hover,
+.sort-select:focus {
+  border-color: #2D7524;
+  color: #2D7524;
+  background-image: url("image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%232D7524'%3E%3Cpath d='M6 9l-5-5h10z'/%3E%3C/svg%3E"); /* Match arrow color */
+}
+
+/* ───────────────────────────────
+   Sort Select
+   ─────────────────────────────── */
+.sort-select {
+  padding: 3px 20px 3px 8px; /* 👈 Right padding for arrow */
+  width: auto;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* ───────────────────────────────
+   Reset Link
+   ─────────────────────────────── */
+.reset-link {
+  color: #999;
+  text-decoration: none;
+  margin-left: 6px;
+  line-height: 1;
+}
+
+.reset-link:hover {
+  color: #2D7524;
+}
+
+/* ───────────────────────────────
+   Dropdown Styling (Best Effort)
+   ─────────────────────────────── */
+/* Chrome, Edge, Opera */
+.filter-select:focus::-webkit-list-box,
+.sort-select:focus::-webkit-list-box {
+  border-radius: 8px;
+  border: 1px solid #2D7524;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Firefox — very limited */
+.filter-select {
+  padding-block: 2px; /* Firefox vertical padding tweak */
+}
+
+/* No reliable cross-browser way to style option list border-radius or shadow */
+/* But the toggle button looks perfect and consistent */
+
 
 /* This container is the positioning anchor for the overlay */
 .feed-container {
@@ -171,7 +321,8 @@
 
 /* This class is applied to the list when the spinner is active */
 .feed-content.content-faded {
-  opacity: 0;
+  opacity: 0.5;
+  pointer-events: none; 
 }
 
 .recognition-indicators abbr {
@@ -211,11 +362,12 @@
 	
 		const currentFeed = input.feedType || 'you';
 		const limit = parseInt(input.limit, 10) || 15;
-		const offset   = parseInt(input.offset, 10) || 0; // ]]>👈<![CDATA[ Read offset
-
+		const offset   = parseInt(input.offset, 10) || 0;
+		const sortOrder = input.sortOrder || 'newest'; 
+		
 		const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
-		data.recognitions = recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset) || [];
+		data.recognitions = recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset, sortOrder) || [];
 		
 	}
 
@@ -226,14 +378,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>349</sys_mod_count>
+        <sys_mod_count>447</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-18 20:10:49</sys_updated_on>
+        <sys_updated_on>2025-09-20 16:46:58</sys_updated_on>
         <template><![CDATA[<main>
 <div class="panel panel-primary">
   <!-- Default panel contents -->
@@ -257,11 +409,66 @@
         <a href="" ng-click="c.setTab('all')">All</a>
       </li>
       
+      <li class="pull-right">
+        <a href=""
+           ng-click="!c.isLoading && c.setTab(c.activeTab)"
+           title="Refresh feed"
+           class="btn btn-default btn-sm refresh-btn"
+           ng-class="{'is-loading': c.isLoading}">
+          <i class="fa fa-refresh"
+             ng-class="{'fa-spin': c.isLoading}"
+             aria-hidden="true"></i>
+          <span class="sr-only">Refresh</span>
+        </a>
+      </li>
 
       
     </ul>
   </nav>
+  
+  <div class="controls-bar">
+    <div class="filters">
 
+      <!-- Activity Filter -->
+      <select class="filter-select"
+              ng-model="c.filters.activity"
+              ng-change="c.setTab(c.activeTab)">
+        <option value="all">Activity: All</option>
+        <option value="sent">Activity: Sent</option>
+        <option value="received">Activity: Received</option>
+      </select>
+
+      <!-- Timeframe Filter -->
+      <select class="filter-select"
+              ng-model="c.filters.timeframe"
+              ng-change="c.setTab(c.activeTab)">
+        <option value="all">All</option>
+        <option value="7d">Last 7 days</option>
+        <option value="30d">Last 30 days</option>
+        <option value="90d">Last 90 days</option>
+      </select>
+
+      <!-- Occasion Filter -->
+      <select class="filter-select"
+              ng-model="c.filters.occasion"
+              ng-change="c.setTab(c.activeTab)">
+        <option value="">Occasion: None</option>
+        <option ng-repeat="tag in c.availableTags" value="{{tag}}">{{tag}}</option>
+      </select>
+
+      <!-- Reset Button -->
+      <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link">↺</a>
+    </div>
+
+    <!-- Sort Toggle -->
+    <select class="sort-select"
+            ng-model="c.sortOrder"
+            ng-change="c.setTab(c.activeTab)">
+      <option value="newest">]]>🠗<![CDATA[ Newest</option>
+      <option value="oldest">]]>🠕<![CDATA[ Oldest</option>
+    </select>
+  </div>
+  
   <!-- List group -->
   <section class="feed-container">
     
@@ -270,7 +477,7 @@
     </div>
 
     <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
-      <li ng-repeat="recognition in c.data.filteredRecognitions" class="list-group-item">
+      <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id" class="list-group-item">
         <article class="media">
           
           <div class="media-left">
@@ -300,10 +507,10 @@
             
 
 
-            <p ng-bind-html="recognition.message"></p>
+            <p ng-if="recognition.message" ng-bind-html="recognition.message"></p>
             
 						<span ng-repeat="occasion in recognition.occasions">
-            	<small class="label label-default occasion-tag">
+            	<small class="label label-default occasion-tag" title={{occasion}}>
                 <strong>{{occasion}}</strong>
               </small>&nbsp;
           	</span>
@@ -341,6 +548,8 @@
           <p class="small text-muted">Try adjusting your filters or check back later.</p>
         </div>
       </li>
+      
+
 
     </ul>
    </section>

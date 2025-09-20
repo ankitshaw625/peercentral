@@ -13,6 +13,8 @@
 RecognitionUtils.prototype = {
     initialize: function() {
         this.userTeam = null;
+        this.RECOGNITION_TABLE = 'x_1794402_peerce_0_peer_recognition';
+        this.RECOGNITION_RECIPIENT_TABLE = 'x_1794402_peerce_0_recognition_recipient';
     },
 
     canReadPrivateRecognition: function(grRecognition, userId) {
@@ -48,7 +50,7 @@ RecognitionUtils.prototype = {
             this.userTeam = this.getUserTeam();
         }
 
-		gs.info(JSON.stringify(this.userTeam));
+        gs.info(JSON.stringify(this.userTeam));
 
         var allTeam = this.userTeam.combined;
 
@@ -102,19 +104,128 @@ RecognitionUtils.prototype = {
         return Array.from(userGroups);
     },
 
+    getUserRecognitionSnapshot: function(userID, days) {
+        userID = userID || gs.getUserID();
+        days = parseInt(days, 10) || 90;
+
+        var given = this._getUserCount(this.RECOGNITION_TABLE, 'sender', userID, days);
+        var received = this._getUserCount(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', userID, days);
+
+        return {
+            given: given,
+            received: received,
+            total: given + received
+        };
+    },
+
+    _getUserCount: function(tableName, userField, userID, days) {
+        var ga = new GlideAggregate(tableName);
+        ga.addQuery(userField, userID);
+        ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
+        ga.addAggregate('COUNT');
+        ga.query();
+
+        var count = 0;
+        if (ga.next()) {
+            count = parseInt(ga.getAggregate('COUNT'), 10);
+        }
+        return count;
+    },
+
+
+    getTopRecognitionContributors: function(daysAgo, userCount) {
+        daysAgo = parseInt(daysAgo, 10) || 90;
+        userCount = userCount || 3;
+
+        const allRecognitions = [];
+        const givenRecognitions = [];
+        const receivedRecognitions = [];
+
+        const givenMap = this._getCounts(this.RECOGNITION_TABLE, 'sender', daysAgo);
+        const receivedMap = this._getCounts(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', daysAgo);
+
+        const totalsMap = new Map();
+
+        // Add 'given' counts to the totals
+        givenMap.forEach(function(value, key) {
+            totalsMap.set(key, {
+                user: key,
+                displayName: value.displayName,
+                count: value.count
+            });
+        });
+
+        // Add 'received' counts to the totals
+        receivedMap.forEach(function(value, key) {
+            if (totalsMap.has(key)) {
+                totalsMap.get(key).count += value.count;
+            } else {
+                totalsMap.set(key, {
+                    user: key,
+                    displayName: value.displayName,
+                    count: value.count
+                });
+            }
+        });
+
+        return {
+            all: this._sortAndSlice(totalsMap, userCount),
+            given: this._sortAndSlice(givenMap, userCount),
+            received: this._sortAndSlice(receivedMap, userCount)
+        };
+    },
+
+    // Helper function to sort and slice an array from a map
+    _sortAndSlice: function(map, count) {
+        return Array.from(map.values())
+            .sort(function(a, b) {
+                return b.count - a.count;
+            })
+            .slice(0, count);
+    },
+
+    _getCounts: function(tableName, userField, days) {
+
+        const resultsMap = new Map();
+
+        const ga = new GlideAggregate(tableName);
+        ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
+        ga.addNotNullQuery(userField);
+        ga.addAggregate('COUNT', userField);
+        ga.groupBy(userField);
+        ga.orderByAggregate('COUNT', userField);
+        ga.query();
+
+        while (ga.next()) {
+            const userId = ga.getValue(userField);
+            const userDisplayName = ga.getDisplayValue(userField);
+            const count = parseInt(ga.getAggregate('COUNT', userField), 10);
+
+            if (userId && userDisplayName) {
+                resultsMap.set(userId, {
+                    user: userId,
+                    displayName: userDisplayName,
+                    count: count
+                });
+            }
+        }
+
+        return resultsMap;
+    },
+
     type: 'RecognitionUtils'
 };]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>15</sys_mod_count>
+        <sys_mod_count>23</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-18 18:57:47</sys_updated_on>
+        <sys_updated_on>2025-09-20 11:34:26</sys_updated_on>
     </sys_script_include>
 </record_update>
