@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller=function($scope, $rootScope, $document, $element) {
+        <client_script><![CDATA[api.controller = function($scope, $rootScope, $document, $element) {
   var c = this;
 
-  c.selectedOption = {};
   c.dropdownVisible = false;
+  c.selectedOption = {};
+
+  c.$onInit = function() {
+    if (c.data.initialSelection) {
+      c.selectedOption = c.data.initialSelection;
+    }
+  };
+	
+	$scope.$on('filters.reset', function() {
+		if (c.data.availableOptions && c.data.availableOptions.length > 0) {
+			c.selectedOption = c.data.availableOptions[0];
+		}
+	});
 
   c.toggleDropdown = function() {
     c.dropdownVisible = !c.dropdownVisible;
@@ -20,39 +32,31 @@
     $rootScope.$broadcast(c.data.eventName, {
       selected: c.selectedOption
     });
-    c.closeDropdown(); // Close dropdown after selection
+
+    c.closeDropdown();
   };
 
   // --- Click Outside to Close ---
-  // This function runs on any click on the page
   var handleClickOutside = function(event) {
-    // Check if the click was inside this widget's element
     var isDescendant = $element[0].contains(event.target);
-
-    // If the click was outside and the dropdown is visible, close it
     if (!isDescendant && c.dropdownVisible) {
-      // Use $apply to ensure Angular knows about the change
       $scope.$apply(function() {
         c.closeDropdown();
       });
     }
   };
-
-  // Listen for clicks on the entire document
+	
   $document.on('click', handleClickOutside);
-
-  // Clean up the listener when the widget is destroyed to prevent memory leaks
   $scope.$on('$destroy', function() {
     $document.off('click', handleClickOutside);
   });
 }]]></client_script>
         <controller_as>c</controller_as>
         <css>.single-select-filter-widget {
-  position: relative; /* Required for positioning the dropdown */
-  display: inline-block; /* THIS IS THE FIX: Makes the container shrink-to-fit */
+  position: relative;
+  display: inline-block;
 }
 
-/* Main clickable display box */
 .filter-display {
   display: inline-flex;
   max-width: 100%;
@@ -67,13 +71,11 @@
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-/* Add a subtle glow when the dropdown is open */
 .dropdown-open .filter-display {
   border-color: #66afe9;
   box-shadow: 0 0 4px rgba(102, 175, 233, 0.6);
 }
 
-/* Content within the display box */
 .filter-content {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -87,7 +89,6 @@
 
 .filter-selection-text {
   font-weight: 600;
-  color: #337ab7;
 }
 
 .filter-caret {
@@ -95,38 +96,37 @@
   color: #888;
 }
 
-/* Styles for the dropdown panel */
 .dropdown-panel {
   position: absolute;
   top: 100%;
   left: 0;
   z-index: 1000;
-  margin-top: 4px; /* Small gap from the filter box */
-  width: 100%; /* This now works correctly */
+  margin-top: 4px;
+  width: 100%;
   background-color: #fff;
   border: 1px solid #ccc;
   border-radius: 6px;
   box-shadow: 0 6px 12px rgba(0,0,0,.175);
   max-height: 250px;
   overflow-y: auto;
+}
 
-  .list-group {
-    margin-bottom: 0;
-  }
+.dropdown-panel .list-group {
+  margin-bottom: 0;
+}
 
-  .list-group-item {
-    cursor: pointer;
-    border: none;
-    border-bottom: 1px solid #eee;
+.dropdown-panel .list-group-item {
+  cursor: pointer;
+  border: none;
+  border-bottom: 1px solid #eee;
+}
 
-    &amp;:last-child {
-      border-bottom: none;
-    }
+.dropdown-panel .list-group-item:last-child {
+  border-bottom: none;
+}
 
-    &amp;:hover {
-      background-color: #f5f5f5;
-    }
-  }
+.dropdown-panel .list-group-item:hover {
+  background-color: #f5f5f5;
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -134,7 +134,7 @@
         <docs/>
         <field_list/>
         <has_preview>true</has_preview>
-        <id>single_select_filter</id>
+        <id>single-select-filter</id>
         <internal>false</internal>
         <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
         <name>Single Select Filter</name>
@@ -143,32 +143,14 @@
         <roles/>
         <script><![CDATA[
 (function() {
-		var availableOptions = [];
-	
-		var gr = new GlideRecord('sp_dependency');
-		gr.orderBy('name');
-		gr.setLimit(3);
-		gr.query();
-
-		while (gr.next()) {
-			availableOptions.push({
-				value: gr.getValue('sys_id'),
-				display: gr.getDisplayValue('name')
-			});
-		}
-
   // Get configuration from widget options
-  data.title = options.title || 'Filter';
-  data.eventName = options.event_name || 'slushbucket.filter.updated';
-  data.availableOptions = availableOptions || [];
+  data.title = options.title || '';
+  data.eventName = options.eventName || 'select.filter.updated';
+  data.availableOptions = options.choices || [];
+  data.initialSelection = options.initialSelection;
 
-  // Safely parse the JSON from the options
-  if (options.choices) {
-    try {
-      data.availableOptions = JSON.parse(options.choices);
-    } catch (e) {
-      gs.error("Reusable Slushbucket Filter: Invalid JSON in 'Choices' option.");
-    }
+	if (data.availableOptions.length > 0) {
+    data.initialSelection = data.availableOptions[0];
   }
 	
 })();]]></script>
@@ -177,21 +159,20 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-20 20:40:16</sys_created_on>
         <sys_id>c8eefd66c304761075ea722ed4013196</sys_id>
-        <sys_mod_count>4</sys_mod_count>
+        <sys_mod_count>30</sys_mod_count>
         <sys_name>Single Select Filter</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_c8eefd66c304761075ea722ed4013196</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-20 20:46:37</sys_updated_on>
-        <template><![CDATA[<div class="single-select-filter-widget" ng-class="{'dropdown-open': c.dropdownVisible}">
+        <sys_updated_on>2025-09-21 17:43:16</sys_updated_on>
+        <template><![CDATA[
+<div class="single-select-filter-widget" ng-class="{'dropdown-open': c.dropdownVisible}">
   <div class="filter-display" ng-click="c.toggleDropdown()" title="Click to change selection">
     <div class="filter-content">
-      <span class="filter-label">{{c.data.title}}:</span>
-      <span class="filter-selection-text">
-        <span ng-if="!c.selectedOption.value" class="text-muted">Select...</span>
-        <span ng-if="c.selectedOption.value">{{c.selectedOption.display}}</span>
+      <span class="filter-label" ng-if="c.data.title">{{c.data.title}}:</span>
+      <span class="filter-selection-text" ng-bind-html="c.selectedOption.display">
       </span>
     </div>
     <i class="fa fa-caret-down filter-caret"></i>
@@ -200,10 +181,9 @@
   <div ng-if="c.dropdownVisible" class="dropdown-panel">
     <ul class="list-group">
       <li class="list-group-item"
-          ng-repeat="item in c.data.availableOptions"
-          ng-click="c.selectItem(item)"
-          ng-class="{'active': item.value === c.selectedOption.value}">
-        {{item.display}}
+          ng-repeat="item in c.data.availableOptions | filter:{value: '!' + c.selectedOption.value}"
+          ng-click="c.selectItem(item)">
+        <span ng-bind-html="item.display"></span>
       </li>
     </ul>
   </div>

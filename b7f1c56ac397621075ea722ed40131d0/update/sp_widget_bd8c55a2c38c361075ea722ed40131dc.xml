@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[function($scope, $rootScope) {
+        <client_script><![CDATA[api.controller = function($scope, $rootScope) {
   var c = this;
 
   // This holds the final, confirmed selections
@@ -11,6 +11,8 @@
   c.modal = {
     visible: false,
     available: [],
+		searchTerm: '',
+		searchTermSelected: '',
     selected: [],
     selections: {
       available: [],
@@ -49,6 +51,11 @@
     // 3. Close the modal
     c.closeModal();
   };
+	
+	$scope.$on('filters.reset', function() {
+		// When the reset event is heard, clear all selected options.
+		c.selectedOptions = [];
+	});
 
   // --- Slushbucket Logic ---
   // These functions operate on the temporary 'c.modal' object
@@ -79,10 +86,9 @@
   };
 }]]></client_script>
         <controller_as>c</controller_as>
-        <css>/* Main clickable display box */
-.filter-display {
-  display: inline-flex; /* This makes the container only as wide as its content */
-  max-width: 100%; /* Ensures it doesn't overflow its parent container */
+        <css>.filter-display {
+  display: inline-flex;
+  max-width: 100%; 
   justify-content: space-between;
   align-items: center;
   border: 1px solid #ccc;
@@ -98,41 +104,53 @@
   }
 }
 
-/* Container for the label and selection text */
 .filter-content {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* The label text (e.g., "Category:") */
 .filter-label {
   font-weight: 500;
   margin-right: 6px;
 }
 
-/* The text that shows the selection status */
 .filter-selection-text {
   font-weight: 600;
-  color: #337ab7; // Bootstrap primary blue
 }
 
-/* The dropdown arrow on the right */
 .filter-caret {
   margin-left: 10px;
   color: #888;
 }
 
-/* Modal specific styles (no change here) */
 .slush-select {
   height: 280px;
 }
 
-.slush-buttons {
-  padding-top: 60px;
-  .btn {
-    margin-bottom: 10px;
-  }
+.left-slushbucket {
+	padding-right: 0;
+}
+
+.right-slushbucket {
+	padding-left: 0;
+}
+
+.slushbucket-button-col {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+}
+
+/* You can keep this for button spacing if you like */
+.slush-buttons .btn {
+  margin-bottom: 10px;
+}
+
+.slushbucket-row {
+  display: flex;
+  gap: 15px; /* Provides consistent spacing */
 }</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -140,56 +158,33 @@
         <docs/>
         <field_list/>
         <has_preview>true</has_preview>
-        <id>enhanced_slushbucket</id>
+        <id>multi-select-slushbucket-filter</id>
         <internal>false</internal>
         <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
-        <name>Enhanced Slushbucket</name>
+        <name>Multi Select Slushbucket Filter</name>
         <option_schema/>
         <public>false</public>
         <roles/>
-        <script><![CDATA[
-(function() {
-		var availableOptions = [];
-	
-		var gr = new GlideRecord('sp_dependency');
-		gr.orderBy('name');
-		gr.query();
-
-		while (gr.next()) {
-			availableOptions.push({
-				value: gr.getValue('sys_id'),
-				display: gr.getDisplayValue('name')
-			});
-		}
-
+        <script><![CDATA[(function() {
   // Get configuration from widget options
   data.title = options.title || 'Filter';
-  data.eventName = options.event_name || 'slushbucket.filter.updated';
-  data.availableOptions = availableOptions || [];
+  data.eventName = options.eventName || 'slushbucket.filter.updated';
+  data.availableOptions = options.choices || [];
 
-  // Safely parse the JSON from the options
-  if (options.choices) {
-    try {
-      data.availableOptions = JSON.parse(options.choices);
-    } catch (e) {
-      gs.error("Reusable Slushbucket Filter: Invalid JSON in 'Choices' option.");
-    }
-  }
-	
 })();]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-20 18:10:13</sys_created_on>
         <sys_id>bd8c55a2c38c361075ea722ed40131dc</sys_id>
-        <sys_mod_count>56</sys_mod_count>
-        <sys_name>Enhanced Slushbucket</sys_name>
+        <sys_mod_count>74</sys_mod_count>
+        <sys_name>Multi Select Slushbucket Filter</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_bd8c55a2c38c361075ea722ed40131dc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-20 20:30:57</sys_updated_on>
+        <sys_updated_on>2025-09-21 18:12:26</sys_updated_on>
         <template><![CDATA[<div class="slush-filter-widget">
   <div class="filter-display" ng-click="c.openModal()" title="Click to edit filter">
 
@@ -214,20 +209,36 @@
           <h4 class="modal-title">Select {{c.data.title}}</h4>
         </div>
         <div class="modal-body">
-          <div class="row">
-            <div class="col-xs-5">
+          <div class="row slushbucket-row">
+            <div class="col-xs-5 left-slushbucket">
               <label>Available</label>
-              <select multiple class="form-control slush-select" ng-model="c.modal.selections.available" ng-options="item as item.display for item in c.modal.available | orderBy: 'display'" ng-dblclick="c.addSelected()"></select>
+              <div class="form-group">
+                <input type="text" 
+                       class="form-control" 
+                       ng-model="c.modal.searchTerm" 
+                       placeholder="Search available...">
+              </div>
+              <select multiple class="form-control slush-select" ng-model="c.modal.selections.available" ng-options="item as item.display for item in c.modal.available | filter:c.modal.searchTerm | orderBy: 'display'" ng-dblclick="c.addSelected()"></select>
             </div>
-            <div class="col-xs-2 text-center slush-buttons">
+            
+          <div class="col-xs-1 text-center slushbucket-button-col">
+            <div class="slush-buttons">
               <button class="btn btn-default btn-block" ng-click="c.addAll()" title="Add all"><i class="fa fa-angle-double-right"></i></button>
               <button class="btn btn-primary btn-block" ng-click="c.addSelected()" title="Add selected"><i class="fa fa-angle-right"></i></button>
               <button class="btn btn-primary btn-block" ng-click="c.removeSelected()" title="Remove selected"><i class="fa fa-angle-left"></i></button>
               <button class="btn btn-default btn-block" ng-click="c.removeAll()" title="Remove all"><i class="fa fa-angle-double-left"></i></button>
             </div>
-            <div class="col-xs-5">
+          </div>
+            
+            <div class="col-xs-5 right-slushbucket">
               <label>Selected</label>
-              <select multiple class="form-control slush-select" ng-model="c.modal.selections.selected" ng-options="item as item.display for item in c.modal.selected | orderBy: 'display'" ng-dblclick="c.removeSelected()"></select>
+                <div class="form-group">
+                  <input type="text" 
+                         class="form-control" 
+                         ng-model="c.modal.searchTermSelected" 
+                         placeholder="Search selected...">
+                </div>
+              <select multiple class="form-control slush-select" ng-model="c.modal.selections.selected" ng-options="item as item.display for item in c.modal.selected | filter:c.modal.searchTermSelected | orderBy: 'display'" ng-dblclick="c.removeSelected()"></select>
             </div>
           </div>
         </div>
