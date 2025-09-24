@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_ng_template">
+    <sp_ng_template action="DELETE">
+        <id>enhanced-slushbucket-modal</id>
+        <sp_widget display_value="Enhanced Slushbucket">bd8c55a2c38c361075ea722ed40131dc</sp_widget>
+        <sys_class_name>sp_ng_template</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-20 18:13:39</sys_created_on>
+        <sys_id>c83d996ac340761075ea722ed40131fa</sys_id>
+        <sys_mod_count>5</sys_mod_count>
+        <sys_name>enhanced-slushbucket-modal</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_ng_template_c83d996ac340761075ea722ed40131fa</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-20 20:09:00</sys_updated_on>
+        <template><![CDATA[<div class="panel panel-default list-collector-modal-panel">
+    <div class="panel-heading">
+        <h4 class="panel-title">${Select Options}</h4>
+    </div>
+    <div class="panel-body">
+        <div class="row" style="height: 100%;">
+            <div class="col-xs-5">
+                <div class="list-collector-column">
+                    <label for="available_search">${Available}</label>
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        <input id="available_search" type="text" class="form-control" placeholder="Search available..." ng-model="search.available">
+                    </div>
+                    <div class="list-collector-box">
+                        <a href="javascript:void(0)"
+                           ng-repeat="item in availableChoices | filter:search.available"
+                           ng-click="toggleSelection(item, 'available')"
+                           ng-dblclick="moveItem(item, 'available')"
+                           class="list-group-item"
+                           ng-class="{'active': item.selected}"
+                           tabindex="0">
+                            {{::item.label}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xs-2">
+                <div class="list-collector-controls">
+                    <button class="btn btn-default btn-block" ng-click="moveSelectedItems('available')" title="Add selected to right" aria-label="Add selected items">
+                        <i class="fa fa-chevron-right"></i>
+                    </button>
+                    <button class="btn btn-default btn-block" ng-click="moveSelectedItems('selected')" title="Remove selected from right" aria-label="Remove selected items">
+                        <i class="fa fa-chevron-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-xs-5">
+                <div class="list-collector-column">
+                    <label for="selected_search">${Selected}</label>
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        <input id="selected_search" type="text" class="form-control" placeholder="Search selected..." ng-model="search.selected">
+                    </div>
+                    <div class="list-collector-box">
+                        <div ng-if="selectedChoices.length === 0" class="none-selected-text">
+                            -- None --
+                        </div>
+                        <a href="javascript:void(0)"
+                           ng-repeat="item in selectedChoices | filter:search.selected"
+                           ng-click="toggleSelection(item, 'selected')"
+                           ng-dblclick="moveItem(item, 'selected')"
+                           class="list-group-item"
+                           ng-class="{'active': item.selected}"
+                           tabindex="0">
+                             {{::item.label}}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="panel-footer text-right">
+        <button class="btn btn-default" ng-click="cancel()">${Cancel}</button>
+        <button class="btn btn-primary" ng-click="apply()">${Apply}</button>
+    </div>
+</div>]]></template>
+    </sp_ng_template>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>sp_ng_template_c83d996ac340761075ea722ed40131fa</name>
+        <payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sp_ng_template"&gt;&lt;sp_ng_template action="INSERT_OR_UPDATE"&gt;&lt;id&gt;enhanced-slushbucket-modal&lt;/id&gt;&lt;sp_widget display_value="Enhanced Slushbucket"&gt;bd8c55a2c38c361075ea722ed40131dc&lt;/sp_widget&gt;&lt;sys_class_name&gt;sp_ng_template&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2025-09-20 18:13:39&lt;/sys_created_on&gt;&lt;sys_id&gt;c83d996ac340761075ea722ed40131fa&lt;/sys_id&gt;&lt;sys_mod_count&gt;5&lt;/sys_mod_count&gt;&lt;sys_name&gt;enhanced-slushbucket-modal&lt;/sys_name&gt;&lt;sys_package display_value="PeerCentral" source="x_1794402_peerce_0"&gt;b7f1c56ac397621075ea722ed40131d0&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="PeerCentral"&gt;b7f1c56ac397621075ea722ed40131d0&lt;/sys_scope&gt;&lt;sys_update_name&gt;sp_ng_template_c83d996ac340761075ea722ed40131fa&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;admin&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2025-09-20 20:09:00&lt;/sys_updated_on&gt;&lt;template&gt;&lt;![CDATA[&lt;div class="panel panel-default list-collector-modal-panel"&gt;
+    &lt;div class="panel-heading"&gt;
+        &lt;h4 class="panel-title"&gt;${Select Options}&lt;/h4&gt;
+    &lt;/div&gt;
+    &lt;div class="panel-body"&gt;
+        &lt;div class="row" style="height: 100%;"&gt;
+            &lt;div class="col-xs-5"&gt;
+                &lt;div class="list-collector-column"&gt;
+                    &lt;label for="available_search"&gt;${Available}&lt;/label&gt;
+                    &lt;div class="input-group"&gt;
+                        &lt;span class="input-group-addon"&gt;&lt;i class="fa fa-search"&gt;&lt;/i&gt;&lt;/span&gt;
+                        &lt;input id="available_search" type="text" class="form-control" placeholder="Search available..." ng-model="search.available"&gt;
+                    &lt;/div&gt;
+                    &lt;div class="list-collector-box"&gt;
+                        &lt;a href="javascript:void(0)"
+                           ng-repeat="item in availableChoices | filter:search.available"
+                           ng-click="toggleSelection(item, 'available')"
+                           ng-dblclick="moveItem(item, 'available')"
+                           class="list-group-item"
+                           ng-class="{'active': item.selected}"
+                           tabindex="0"&gt;
+                            {{::item.label}}
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="col-xs-2"&gt;
+                &lt;div class="list-collector-controls"&gt;
+                    &lt;button class="btn btn-default btn-block" ng-click="moveSelectedItems('available')" title="Add selected to right" aria-label="Add selected items"&gt;
+                        &lt;i class="fa fa-chevron-right"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                    &lt;button class="btn btn-default btn-block" ng-click="moveSelectedItems('selected')" title="Remove selected from right" aria-label="Remove selected items"&gt;
+                        &lt;i class="fa fa-chevron-left"&gt;&lt;/i&gt;
+                    &lt;/button&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+
+            &lt;div class="col-xs-5"&gt;
+                &lt;div class="list-collector-column"&gt;
+                    &lt;label for="selected_search"&gt;${Selected}&lt;/label&gt;
+                    &lt;div class="input-group"&gt;
+                        &lt;span class="input-group-addon"&gt;&lt;i class="fa fa-search"&gt;&lt;/i&gt;&lt;/span&gt;
+                        &lt;input id="selected_search" type="text" class="form-control" placeholder="Search selected..." ng-model="search.selected"&gt;
+                    &lt;/div&gt;
+                    &lt;div class="list-collector-box"&gt;
+                        &lt;div ng-if="selectedChoices.length === 0" class="none-selected-text"&gt;
+                            -- None --
+                        &lt;/div&gt;
+                        &lt;a href="javascript:void(0)"
+                           ng-repeat="item in selectedChoices | filter:search.selected"
+                           ng-click="toggleSelection(item, 'selected')"
+                           ng-dblclick="moveItem(item, 'selected')"
+                           class="list-group-item"
+                           ng-class="{'active': item.selected}"
+                           tabindex="0"&gt;
+                             {{::item.label}}
+                        &lt;/a&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class="panel-footer text-right"&gt;
+        &lt;button class="btn btn-default" ng-click="cancel()"&gt;${Cancel}&lt;/button&gt;
+        &lt;button class="btn btn-primary" ng-click="apply()"&gt;${Apply}&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/div&gt;]]&gt;&lt;/template&gt;&lt;/sp_ng_template&gt;&lt;/record_update&gt;</payload>
+        <payload_hash>-996972372</payload_hash>
+        <record_name>enhanced-slushbucket-modal</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>previous</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-20 20:09:00</sys_created_on>
+        <sys_id>4eb7fd2ec3c0761075ea722ed40131dd</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>19968be86380000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-20 20:09:00</sys_updated_on>
+        <type>Angular ng-template</type>
+        <update_guid>82b7fd2e55c07610fd483ede1ae821dd</update_guid>
+        <update_guid_history>82b7fd2e55c07610fd483ede1ae821dd:-996972372,5587f92e6bc07610604ead02f3c12973:1480438928,f594ad62608076107fae039c4d7d7d8b:-996972372,4722e922c7807610b9d17a5509958f72:-983260298,ef6f1dea554076107ba85268f078079c:-896694616,545dd96a1e407610abb4689ed3502fac:-1685590434</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete display_value="enhanced-slushbucket-modal">0c91bb1fc3887a1075ea722ed4013121</sys_audit_delete>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-23 12:56:48</sys_created_on>
+        <sys_db_object display_value="" name="sp_ng_template">sp_ng_template</sys_db_object>
+        <sys_id>3dcad9a8b2a84eb6a32ccc20eb828a44</sys_id>
+        <sys_metadata>c83d996ac340761075ea722ed40131fa</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>enhanced-slushbucket-modal</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent/>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>sp_ng_template_c83d996ac340761075ea722ed40131fa</sys_update_name>
+        <sys_update_version display_value="sp_ng_template_c83d996ac340761075ea722ed40131fa">4eb7fd2ec3c0761075ea722ed40131dd</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-23 12:56:48</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>

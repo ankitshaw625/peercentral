@@ -213,19 +213,36 @@ RecognitionUtils.prototype = {
         return resultsMap;
     },
 
+    getRecognitionOccasions: function() {
+        const occasions = [];
+
+        const grOccasions = new GlideRecord('x_1794402_peerce_0_recognition_category');
+        grOccasions.addActiveQuery();
+        grOccasions.query();
+
+        while (grOccasions.next()) {
+            occasions.push({
+                display: grOccasions.getDisplayValue(),
+                value: grOccasions.getUniqueValue()
+            });
+        }
+
+		return occasions;
+    },
+
     type: 'RecognitionUtils'
 };]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>23</sys_mod_count>
+        <sys_mod_count>24</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-20 11:34:26</sys_updated_on>
+        <sys_updated_on>2025-09-21 19:15:51</sys_updated_on>
     </sys_script_include>
 </record_update>

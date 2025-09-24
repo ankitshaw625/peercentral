@@ -1,194 +1,208 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function($scope, $location, $timeout) {
-	var c = this;
-	
-	c.data.filteredRecognitions = [];
-	c.isLoading = false;           
-	c.isLoadingMore = false;
-	c.canLoadMore = true;
-	
-	c.offset = 0;                 
-	c.limit = c.options.limit || 10;                 
-	
-	// State
-	c.filters = getDefaultFilters();
+        <client_script><![CDATA[api.controller = function ($scope, $location) {
+  var c = this;
 
-	// This function now simply broadcasts a message and then re-fetches the data.
-	c.resetFilters = function() {
-		// 1. Tell all listening child widgets to reset themselves
-		$rootScope.$broadcast('filters.reset');
+  c.data.filteredRecognitions = [];
+  c.isLoading = false;
+  c.isLoadingMore = false;
+  c.canLoadMore = true;
 
-		// 2. Reset the parent's data model
-		c.filters = getDefaultFilters();
+  c.offset = 0;
+  c.limit = c.options.limit || 10;
 
-		// 3. Fetch the new, unfiltered data
-		c.setTab(c.activeTab);
-	};
+  // State
+  c.filters = getDefaultFilters();
 
-	// Check if any filter is active
-	c.hasActiveFilters = function() {
-		return c.filters.activity !== 'all' ||
-			c.filters.timeframe !== 'all' ||
-			c.filters.occasions.length > 0;
-	};
+  // This function now simply broadcasts a message and then re-fetches the data.
+  c.resetFilters = function () {
+    // 1. Tell all listening child widgets to reset themselves
+    $rootScope.$broadcast('filters.reset');
 
-//	c.setSortOrder = function(order) {
-	//		if (c.sortOrder === order) return;
-		
-		//	c.sortOrder = order;
-			//c.setTab(c.activeTab);
-	//};
-	
-	
-	c.setTab = function(tabName) {
-		if (!tabName) return;
-		
-		c.activeTab = tabName;
-		$location.hash(tabName);
-		
-		c.offset = 0;
-		c.canLoadMore = true;
-		c.isLoading = true;
-		loadFeed(tabName, 0, false);
-	};
-	
-	c.loadMore = function() {
-		if (!c.canLoadMore || c.isLoadingMore) return;
-		
-		c.isLoadingMore = true;
-		
-		loadFeed(c.activeTab, c.offset, true);
-	};
-	
-	
-	var initialTab = $location.hash() || 'you';
-	c.setTab(initialTab);
-	
-	$scope.$on('$locationChangeSuccess', function() {
-		var newTab = $location.hash();
-		
-		if (newTab && newTab !== c.activeTab) {
-			c.setTab(newTab);
-		}
-	});
-	
-	// --- Event Listeners for Filter Widgets ---
-	$scope.$on('activity.filter.updated', function(event, data) {
-		if (c.filters.activity !== data.selected.value) {
-			c.filters.activity = data.selected.value;
-			c.setTab(c.activeTab);
-		}
-	});
+    // 2. Reset the parent's data model
+    c.filters = getDefaultFilters();
 
-	$scope.$on('timeframe.filter.updated', function(event, data) {
-		if (c.filters.timeframe !== data.selected.value) {
-			c.filters.timeframe = data.selected.value;
-			c.setTab(c.activeTab);
-		}
-	});
+    // 3. Fetch the new, unfiltered data
+    c.setTab(c.activeTab);
+  };
 
-	$scope.$on('occasion.filter.updated', function(event, data) {
-		// For multi-select, data.selected is an array of objects
-		c.filters.occasions = data.selected.map(item => item.value);
-		c.setTab(c.activeTab);
-	});
+  // Check if any filter is active
+  c.hasActiveFilters = function () {
+    return c.filters.activity !== 'all' ||
+      c.filters.timeframe !== 'all' ||
+      c.filters.occasions.length > 0 ||
+      c.filters.team.length > 0 ||
+      c.filters.teamMember.length > 0;
+  };
 
-	$scope.$on('sort.order.updated', function(event, data) {
-		if (c.filters.sortOrder !== data.selected.value) {
-			c.filters.sortOrder = data.selected.value;
-			c.setTab(c.activeTab);
-		}
-	});
-	
-	
-	function getDefaultFilters() {
-		return {
-			activity: 'all',
-			timeframe: 'all',
-			occasions: [],
-			sortOrder: 'newest'
-		};
-	}
-	
-	function loadFeed(feedType, offset, append) {
-		console.log('Filters: ', c.filters);
-		
+  //	c.setSortOrder = function(order) {
+  //		if (c.sortOrder === order) return;
+
+  //	c.sortOrder = order;
+  //c.setTab(c.activeTab);
+  //};
+
+
+  c.setTab = function (tabName) {
+    if (!tabName) return;
+
+    c.activeTab = tabName;
+    $location.hash(tabName);
+
+    c.offset = 0;
+    c.canLoadMore = true;
+    c.isLoading = true;
+    loadFeed(tabName, 0, false);
+  };
+
+  c.loadMore = function () {
+    if (!c.canLoadMore || c.isLoadingMore) return;
+
+    c.isLoadingMore = true;
+
+    loadFeed(c.activeTab, c.offset, true);
+  };
+
+
+  var initialTab = $location.hash() || 'you';
+  c.setTab(initialTab);
+
+  $scope.$on('$locationChangeSuccess', function () {
+    var newTab = $location.hash();
+
+    if (newTab && newTab !== c.activeTab) {
+      c.setTab(newTab);
+    }
+  });
+
+  // Event listeners for filters
+  $scope.$on('activity.filter.updated', function (event, data) {
+    if (c.filters.activity !== data.selected.value) {
+      c.filters.activity = data.selected.value;
+      c.setTab(c.activeTab);
+    }
+  });
+
+  $scope.$on('teammember.filter.updated', function (event, data) {
+    c.filters.teamMember = data.selected.map(item => item.value);
+    c.setTab(c.activeTab);
+  });
+
+  $scope.$on('team.filter.updated', function (event, data) {
+    c.filters.team = data.selected.map(item => item.value);
+    c.setTab(c.activeTab);
+  });
+
+  $scope.$on('timeframe.filter.updated', function (event, data) {
+    if (c.filters.timeframe !== data.selected.value) {
+      c.filters.timeframe = data.selected.value;
+      c.setTab(c.activeTab);
+    }
+  });
+
+  $scope.$on('occasion.filter.updated', function (event, data) {
+    // For multi-select, data.selected is an array of objects
+    c.filters.occasions = data.selected.map(item => item.value);
+    c.setTab(c.activeTab);
+  });
+
+  $scope.$on('sort.order.updated', function (event, data) {
+    if (c.filters.sortOrder !== data.selected.value) {
+      c.filters.sortOrder = data.selected.value;
+      c.setTab(c.activeTab);
+    }
+  });
+
+
+  function getDefaultFilters() {
+    return {
+      activity: 'all',
+      timeframe: 'all',
+      occasions: [],
+      sortOrder: 'newest',
+      team: [],
+      teamMember: []
+    };
+  }
+
+  function loadFeed(feedType, offset, append) {
+    console.log('Filters: ', c.filters);
+
     c.server.get({ feedType, limit: c.limit, offset, filters: c.filters, action: 'getFeed' })
-        .then(function(response) {
-            const newRecognitions = transformRecognitions(response.data.recognitions || []);
-			
-						if (append) {
-							c.data.filteredRecognitions = c.data.filteredRecognitions.concat(newRecognitions);
-						} else {
-							c.data.filteredRecognitions = newRecognitions;
-						}
+      .then(function (response) {
+        const newRecognitions = transformRecognitions(response.data.recognitions || []);
 
-						// Update the offset
-						c.offset = offset + newRecognitions.length;
+        if (append) {
+          c.data.filteredRecognitions = c.data.filteredRecognitions.concat(newRecognitions);
+        } else {
+          c.data.filteredRecognitions = newRecognitions;
+        }
 
-						// If we got fewer than the limit, no more records left to load
-						c.canLoadMore = newRecognitions.length >= c.limit;
+        // Update the offset
+        c.offset = offset + newRecognitions.length;
 
-        })
-        .catch(function(error) {
-            console.error('Failed to load feed:', error);
-						if (!append) c.data.filteredRecognitions = [];
+        // If we got fewer than the limit, no more records left to load
+        c.canLoadMore = newRecognitions.length >= c.limit;
 
-        }).finally(function() {
-						c.isLoading = false;
-						c.isLoadingMore = false;
-				});
-	}
-	
-	function transformRecognitions(recognitions) {
-    return recognitions.map(function(rec) {
-        return {
-            ...rec,                         
-            senderInitials: generateInitials(rec.senderDisplay),
-            timeAgo: formatTimeAgo(rec.createdOn)
-        };
+      })
+      .catch(function (error) {
+        console.error('Failed to load feed:', error);
+        if (!append) c.data.filteredRecognitions = [];
+
+      }).finally(function () {
+        c.isLoading = false;
+        c.isLoadingMore = false;
+      });
+  }
+
+  function transformRecognitions(recognitions) {
+    return recognitions.map(function (rec) {
+      return {
+        ...rec,
+        senderInitials: generateInitials(rec.senderDisplay),
+        timeAgo: formatTimeAgo(rec.createdOn)
+      };
     });
-	}
-	
-	function generateInitials(name) {
+  }
+
+  function generateInitials(name) {
     if (!name) return '?';
-		
-    return name.split(/\s+/)              
-               .map(part => part[0] ? part[0].toUpperCase() : '') 
-               .join('')                   
-               .substring(0, 2) || '?';    
-	}
-	
-	
-	function formatTimeAgo(dateTime) {
+
+    return name.split(/\s+/)
+      .map(part => part[0] ? part[0].toUpperCase() : '')
+      .join('')
+      .substring(0, 2) || '?';
+  }
+
+
+  function formatTimeAgo(dateTime) {
     if (!dateTime) return '';
-    
+
     var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
 
     return m.fromNow();
-	}
-	
-	
-	moment.updateLocale('en', {
-		relativeTime: {
-			future: "in %s",
-			past:   "%s ago",
-			s:      "a few seconds", 
-			ss:     "%d seconds",    
-			m:      "a minute",      
-			mm:     "%d minutes",
-			h:      "an hour",      
-			hh:     "%d hours",
-			d:      "a day",      
-			dd:     "%d days",
-			M:      "a month",    
-			MM:     "%d months",
-			y:      "a year",      
-			yy:     "%d years"
-		}
-	});
+  }
+
+
+  moment.updateLocale('en', {
+    relativeTime: {
+      future: "in %s",
+      past: "%s ago",
+      s: "a few seconds",
+      ss: "%d seconds",
+      m: "a minute",
+      mm: "%d minutes",
+      h: "an hour",
+      hh: "%d hours",
+      d: "a day",
+      dd: "%d days",
+      M: "a month",
+      MM: "%d months",
+      y: "a year",
+      yy: "%d years"
+    }
+  });
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.nav-tabs li a:hover {
@@ -333,227 +347,280 @@
         <option_schema>[{"hint":"Number of records displayed in a page.","name":"limit","section":"Data","default_value":"15","label":"Record Limit","type":"integer"}]</option_schema>
         <public>false</public>
         <roles/>
-        <script><![CDATA[(function() {
-	
-	initializeFilters();
+        <script><![CDATA[(function () {
+  initializeFilters();
 
-	if (input && input.action == 'getFeed') {
-	
-		const currentFeed = input.feedType || 'you';
-		const limit = parseInt(input.limit, 10) || 15;
-		const offset   = parseInt(input.offset, 10) || 0;
-		const filters = input.filters || {}; 
-		
-		const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+  if (input && input.action == 'getFeed') {
+    const currentFeed = input.feedType || 'you';
+    const limit = parseInt(input.limit, 10) || 15;
+    const offset = parseInt(input.offset, 10) || 0;
+    const filters = input.filters || {};
 
-		data.recognitions = recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset, filters) || [];
-		
-	} else if (input && input.action == 'reset_filters') {
-		initializeFilters();
-	}
-	
-	function initializeFilters() {
-			// Prepare the widget models on the server
-		data.activityFilterWidget = $sp.getWidget('single-select-filter', {
-				title: 'Activity',
-				eventName: 'activity.filter.updated',
-				choices: [
-					{ display: 'All', value: 'all' },
-					{ display: 'Sent', value: 'sent' },
-					{ display: 'Received', value: 'received' }
-				],
-				initialSelection: 'all'
-			});
+    const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
-		data.timeframeFilterWidget = $sp.getWidget('single-select-filter', {
-				title: 'Timeframe',
-				eventName: 'timeframe.filter.updated',
-				choices: [
-					{ display: 'All Time', value: 'all' },
-					{ display: 'Last 7 days', value: '7' },
-					{ display: 'Last 30 days', value: '30' },
-					{ display: 'Last 90 days', value: '90' }
-				],
-				initialSelection: 'all'
-			});
+    data.recognitions =
+      recognitionDAO.getRecognitionsForFeed(
+        currentFeed,
+        limit,
+        offset,
+        filters
+      ) || [];
+  }
+
+  function initializeFilters() {
+    data.activityFilterWidget = $sp.getWidget('single-select-filter', {
+      title: 'Activity',
+      eventName: 'activity.filter.updated',
+      choices: [
+        { display: 'All', value: 'all' },
+        { display: 'Sent', value: 'sent' },
+        { display: 'Received', value: 'received' },
+      ],
+      initialSelection: 'all',
+    });
+
+    data.timeframeFilterWidget = $sp.getWidget(
+      'single-select-filter',
+      {
+        title: 'Timeframe',
+        eventName: 'timeframe.filter.updated',
+        choices: [
+          { display: 'All Time', value: 'all' },
+          { display: 'Last 7 days', value: '7' },
+          { display: 'Last 30 days', value: '30' },
+          { display: 'Last 90 days', value: '90' },
+        ],
+        initialSelection: 'all',
+      }
+    );
+
+    data.teamMemberFilterWidget = $sp.getWidget(
+      'multi-select-slushbucket-filter',
+      {
+        title: 'Team member',
+        eventName: 'teammember.filter.updated',
+        type: 'dynamic',
+        dataConfig: {
+          tableName: 'sys_user',
+          displayField: 'name',
+          valueField: 'sys_id',
+          encodedQuery: 'active=true',
+        },
+
+        initialSelection: '',
+      }
+    );
+
+    data.teamFilterWidget = $sp.getWidget(
+      'multi-select-slushbucket-filter',
+      {
+        title: 'Team',
+        eventName: 'team.filter.updated',
+        type: 'dynamic',
+        dataConfig: {
+          tableName: 'sys_user_group',
+          displayField: 'name',
+          valueField: 'sys_id',
+          encodedQuery: 'active=true',
+        },
+
+        initialSelection: '',
+      }
+    );
 
 
-		var occasionChoices = ['Kudos', 'Milestone', 'Welcome', 'Farewell'].map(tag => ({ display: tag, value: tag }));
-		data.occasionFilterWidget = $sp.getWidget('multi-select-slushbucket-filter', {
-			title: 'Occasions',
-			eventName: 'occasion.filter.updated',
-			choices: occasionChoices,
-			initialSelection: ''
-		});
+    var recognitionOccasions =
+      new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
 
-		data.sortOrderWidget = $sp.getWidget('single-select-filter', {
-				title: '',
-				eventName: 'sort.order.updated',
-				choices: [
-					{ display: '<i class="fa fa-sort-amount-desc"></i>', value: 'newest' },
-					{ display: '<i class="fa fa-sort-amount-asc"></i>', value: 'oldest' }
-				],
-				initialSelection: 'newest'
-			});
-	}
+    data.occasionFilterWidget = $sp.getWidget(
+      'multi-select-slushbucket-filter',
+      {
+        title: 'Occasions',
+        eventName: 'occasion.filter.updated',
+        choices: recognitionOccasions,
+        initialSelection: '',
+      }
+    );
 
-})();]]></script>
+    data.sortOrderWidget = $sp.getWidget('single-select-filter', {
+      title: '',
+      eventName: 'sort.order.updated',
+      choices: [
+        {
+          display: '<i class="fa fa-sort-amount-desc"></i>',
+          value: 'newest',
+        },
+        {
+          display: '<i class="fa fa-sort-amount-asc"></i>',
+          value: 'oldest',
+        },
+      ],
+      initialSelection: 'newest',
+    });
+  }
+})();
+]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>482</sys_mod_count>
+        <sys_mod_count>497</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-21 18:18:40</sys_updated_on>
+        <sys_updated_on>2025-09-24 10:00:24</sys_updated_on>
         <template><![CDATA[<main>
-<div class="panel panel-primary">
-  <!-- Default panel contents -->
-  <section class="panel-heading">
-  	<h3 class="panel-title">
-      <strong>Recognition activity feed</strong>
-    </h3>
-  </section>
-  
-  <nav>
-    <ul class="nav nav-tabs">
-      <li role="presentation" ng-class="{active: c.activeTab=='you'}">
-        <a href="" ng-click="c.setTab('you')">You</a>
-      </li>
-      
-      <li role="presentation" ng-class="{active: c.activeTab=='team'}">
-        <a href="" ng-click="c.setTab('team')">Team</a>
-      </li>
-      
-      <li role="presentation" ng-class="{active: c.activeTab=='all'}">
-        <a href="" ng-click="c.setTab('all')">All</a>
-      </li>
-      
-      <li class="pull-right">
-        <a href=""
-           ng-click="!c.isLoading && c.setTab(c.activeTab)"
-           title="Refresh feed"
-           class="btn btn-default btn-sm refresh-btn"
-           ng-class="{'is-loading': c.isLoading}">
-          <i class="fa fa-refresh"
-             ng-class="{'fa-spin': c.isLoading}"
-             aria-hidden="true"></i>
-          <span class="sr-only">Refresh</span>
-        </a>
-      </li>
+  <div class="panel panel-primary">
+    <!-- Default panel contents -->
+    <section class="panel-heading">
+      <h3 class="panel-title">
+        <strong>Recognition activity feed</strong>
+      </h3>
+    </section>
 
-      
-    </ul>
-  </nav>
-  
-	<div class="controls-bar">
-    <div class="filters">
-      <div class="filter-wrapper" ng-if="c.activeTab=='you'">
-        <sp-widget widget="c.data.activityFilterWidget"></sp-widget>
+    <nav>
+      <ul class="nav nav-tabs">
+        <li role="presentation" ng-class="{active: c.activeTab=='you'}">
+          <a href="" ng-click="c.setTab('you')">You</a>
+        </li>
+
+        <li role="presentation" ng-class="{active: c.activeTab=='team'}">
+          <a href="" ng-click="c.setTab('team')">Team</a>
+        </li>
+
+        <li role="presentation" ng-class="{active: c.activeTab=='all'}">
+          <a href="" ng-click="c.setTab('all')">All</a>
+        </li>
+
+        <li class="pull-right">
+          <a href="" ng-click="!c.isLoading && c.setTab(c.activeTab)" title="Refresh feed"
+            class="btn btn-default btn-sm refresh-btn" ng-class="{'is-loading': c.isLoading}">
+            <i class="fa fa-refresh" ng-class="{'fa-spin': c.isLoading}" aria-hidden="true"></i>
+            <span class="sr-only">Refresh</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="controls-bar">
+      <div class="filters">
+        <span>Filter by: </span>
+
+        <div class="filter-wrapper" ng-show="c.activeTab=='you'">
+          <sp-widget widget="c.data.activityFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper" ng-show="c.activeTab!='you'">
+          <sp-widget widget="c.data.teamMemberFilterWidget"></sp-widget>
+        </div>
+        <div class="filter-wrapper" ng-show="c.activeTab!='you'">
+          <sp-widget widget="c.data.teamFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper">
+          <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper">
+          <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
+        </div>
+
+        <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link"
+          title="Reset filters">↺</a>
       </div>
+
       <div class="filter-wrapper">
-        <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+        <sp-widget widget="c.data.sortOrderWidget"></sp-widget>
       </div>
-      <div class="filter-wrapper">
-        <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
-      </div>
-      <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link" title="Reset filters">↺</a>
-    </div>
-  
-    <div class="filter-wrapper">
-      <sp-widget widget="c.data.sortOrderWidget"></sp-widget>
-    </div>
-    
-  </div>
-  
-  <!-- List group -->
-  <section class="feed-container">
-    
-    <div ng-if="c.isLoading" class="feed-loading-overlay">
-      <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
     </div>
 
-    <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
-      <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id" class="list-group-item">
-        <article class="media">
-          
-          <div class="media-left">
-             <span class="fa-stack fa-lg">
+    <!-- List group -->
+    <section class="feed-container">
+      <div ng-if="c.isLoading" class="feed-loading-overlay">
+        <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
+      </div>
+
+      <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
+        <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id" class="list-group-item">
+          <article class="media">
+            <div class="media-left">
+              <span class="fa-stack fa-lg">
                 <i class="fa fa-circle fa-stack-2x text-info"></i>
                 <span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
-             </span>
+              </span>
+            </div>
+
+            <div class="media-body p-5">
+              <h4 class="media-heading">
+                <a href>{{recognition.senderDisplay}}</a> gave
+                applause to
+                <a href>{{recognition.recipients.join(', ')}}</a>
+
+                <small class="text-muted pull-right">{{recognition.timeAgo}}</small>
+              </h4>
+
+              <span class="recognition-indicators mb-5 pull-right">
+                <abbr title="Private Recognition" class="private-indicator initialism ml-10"
+                  ng-if="recognition.isPrivate">
+                  <i class="fa fa-lock" aria-hidden="true"></i>
+                </abbr>
+
+                <abbr title="Team Recognition" class="team-indicator initialism ml-10" ng-if="recognition.isTeam">
+                  <i class="fa fa-users" aria-hidden="true"></i>
+                </abbr>
+              </span>
+
+              <p ng-if="recognition.message" ng-bind-html="recognition.message"></p>
+
+              <span ng-repeat="occasion in recognition.occasions">
+                <small class="label label-default occasion-tag" title="{{occasion}}">
+                  <strong>{{occasion}}</strong> </small>&nbsp;
+              </span>
+            </div>
+          </article>
+        </li>
+
+        <li class="text-center">
+          <div class="well well-sm text-center mb-0">
+            <p class="text-muted small">
+              Showing
+              <strong>{{c.data.filteredRecognitions.length}}</strong>
+              {{c.data.filteredRecognitions.length === 1 ?
+              'recognition' : 'recognitions'}}
+            </p>
+
+            <div ng-if="c.canLoadMore">
+              <button class="btn btn-primary btn-sm" ng-click="c.loadMore()" ng-disabled="c.isLoadingMore">
+                <i class="fa" ng-class="{'fa-spin fa-spinner': c.isLoadingMore, 'fa-arrow-down': !c.isLoadingMore}"></i>
+                {{c.isLoadingMore ? 'Loading...' : 'Load More'}}
+              </button>
+            </div>
+
+            <p ng-if="!c.canLoadMore && c.data.filteredRecognitions.length > 0"
+              class="text-center text-muted small m-0">
+              <em>— You've reached the end of the list —</em>
+            </p>
           </div>
+        </li>
 
-          <div class="media-body p-5">
-            <h4 class="media-heading">
-              <a href>{{recognition.senderDisplay}}</a> gave applause to <a href>{{recognition.recipients.join(', ')}}</a> 
-							
-              <small class="text-muted pull-right">{{recognition.timeAgo}}</small> 
-              
-            </h4>
-            
-            <span class="recognition-indicators mb-5 pull-right">
-              <abbr title="Private Recognition" class="private-indicator initialism ml-10" ng-if="recognition.isPrivate">
-                <i class="fa fa-lock" aria-hidden="true"></i>
-              </abbr>
-
-              <abbr  title="Team Recognition" class="team-indicator initialism ml-10" ng-if="recognition.isTeam">
-                <i class="fa fa-users" aria-hidden="true"></i>
-              </abbr>
-            </span>
-            
-
-
-            <p ng-if="recognition.message" ng-bind-html="recognition.message"></p>
-            
-						<span ng-repeat="occasion in recognition.occasions">
-            	<small class="label label-default occasion-tag" title={{occasion}}>
-                <strong>{{occasion}}</strong>
-              </small>&nbsp;
-          	</span>
-            
+        <li ng-if="!c.data.filteredRecognitions.length" class="list-group-item text-center pt-20 pb-20">
+          <div class="p-20">
+            <p class="text-muted">
+              <i class="fa fa-trophy fa-3x" aria-hidden="true"></i>
+            </p>
+            <h4 class="text-muted">No Recognitions Found</h4>
+            <p class="small text-muted">
+              Try adjusting your filters or check back later.
+            </p>
           </div>
-        </article>
-      </li>
-      
-      <li class="text-center">
-        <div class="well well-sm text-center mb-0"> 
-          <p class="text-muted small">
-            Showing <strong>{{c.data.filteredRecognitions.length}}</strong> 
-            {{c.data.filteredRecognitions.length === 1 ? 'recognition' : 'recognitions'}}
-          </p>
-
-          <div ng-if="c.canLoadMore">
-            <button class="btn btn-primary btn-sm" ng-click="c.loadMore()" ng-disabled="c.isLoadingMore">
-              <i class="fa" ng-class="{'fa-spin fa-spinner': c.isLoadingMore, 'fa-arrow-down': !c.isLoadingMore}"></i>
-              {{c.isLoadingMore ? 'Loading...' : 'Load More'}}
-            </button>
-          </div>
-          
-          <p ng-if="!c.canLoadMore && c.data.filteredRecognitions.length > 0" class="text-center text-muted small m-0">
-          	<em>— You've reached the end of the list —</em>
-        	</p>
-          
-        </div>
-      </li>
-
-      <li ng-if="!c.data.filteredRecognitions.length" class="list-group-item text-center pt-20 pb-20">
-        <div class="p-20"> <p class="text-muted">
-            <i class="fa fa-trophy fa-3x" aria-hidden="true"></i>
-          </p>
-          <h4 class="text-muted">No Recognitions Found</h4>
-          <p class="small text-muted">Try adjusting your filters or check back later.</p>
-        </div>
-      </li>
-    </ul>
-   </section>
-
- </div>
+        </li>
+      </ul>
+    </section>
+  </div>
 </main>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">

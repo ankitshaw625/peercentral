@@ -4,13 +4,11 @@
         <client_script><![CDATA[api.controller=function($scope, $timeout) {
   /* widget controller */
   var c = this;
+
+	c.currentScale = 'total';   
 	
-	//console.log(c.data);
-	c.currentScale = 'total';       // ← Default value for dropdown
-	
-	var networkInstance = null;     // ← Will hold reference to the vis network
-	var originalNodes = [];         // ← Store clean copy of original node data
-	
+	var networkInstance = null;     
+	var originalNodes = [];       
 	
 	// This function runs automatically when the widget initializes
   c.$onInit = function() {
@@ -41,11 +39,11 @@
     });
 	};
 	
-	c.updateScale = function() {
+	c.updateScale = function(scale) {
 		if (!networkInstance || !originalNodes.length) return;
 
 		const currentView = saveView();
-		const scaleBy = c.currentScale;
+		const scaleBy = scale || c.currentScale;
 
 		// First, update tooltips instantly (no need to animate text)
 		const currentNodes = networkInstance.body.data.nodes;
@@ -83,45 +81,11 @@
 			}, 650); // Slightly after animation ends
 		}
 	};
-
-	// Helper functions
-	/*function animateNodeSizes(targetValues, duration) {
-		if (!networkInstance) return;
-
-		var startTime = null;
-		var nodesDataset = networkInstance.body.data.nodes;
-
-		// Get current values
-		var currentValues = {};
-		originalNodes.forEach(function(node) {
-			var current = nodesDataset.get(node.id);
-			currentValues[node.id] = current ? current.value : 0;
-		});
-
-		var frame = function(timestamp) {
-			if (!startTime) startTime = timestamp;
-			var progress = Math.min((timestamp - startTime) / duration, 1);
-
-			originalNodes.forEach(function(node) {
-				var start = currentValues[node.id] || 0;
-				var end = targetValues[node.id] || 0;
-				var currentValue = start + (end - start) * progress;
-
-				nodesDataset.update({
-					id: node.id,
-					value: currentValue
-				});
-			});
-
-			if (progress < 1) {
-				requestAnimationFrame(frame);
-			}
-		};
-
-		requestAnimationFrame(frame);
-	}
-	*/
 	
+	$scope.$on('graph.scale.filter.updated', function(event, data) {
+		c.updateScale(data.selected.value);
+	});
+
 	function animateNodeSizes(targetValues, duration) {
 		if (!networkInstance) return;
 		
@@ -290,10 +254,9 @@
 }
 
 .graph-container {
-  height: 512px;
+  height: 448px;
 }
 
-/* ✅ FILTER STYLES */
 .graph-filter {
   padding: 12px 16px;
   background: #f8f9fa;
@@ -333,14 +296,26 @@
         <roles/>
         <script><![CDATA[(function() {
 	
+	data.nodeScalingFilterWidget = $sp.getWidget('single-select-filter', {
+		title: 'Scale nodes by',
+		eventName: 'graph.scale.filter.updated',
+		choices: [
+			{ display: 'Total Recognitions', value: 'total' },
+			{ display: 'Sent Recognitions', value: 'sent' },
+			{ display: 'Received Recognitions', value: 'received' }
+		],
+
+		initialSelection: 'total'
+	});
+	
 	// We only generate the data if the client has requested it (for async loading).
 	if (input && input.action === 'get_graph_data') {
 		var graphData = getGraphData();
 		data.nodes = graphData.nodes;
 		data.edges = graphData.edges;
+		
+
 	}
-	
-	
 	
 	function getInitials(fullName) {
 		// Trim leading/trailing spaces and split the string into an array of words
@@ -467,14 +442,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>133</sys_mod_count>
+        <sys_mod_count>141</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-17 14:51:33</sys_updated_on>
+        <sys_updated_on>2025-09-22 18:38:39</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
   
 	<div class="panel-heading">
@@ -482,15 +457,14 @@
   	<span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
   </div>
   
-  
-    <!-- ✅ ADD THIS FILTER -->
   <div class="graph-filter" ng-if="!c.isLoading">
-    <label for="scaleMetric" class="filter-label">Scale nodes by:</label>
-    <select id="scaleMetric" class="form-control filter-select" ng-change="c.updateScale()" ng-model="c.currentScale">
-      <option value="total">Total Recognitions</option>
-      <option value="sent">Sent Only</option>
-      <option value="received">Received Only</option>
-    </select>
+    <div class="filter-wrapper">
+      <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
+    </div>
+  </div>
+  
+  <div class="filter-wrapper">
+    <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
   </div>
   
   <div ng-if="c.isLoading" class="text-center mt-10">
