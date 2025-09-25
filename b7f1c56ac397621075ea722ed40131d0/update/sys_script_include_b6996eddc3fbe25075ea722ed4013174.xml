@@ -11,238 +11,246 @@
         <sandbox_callable>false</sandbox_callable>
         <script><![CDATA[var RecognitionUtils = Class.create();
 RecognitionUtils.prototype = {
-    initialize: function() {
-        this.userTeam = null;
-        this.RECOGNITION_TABLE = 'x_1794402_peerce_0_peer_recognition';
-        this.RECOGNITION_RECIPIENT_TABLE = 'x_1794402_peerce_0_recognition_recipient';
-    },
+  initialize: function () {
+    this.userTeam = null;
+    this.RECOGNITION_TABLE = 'x_1794402_peerce_0_peer_recognition';
+    this.RECOGNITION_RECIPIENT_TABLE = 'x_1794402_peerce_0_recognition_recipient';
+  },
 
-    canReadPrivateRecognition: function(grRecognition, userId) {
-        userId = userId || gs.getUserID();
+  canReadPrivateRecognition: function (grRecognition, userId) {
+    userId = userId || gs.getUserID();
 
-        var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+    var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
-        // Check if current user is the sender
-        if (userId == grRecognition.getValue('sender')) return true;
+    // Check if current user is the sender
+    if (userId == grRecognition.getValue('sender')) return true;
 
-        // Check if current user is part of the notify to list
-        if (grRecognition.notify_to.toString().includes(userId)) return true;
+    // Check if current user is part of the notify to list
+    if (grRecognition.notify_to.toString().includes(userId)) return true;
 
-        var recognitionSysId = grRecognition.sys_id.toString();
-        var isTeam = grRecognition.is_team.toString() == 'true';
+    var recognitionSysId = grRecognition.sys_id.toString();
+    var isTeam = grRecognition.is_team.toString() == 'true';
 
-        var recipientData = recognitionDAO.getRecognitionRecipients(recognitionSysId, isTeam);
+    var recipientData = recognitionDAO.getRecognitionRecipients(recognitionSysId, isTeam);
 
-        var recognitionRecipients = recipientData.userIds || [];
+    var recognitionRecipients = recipientData.userIds || [];
 
-        // If it's a team fetch and add the team members
-        if (isTeam) {
-            var teamMembers = this.getGroupMembers(recognitionRecipients);
-            recognitionRecipients = recognitionRecipients.concat(teamMembers);
-        }
+    // If it's a team fetch and add the team members
+    if (isTeam) {
+      var teamMembers = this.getGroupMembers(recognitionRecipients);
+      recognitionRecipients = recognitionRecipients.concat(teamMembers);
+    }
 
-        // Check if the current user is one of the recipients
-        return recognitionRecipients.includes(userId);
-    },
+    // Check if the current user is one of the recipients
+    return recognitionRecipients.includes(userId);
+  },
 
-    isTeamRecognition: function(sender, recipients) {
-        if (!this.userTeam) {
-            this.userTeam = this.getUserTeam();
-        }
+  isTeamRecognition: function (sender, recipients) {
+    if (!this.userTeam) {
+      this.userTeam = this.getUserTeam();
+    }
 
-        gs.info(JSON.stringify(this.userTeam));
+    gs.info(JSON.stringify(this.userTeam));
 
-        var allTeam = this.userTeam.combined;
+    var allTeam = this.userTeam.combined;
 
-        if (allTeam.includes(sender)) return true;
+    if (allTeam.includes(sender)) return true;
 
-        return recipients.some(recipient => allTeam.includes(recipient));
-    },
+    return recipients.some(recipient => allTeam.includes(recipient));
+  },
 
-    getUserTeam: function(userId) {
-        userId = userId || gs.getUserID();
+  getUserTeam: function (userId) {
+    userId = userId || gs.getUserID();
 
-        var userGroups = this.getUserGroups(userId);
+    var userGroups = this.getUserGroups(userId);
 
-        var teamMembers = this.getGroupMembers(userGroups);
+    var teamMembers = this.getGroupMembers(userGroups);
 
-        return {
-            userGroups: userGroups,
-            teamMembers: teamMembers,
-            combined: userGroups.concat(teamMembers)
-        };
-    },
+    return {
+      userGroups: userGroups,
+      teamMembers: teamMembers,
+      combined: userGroups.concat(teamMembers)
+    };
+  },
 
-    getGroupMembers: function(groupIds) {
-        var groupMembers = new Set();
+  getGroupMembers: function (groupIds) {
+    var groupMembers = new Set();
 
-        var grGroupMember = new GlideRecord('sys_user_grmember');
-        grGroupMember.addQuery('group', 'IN', groupIds.toString());
-        grGroupMember.query();
+    var grGroupMember = new GlideRecord('sys_user_grmember');
+    grGroupMember.addQuery('group', 'IN', groupIds.toString());
+    grGroupMember.query();
 
-        while (grGroupMember.next()) {
-            groupMembers.add(grGroupMember.user.toString());
-        }
+    while (grGroupMember.next()) {
+      groupMembers.add(grGroupMember.user.toString());
+    }
 
-        return Array.from(groupMembers);
-    },
+    return Array.from(groupMembers);
+  },
 
-    getUserGroups: function(userId) {
-        userId = userId || gs.getUserID();
+  getUserGroups: function (userId) {
+    userId = userId || gs.getUserID();
 
-        var userGroups = new Set();
+    var userGroups = new Set();
 
-        var grGroupMember = new GlideRecord('sys_user_grmember');
-        grGroupMember.addQuery('group.active', true);
-        grGroupMember.addQuery('user', userId).addOrCondition('group.manager', userId);
-        grGroupMember.query();
+    var grGroupMember = new GlideRecord('sys_user_grmember');
+    grGroupMember.addQuery('group.active', true);
+    grGroupMember.addQuery('user', userId).addOrCondition('group.manager', userId);
+    grGroupMember.query();
 
-        while (grGroupMember.next()) {
-            userGroups.add(grGroupMember.group.toString());
-        }
+    while (grGroupMember.next()) {
+      userGroups.add(grGroupMember.group.toString());
+    }
 
-        return Array.from(userGroups);
-    },
+    return Array.from(userGroups);
+  },
 
-    getUserRecognitionSnapshot: function(userID, days) {
-        userID = userID || gs.getUserID();
-        days = parseInt(days, 10) || 90;
+  getUserRecognitionSnapshot: function (userID, days) {
+    userID = userID || gs.getUserID();
+    days = parseInt(days, 10) || 90;
 
-        var given = this._getUserCount(this.RECOGNITION_TABLE, 'sender', userID, days);
-        var received = this._getUserCount(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', userID, days);
+    var given = this._getUserCount(this.RECOGNITION_TABLE, 'sender', userID, days);
+    var received = this._getUserCount(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', userID, days);
 
-        return {
-            given: given,
-            received: received,
-            total: given + received
-        };
-    },
+    return {
+      given: given,
+      received: received,
+      total: given + received
+    };
+  },
 
-    _getUserCount: function(tableName, userField, userID, days) {
-        var ga = new GlideAggregate(tableName);
-        ga.addQuery(userField, userID);
-        ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-        ga.addAggregate('COUNT');
-        ga.query();
+  _getUserCount: function (tableName, userField, userID, days) {
+    var ga = new GlideAggregate(tableName);
+    ga.addQuery(userField, userID);
+    ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
+    ga.addAggregate('COUNT');
+    ga.query();
 
-        var count = 0;
-        if (ga.next()) {
-            count = parseInt(ga.getAggregate('COUNT'), 10);
-        }
-        return count;
-    },
+    var count = 0;
+    if (ga.next()) {
+      count = parseInt(ga.getAggregate('COUNT'), 10);
+    }
+    return count;
+  },
 
 
-    getTopRecognitionContributors: function(daysAgo, userCount) {
-        daysAgo = parseInt(daysAgo, 10) || 90;
-        userCount = userCount || 3;
+  getTopRecognitionContributors: function (daysAgo, userCount) {
+    daysAgo = parseInt(daysAgo, 10) || 90;
+    userCount = userCount || 3;
 
-        const allRecognitions = [];
-        const givenRecognitions = [];
-        const receivedRecognitions = [];
+    const allRecognitions = [];
+    const givenRecognitions = [];
+    const receivedRecognitions = [];
 
-        const givenMap = this._getCounts(this.RECOGNITION_TABLE, 'sender', daysAgo);
-        const receivedMap = this._getCounts(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', daysAgo);
+    const givenMap = this._getCounts(this.RECOGNITION_TABLE, 'sender', daysAgo);
+    const receivedMap = this._getCounts(this.RECOGNITION_RECIPIENT_TABLE, 'recipient_user', daysAgo);
 
-        const totalsMap = new Map();
+    const totalsMap = new Map();
 
-        // Add 'given' counts to the totals
-        givenMap.forEach(function(value, key) {
-            totalsMap.set(key, {
-                user: key,
-                displayName: value.displayName,
-                count: value.count
-            });
+    // Add 'given' counts to the totals
+    givenMap.forEach(function (value, key) {
+      totalsMap.set(key, {
+        user: key,
+        displayName: value.displayName,
+        count: value.count
+      });
+    });
+
+    // Add 'received' counts to the totals
+    receivedMap.forEach(function (value, key) {
+      if (totalsMap.has(key)) {
+        totalsMap.get(key).count += value.count;
+      } else {
+        totalsMap.set(key, {
+          user: key,
+          displayName: value.displayName,
+          count: value.count
         });
+      }
+    });
 
-        // Add 'received' counts to the totals
-        receivedMap.forEach(function(value, key) {
-            if (totalsMap.has(key)) {
-                totalsMap.get(key).count += value.count;
-            } else {
-                totalsMap.set(key, {
-                    user: key,
-                    displayName: value.displayName,
-                    count: value.count
-                });
-            }
+    return {
+      all: this._sortAndSlice(totalsMap, userCount),
+      given: this._sortAndSlice(givenMap, userCount),
+      received: this._sortAndSlice(receivedMap, userCount)
+    };
+  },
+
+  // Helper function to sort and slice an array from a map
+  _sortAndSlice: function (map, count) {
+    return Array.from(map.values())
+      .sort(function (a, b) {
+        return b.count - a.count;
+      })
+      .slice(0, count);
+  },
+
+  _getCounts: function (tableName, userField, days) {
+
+    const resultsMap = new Map();
+
+    const ga = new GlideAggregate(tableName);
+    ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
+    ga.addNotNullQuery(userField);
+    ga.addAggregate('COUNT', userField);
+    ga.groupBy(userField);
+    ga.orderByAggregate('COUNT', userField);
+    ga.query();
+
+    while (ga.next()) {
+      const userId = ga.getValue(userField);
+      const userDisplayName = ga.getDisplayValue(userField);
+      const count = parseInt(ga.getAggregate('COUNT', userField), 10);
+
+      if (userId && userDisplayName) {
+        resultsMap.set(userId, {
+          user: userId,
+          displayName: userDisplayName,
+          count: count
         });
+      }
+    }
 
-        return {
-            all: this._sortAndSlice(totalsMap, userCount),
-            given: this._sortAndSlice(givenMap, userCount),
-            received: this._sortAndSlice(receivedMap, userCount)
-        };
-    },
+    return resultsMap;
+  },
 
-    // Helper function to sort and slice an array from a map
-    _sortAndSlice: function(map, count) {
-        return Array.from(map.values())
-            .sort(function(a, b) {
-                return b.count - a.count;
-            })
-            .slice(0, count);
-    },
+  getRecognitionOccasions: function () {
+    const occasions = [];
 
-    _getCounts: function(tableName, userField, days) {
+    const grOccasions = new GlideRecord('x_1794402_peerce_0_recognition_category');
+    grOccasions.addActiveQuery();
+    grOccasions.query();
 
-        const resultsMap = new Map();
+    while (grOccasions.next()) {
+      occasions.push({
+        display: grOccasions.getDisplayValue(),
+        value: grOccasions.getUniqueValue()
+      });
+    }
 
-        const ga = new GlideAggregate(tableName);
-        ga.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-        ga.addNotNullQuery(userField);
-        ga.addAggregate('COUNT', userField);
-        ga.groupBy(userField);
-        ga.orderByAggregate('COUNT', userField);
-        ga.query();
+    return occasions;
+  },
 
-        while (ga.next()) {
-            const userId = ga.getValue(userField);
-            const userDisplayName = ga.getDisplayValue(userField);
-            const count = parseInt(ga.getAggregate('COUNT', userField), 10);
+  getInitials: function (fullName) {
+    const nameParts = fullName.trim().split(' ');
 
-            if (userId && userDisplayName) {
-                resultsMap.set(userId, {
-                    user: userId,
-                    displayName: userDisplayName,
-                    count: count
-                });
-            }
-        }
+    const initials = nameParts.map(part => part.charAt(0).toUpperCase());
 
-        return resultsMap;
-    },
+    return initials.join('');
+  },
 
-    getRecognitionOccasions: function() {
-        const occasions = [];
-
-        const grOccasions = new GlideRecord('x_1794402_peerce_0_recognition_category');
-        grOccasions.addActiveQuery();
-        grOccasions.query();
-
-        while (grOccasions.next()) {
-            occasions.push({
-                display: grOccasions.getDisplayValue(),
-                value: grOccasions.getUniqueValue()
-            });
-        }
-
-		return occasions;
-    },
-
-    type: 'RecognitionUtils'
+  type: 'RecognitionUtils'
 };]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>24</sys_mod_count>
+        <sys_mod_count>25</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-21 19:15:51</sys_updated_on>
+        <sys_updated_on>2025-09-25 07:49:05</sys_updated_on>
     </sys_script_include>
 </record_update>

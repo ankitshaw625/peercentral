@@ -1,286 +1,278 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller=function($scope, $timeout) {
+        <client_script><![CDATA[api.controller = function ($scope, $timeout) {
   /* widget controller */
   var c = this;
 
-	c.currentScale = 'total';   
-	
-	var networkInstance = null;     
-	var originalNodes = [];       
-	
-	// This function runs automatically when the widget initializes
-  c.$onInit = function() {
-		c.loadGraphData();
+  c.currentScale = 'total';
+  c.selectedOccasions = [];
+
+  var networkInstance = null;
+  var originalNodes = [];
+
+  // This function runs automatically when the widget initializes
+  c.$onInit = function () {
+    c.loadGraphData();
   };
-	
-	c.loadGraphData = function() {
-		// Set a flag to show the loading indicator
+
+  c.loadGraphData = function () {
+    // Set a flag to show the loading indicator
     c.isLoading = true;
-    
+
     // Call the server to get the graph data
     c.server.get({
-      action: 'get_graph_data'
-    }).then(function(response) {
+      action: 'get_graph_data',
+      occasions: c.selectedOccasions
+    }).then(function (response) {
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
       c.data.edges = response.data.edges;
-			
-			originalNodes = c.data.nodes.map(n => ({ ...n }));
-      
+
+      originalNodes = c.data.nodes.map(n => ({ ...n }));
+
       // Turn off the loading indicator
       c.isLoading = false;
-      
+
       // Now, initialize the graph (inside a $timeout to ensure the container is visible)
-      $timeout(function() {
+      $timeout(function () {
         initializeGraph();
       });
     });
-	};
-	
-	c.updateScale = function(scale) {
-		if (!networkInstance || !originalNodes.length) return;
+  };
 
-		const currentView = saveView();
-		const scaleBy = scale || c.currentScale;
+  c.updateScale = function (scale) {
+    if (!networkInstance || !originalNodes.length) return;
 
-		// First, update tooltips instantly (no need to animate text)
-		const currentNodes = networkInstance.body.data.nodes;
-		var targetValues = {};
+    const currentView = saveView();
+    const scaleBy = scale || c.currentScale;
 
-		originalNodes.forEach(function(node) {
-			var value, tooltip;
+    // First, update tooltips instantly (no need to animate text)
+    const currentNodes = networkInstance.body.data.nodes;
+    var targetValues = {};
 
-			if (scaleBy === 'sent') {
-				value = node.sent || 0;
-				tooltip = node.label + " - Recognitions Sent: " + (node.sent || 0);
-			} else if (scaleBy === 'received') {
-				value = node.received || 0;
-				tooltip = node.label + " - Recognitions Received: " + (node.received || 0);
-			} else {
-				value = (node.sent || 0) + (node.received || 0);
-				tooltip = node.label + " - Recognitions (Sent: " + (node.sent || 0) + ", Received: " + (node.received || 0) + ")";
-			}
+    originalNodes.forEach(function (node) {
+      var value, tooltip;
 
-			// Update tooltip immediately
-			currentNodes.update({
-				id: node.id,
-				title: tooltip
-			});
+      if (scaleBy === 'sent') {
+        value = node.sent || 0;
+        tooltip = node.label + " - Recognitions Sent: " + (node.sent || 0);
+      } else if (scaleBy === 'received') {
+        value = node.received || 0;
+        tooltip = node.label + " - Recognitions Received: " + (node.received || 0);
+      } else {
+        value = (node.sent || 0) + (node.received || 0);
+        tooltip = node.label + " - Recognitions (Sent: " + (node.sent || 0) + ", Received: " + (node.received || 0) + ")";
+      }
 
-			targetValues[node.id] = value;
-		});
+      // Update tooltip immediately
+      currentNodes.update({
+        id: node.id,
+        title: tooltip
+      });
 
-		// Animate size change over 600ms
-		animateNodeSizes(targetValues, 600);
+      targetValues[node.id] = value;
+    });
 
-		if (currentView) {
-			setTimeout(function() {
-				restoreView(currentView);
-			}, 650); // Slightly after animation ends
-		}
-	};
-	
-	$scope.$on('graph.scale.filter.updated', function(event, data) {
-		c.updateScale(data.selected.value);
-	});
+    // Animate size change over 600ms
+    animateNodeSizes(targetValues, 600);
 
-	function animateNodeSizes(targetValues, duration) {
-		if (!networkInstance) return;
-		
-		const nodes = networkInstance.body.data.nodes;
-		const startValues = {};
-		const startTime = performance.now();
+    if (currentView) {
+      setTimeout(function () {
+        restoreView(currentView);
+      }, 650); // Slightly after animation ends
+    }
+  };
 
-		originalNodes.forEach(node => {
-			const current = nodes.get(node.id);
-			startValues[node.id] = current?.value || 0;
-		});
+  $scope.$on('graph.scale.filter.updated', function (event, data) {
+    c.updateScale(data.selected.value);
+  });
 
-		function step(now) {
-			const progress = Math.min((now - startTime) / duration, 1);
+  $scope.$on('graph.occasion.filter.updated', function (event, data) {
+    c.selectedOccasions = data.selected.map((item) => item.value);
+    c.loadGraphData();
+  });
 
-			originalNodes.forEach(node => {
-				const start = startValues[node.id];
-				const end = targetValues[node.id];
-				const value = start + (end - start) * progress;
+  function animateNodeSizes(targetValues, duration) {
+    if (!networkInstance) return;
 
-				nodes.update({ id: node.id, value });
-			});
+    const nodes = networkInstance.body.data.nodes;
+    const startValues = {};
+    const startTime = performance.now();
 
-			if (progress < 1) requestAnimationFrame(step);
-		}
+    originalNodes.forEach(node => {
+      const current = nodes.get(node.id);
+      startValues[node.id] = current?.value || 0;
+    });
 
-		requestAnimationFrame(step);
-	}
+    function step(now) {
+      const progress = Math.min((now - startTime) / duration, 1);
 
-	
-	function saveView() {
-		if (!networkInstance) return null;
-		return {
-			position: networkInstance.getViewPosition(),
-			scale: networkInstance.getScale()
-		};
-	}
+      originalNodes.forEach(node => {
+        const start = startValues[node.id];
+        const end = targetValues[node.id];
+        const value = start + (end - start) * progress;
 
-	function restoreView(view) {
-		if (!networkInstance || !view) return;
-		
-		networkInstance.moveTo({
-			position: view.position,
-			scale: view.scale,
-			animation: false
-		});
-	}
-	
-	
-	function initializeGraph() {
-		if (!c.data.nodes || c.data.nodes.length === 0) return;
+        nodes.update({ id: node.id, value });
+      });
 
-		var processedNodes = c.data.nodes.map(function(node) {
-			var newNode = { ...node };
-			
-			newNode.value = node.sent + node.received;
-			
-			newNode.color = {
-				background: '#4A90E2',    
-				border: '#357ABD',        
-				highlight: {
-					background: '#6BB5FF',   
-					border: '#2C5AA0'        
-				}
-			};
-			
-			
-			newNode.shape = 'dot';
-			newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' +  node.received + ')';
-			return newNode;
-			
-		});
+      if (progress < 1) requestAnimationFrame(step);
+    }
 
-		var nodes = new vis.DataSet(processedNodes);
-		var edges = new vis.DataSet(c.data.edges);
+    requestAnimationFrame(step);
+  }
 
-		var container = document.getElementById('recognition-graph-container');
-		var data = { nodes, edges };
 
-		var options = {
-			nodes: {
-				shape: 'dot',
-				size: 10,
-				font: { size: 14, face: 'Source Sans Pro', color: '#333' },
-				borderWidth: 2,
-				scaling: { min: 10, max: 30 }
-			},
-			
-			edges: {
-				scaling: { min: 0.2, max: 2.0 },
-				color: { inherit: 'from' },
-				smooth: { type: 'continuous' },
-				arrows: { to: { enabled: true, scaleFactor: 0.5 } }
-			},
-			
-			physics: {
-				solver: 'barnesHut',
-				
-				barnesHut: {
-					gravitationalConstant: -2000,
-					centralGravity: 0.3,
-					springLength: 95,
-					avoidOverlap: 1.0
-				},
-				
-				stabilization: { iterations: 2000 }
-			},
-			
-			interaction: {
-				tooltipDelay: 200,
-				navigationButtons: true
-			}
-		};
+  function saveView() {
+    if (!networkInstance) return null;
+    return {
+      position: networkInstance.getViewPosition(),
+      scale: networkInstance.getScale()
+    };
+  }
 
-		networkInstance = new vis.Network(container, data, options);
+  function restoreView(view) {
+    if (!networkInstance || !view) return;
 
-		networkInstance.once("stabilizationIterationsDone", () => {
-			
-			const positions = networkInstance.getPositions();
-			let sumX = 0, sumY = 0, count = 0;
-			
-			for (const id in positions) {
-				sumX += positions[id].x;
-				sumY += positions[id].y;
-				count++;
-			}
-			
-			const center = { x: sumX / count, y: sumY / count };
+    networkInstance.moveTo({
+      position: view.position,
+      scale: view.scale,
+      animation: false
+    });
+  }
 
-			networkInstance.moveTo({
-				position: center,
-				scale: 1.2,
-				animation: {
-					duration: 600,
-					easingFunction: "easeOutCubic"
-				}
-			});
-		});
-	}
-	
+
+  var graphOptions = {
+    nodes: {
+      shape: 'dot',
+      size: 10,
+      font: { size: 14, face: 'Source Sans Pro', color: '#333' },
+      borderWidth: 2,
+      scaling: { min: 10, max: 30 }
+    },
+
+    edges: {
+      scaling: { min: 0.2, max: 2.0 },
+      color: { inherit: 'from' },
+      smooth: { type: 'continuous' },
+      arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+    },
+
+    physics: {
+      solver: 'barnesHut',
+
+      barnesHut: {
+        gravitationalConstant: -2000,
+        centralGravity: 0.3,
+        springLength: 100,
+        avoidOverlap: 1.0
+      },
+
+      stabilization: { iterations: 2000 }
+    },
+
+    interaction: {
+      tooltipDelay: 200,
+      navigationButtons: true
+    }
+  };
+
+  function initializeGraph() {
+    if (!c.data.nodes || c.data.nodes.length === 0) return;
+
+    var processedNodes = c.data.nodes.map(function (node) {
+      var newNode = { ...node };
+
+      newNode.value = node.sent + node.received;
+
+      newNode.color = {
+        background: '#4A90E2',
+        border: '#357ABD',
+        highlight: {
+          background: '#6BB5FF',
+          border: '#2C5AA0'
+        }
+      };
+
+      newNode.shape = 'dot';
+      newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' + node.received + ')';
+      return newNode;
+
+    });
+
+    var nodes = new vis.DataSet(processedNodes);
+    var edges = new vis.DataSet(c.data.edges);
+
+    var container = document.getElementById('recognition-graph-container');
+    var data = { nodes, edges };
+
+
+    networkInstance = new vis.Network(container, data, graphOptions);
+
+    networkInstance.once("stabilizationIterationsDone", centerNetworkView);
+  }
+
+  function centerNetworkView() {
+    const positions = networkInstance.getPositions();
+    let sumX = 0, sumY = 0, count = 0;
+
+    for (const id in positions) {
+      sumX += positions[id].x;
+      sumY += positions[id].y;
+      count++;
+    }
+
+    const center = { x: sumX / count, y: sumY / count };
+
+    networkInstance.moveTo({
+      position: center,
+      scale: 1,
+      animation: {
+        duration: 800,
+        easingFunction: "easeOutCubic"
+      }
+    });
+  }
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.network-container {
-  background:#fff;
-  margin: 0 0 15px 0;
+    background: #fff;
+    margin: 0 0 15px 0;
 }
 
-.network-container .panel-heading  {
-	position: relative;
+.network-container .panel-heading {
+    position: relative;
 }
 
 .network-graph-title {
-  font-weight: bold;
-  margin-top: 0;
-  margin-bottom: 0;
-  font-family: $now-sp-font-family-sans-serif;
-  color: #eee;
-  font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 0;
+    margin-bottom: 0;
+    font-family: $now-sp-font-family-sans-serif;
+    color: #eee;
+    font-size: 1.5rem;
 }
 
 .refresh-icon {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .graph-container {
-  height: 448px;
+    height: 448px;
 }
 
 .graph-filter {
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  align-items: center;
-  gap: 12px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
-
-.filter-label {
-  font-family: 'Source Sans Pro', sans-serif;
-  font-weight: 600;
-  margin: 0;
-  color: #495057;
-}
-
-.filter-select {
-  width: auto;
-  min-width: 200px;
-  font-family: 'Source Sans Pro', sans-serif;
-  padding: 6px 12px;
-  border-radius: 4px;
-  border: 1px solid #ced4da;
-}</css>
+</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description/>
@@ -294,146 +286,160 @@
         <option_schema/>
         <public>false</public>
         <roles/>
-        <script><![CDATA[(function() {
-	
-	data.nodeScalingFilterWidget = $sp.getWidget('single-select-filter', {
-		title: 'Scale nodes by',
-		eventName: 'graph.scale.filter.updated',
-		choices: [
-			{ display: 'Total Recognitions', value: 'total' },
-			{ display: 'Sent Recognitions', value: 'sent' },
-			{ display: 'Received Recognitions', value: 'received' }
-		],
+        <script><![CDATA[(function () {
+  // We only generate the data if the client has requested it (for async loading).
+  if (input && input.action === 'get_graph_data') {
+    const graphData = new x_1794402_peerce_0.RecognitionDAO().getGraphData();
+    data.nodes = graphData.nodes;
+    data.edges = graphData.edges;
 
-		initialSelection: 'total'
-	});
-	
-	// We only generate the data if the client has requested it (for async loading).
-	if (input && input.action === 'get_graph_data') {
-		var graphData = getGraphData();
-		data.nodes = graphData.nodes;
-		data.edges = graphData.edges;
-		
+    return;
+  }
 
-	}
-	
-	function getInitials(fullName) {
-		// Trim leading/trailing spaces and split the string into an array of words
-		const nameParts = fullName.trim().split(' ');
+  data.nodeScalingFilterWidget = $sp.getWidget('single-select-filter', {
+    title: 'Scale nodes by',
+    eventName: 'graph.scale.filter.updated',
+    choices: [
+      { display: 'Total Recognitions', value: 'total' },
+      { display: 'Sent Recognitions', value: 'sent' },
+      { display: 'Received Recognitions', value: 'received' }
+    ],
 
-		// Map over the array to get the first letter of each part, converting to uppercase
-		const initials = nameParts.map(part => part.charAt(0).toUpperCase());
+    initialSelection: 'total'
+  });
 
-		// Join the initials into a single string
-		return initials.join('');
-	}
-	
- /**
-  * Main function to generate all node and edge data for the graph.
-  * This encapsulates all the data processing logic.
-  * @returns {object} An object containing the nodes and edges arrays.
-  */
-	function getGraphData() {
-		
-		const userNodes = new Map();
-		let edges = [], nodes = [];
+  const recognitionOccasions =
+    new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
 
-	  // Get all users who received recognitions as nodes
-		const sentAgg = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
-		sentAgg.addQuery('is_team', false);
-		sentAgg.addNotNullQuery('sender');
-		sentAgg.addAggregate('COUNT');
-		sentAgg.groupBy('sender');
-		sentAgg.query();
-
-		while (sentAgg.next()) {
-			const senderId = sentAgg.sender.toString();
-			const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
-			
-			const senderName = sentAgg.sender.name.toString();
-
-			userNodes.set(senderId, {
-				id: senderId,
-				label: senderName,
-				sent: count,
-				received: 0,
-				value: 0,
-				initials: getInitials(senderName)
-			});
-		}
-
-		// Get all users who received recognitions as nodes
-		const receivedAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
-		receivedAgg.addQuery('recognition.is_team', false);
-		receivedAgg.addNotNullQuery('recipient_user');
-		receivedAgg.addAggregate('COUNT');
-		receivedAgg.groupBy('recipient_user');
-		receivedAgg.query();
-		while (receivedAgg.next()) {
-			const recipientId = receivedAgg.recipient_user.toString();
-			const count = parseInt(receivedAgg.getAggregate('COUNT'), 10);
-
-			if (userNodes.has(recipientId)) {
-				const existingNode = userNodes.get(recipientId);
-				existingNode.received = count;
-				existingNode.value = count;
-
-				continue;
-			}
-			
-			const recipientName = receivedAgg.recipient_user.getDisplayValue();
-
-			userNodes.set(recipientId, {
-				id: recipientId,
-				label: recipientName,
-				sent: 0,
-				received: count,
-				value: count,
-				initials: getInitials(recipientName)
-			});
-		}
-
-		// Get all the computed notes with statistics
-		nodes = Array.from(userNodes.values());
-
-		// Get all the edges with counts
-		const edgeCounts = new Map();
-		const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
-		recipientGr.addQuery('recognition.is_team', false);
-		recipientGr.addNotNullQuery('recognition.sender');
-		recipientGr.addNotNullQuery('recipient_user');
-		recipientGr.query();
-
-		while (recipientGr.next()) {
-			const senderId = recipientGr.recognition.sender.toString(); 
-			const recipientId = recipientGr.recipient_user.toString(); 
-
-			if (senderId !== recipientId) {
-				const key = senderId + '->' + recipientId;
-				const currentCount = edgeCounts.get(key) || 0;
-				edgeCounts.set(key, currentCount + 1);
-			}
-		}
+  data.occasionFilterWidget = $sp.getWidget(
+    'multi-select-slushbucket-filter',
+    {
+      title: 'Occasions',
+      eventName: 'graph.occasion.filter.updated',
+      choices: recognitionOccasions,
+      initialSelection: '',
+    }
+  );
 
 
-		// Conver the edges into the required format
-		for (const [key, value] of edgeCounts.entries()) {
-			const [fromId, toId] = key.split('->');
 
-			edges.push({
-				from: fromId,
-				to: toId,
-				value: value,
-				title: value + ' recognition(s).'
-			});
-		}
-		
-		// Return the final data object
-		return {
-			nodes: nodes,
-			edges: edges
-		};
-	}
+  // function getInitials(fullName) {
+  //   // Trim leading/trailing spaces and split the string into an array of words
+  //   const nameParts = fullName.trim().split(' ');
+
+  //   // Map over the array to get the first letter of each part, converting to uppercase
+  //   const initials = nameParts.map(part => part.charAt(0).toUpperCase());
+
+  //   // Join the initials into a single string
+  //   return initials.join('');
+  // }
+
+  // /**
+  //  * Main function to generate all node and edge data for the graph.
+  //  * This encapsulates all the data processing logic.
+  //  * @returns {object} An object containing the nodes and edges arrays.
+  //  */
+  // function getGraphData() {
+
+  //   const userNodes = new Map();
+  //   let edges = [], nodes = [];
+
+  //   // Get all users who received recognitions as nodes
+  //   const sentAgg = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
+  //   sentAgg.addQuery('is_team', false);
+  //   sentAgg.addNotNullQuery('sender');
+  //   sentAgg.addAggregate('COUNT');
+  //   sentAgg.groupBy('sender');
+  //   sentAgg.query();
+
+  //   while (sentAgg.next()) {
+  //     const senderId = sentAgg.sender.toString();
+  //     const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
+
+  //     const senderName = sentAgg.sender.name.toString();
+
+  //     userNodes.set(senderId, {
+  //       id: senderId,
+  //       label: senderName,
+  //       sent: count,
+  //       received: 0,
+  //       value: 0,
+  //       initials: getInitials(senderName)
+  //     });
+  //   }
+
+  //   // Get all users who received recognitions as nodes
+  //   const receivedAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
+  //   receivedAgg.addQuery('recognition.is_team', false);
+  //   receivedAgg.addNotNullQuery('recipient_user');
+  //   receivedAgg.addAggregate('COUNT');
+  //   receivedAgg.groupBy('recipient_user');
+  //   receivedAgg.query();
+  //   while (receivedAgg.next()) {
+  //     const recipientId = receivedAgg.recipient_user.toString();
+  //     const count = parseInt(receivedAgg.getAggregate('COUNT'), 10);
+
+  //     if (userNodes.has(recipientId)) {
+  //       const existingNode = userNodes.get(recipientId);
+  //       existingNode.received = count;
+  //       existingNode.value = count;
+
+  //       continue;
+  //     }
+
+  //     const recipientName = receivedAgg.recipient_user.getDisplayValue();
+
+  //     userNodes.set(recipientId, {
+  //       id: recipientId,
+  //       label: recipientName,
+  //       sent: 0,
+  //       received: count,
+  //       value: count,
+  //       initials: getInitials(recipientName)
+  //     });
+  //   }
+
+  //   // Get all the computed notes with statistics
+  //   nodes = Array.from(userNodes.values());
+
+  //   // Get all the edges with counts
+  //   const edgeCounts = new Map();
+  //   const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
+  //   recipientGr.addQuery('recognition.is_team', false);
+  //   recipientGr.addNotNullQuery('recognition.sender');
+  //   recipientGr.addNotNullQuery('recipient_user');
+  //   recipientGr.query();
+
+  //   while (recipientGr.next()) {
+  //     const senderId = recipientGr.recognition.sender.toString();
+  //     const recipientId = recipientGr.recipient_user.toString();
+
+  //     if (senderId !== recipientId) {
+  //       const key = senderId + '->' + recipientId;
+  //       const currentCount = edgeCounts.get(key) || 0;
+  //       edgeCounts.set(key, currentCount + 1);
+  //     }
+  //   }
+
+
+  //   // Conver the edges into the required format
+  //   for (const [key, value] of edgeCounts.entries()) {
+  //     const [fromId, toId] = key.split('->');
+
+  //     edges.push({
+  //       from: fromId,
+  //       to: toId,
+  //       value: value,
+  //       title: value + ' recognition(s).'
+  //     });
+  //   }
+
+  //   // Return the final data object
+  //   return {
+  //     nodes: nodes,
+  //     edges: edges
+  //   };
+  // }
 
 
 })();]]></script>
@@ -442,42 +448,40 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>141</sys_mod_count>
+        <sys_mod_count>168</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-22 18:38:39</sys_updated_on>
+        <sys_updated_on>2025-09-25 19:26:17</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
-  
-	<div class="panel-heading">
-		<h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i> Recognition Network</h2>
-  	<span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
+
+  <div class="panel-heading">
+    <h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i>
+      Recognition Network</h2>
+    <span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
   </div>
-  
-  <div class="graph-filter" ng-if="!c.isLoading">
+
+  <div class="graph-filter">
     <div class="filter-wrapper">
       <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
     </div>
+
+    <div class="filter-wrapper">
+      <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
+    </div>
   </div>
-  
-  <div class="filter-wrapper">
-    <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
-  </div>
-  
+
   <div ng-if="c.isLoading" class="text-center mt-10">
     <i class="fa fa-spinner fa-spin fa-2x"></i>
     <p>Loading graph data...</p>
   </div>
-      
-	<div ng-if="!c.isLoading" id="recognition-graph-container" class="graph-container">  
-  </div>
-</div>
-	
 
-]]></template>
+  <div ng-if="!c.isLoading" id="recognition-graph-container" class="graph-container">
+  </div>
+</div>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">
         <id>09b1cbe5c3b3665075ea722ed401316c</id>

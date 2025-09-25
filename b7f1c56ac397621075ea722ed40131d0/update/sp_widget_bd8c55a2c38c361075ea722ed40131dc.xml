@@ -91,6 +91,13 @@
     c.closeDropdown();
   };
 
+  c.clearModalSelection = function ($event) {
+    $event && $event.stopPropagation();
+    // This function can simply reuse your existing removeAll logic,
+    // which moves all selected items back to the available list.
+    c.removeAll();
+  };
+
   $scope.$on('filters.reset', function () {
     // When the reset event is heard, clear all selected options.
     c.selectedOptions = [];
@@ -360,14 +367,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-20 18:10:13</sys_created_on>
         <sys_id>bd8c55a2c38c361075ea722ed40131dc</sys_id>
-        <sys_mod_count>116</sys_mod_count>
+        <sys_mod_count>119</sys_mod_count>
         <sys_name>Multi Select Dropdown Filter</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_bd8c55a2c38c361075ea722ed40131dc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-24 13:16:40</sys_updated_on>
+        <sys_updated_on>2025-09-25 10:16:39</sys_updated_on>
         <template><![CDATA[<div class="slush-filter-widget">
   <div class="filter-display" ng-click="c.toggleDropdown()" title="Click to edit filter">
 
@@ -395,26 +402,6 @@
     </div>
 
     <div class="row slushbucket-row">
-      <!-- <div class="col-xs-5 left-slushbucket">
-        <label>Available</label>
-        <div class="form-group">
-          <input type="text" class="form-control" ng-model="c.modal.searchTerm"
-            ng-change="c.performSearch(c.modal.searchTerm)" ng-model-options="{ debounce: 500 }"
-            placeholder="{{c.data.type === 'dynamic' ? 'Search all (2+ chars)...' : 'Search available...'}}" />
-        </div>
-
-        <div class="select-wrapper">
-          <select multiple class="form-control slush-select" ng-model="c.modal.selections.available"
-            ng-options="item as item.display for item in c.modal.available | filter:c.modal.searchTerm | orderBy: 'display'"
-            ng-dblclick="c.addSelected()">
-          </select>
-
-          <div ng-if="c.loading" class="select-loader-overlay">
-            <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
-          </div>
-
-        </div>
-      </div> -->
 
       <div class="col-xs-5 left-slushbucket">
         <label>Available</label>
@@ -469,7 +456,13 @@
       </div>
     </div>
 
-    <div class="slushbucket-footer">
+    <div class="slushbucket-footer clearfix">
+      <button class="btn btn-default btn-sm pull-left" ng-if="c.modal.selected.length > 0"
+        ng-click="c.clearModalSelection($event)">
+        Clear
+      </button>
+
+
       <button class="btn btn-primary btn-sm" ng-click="c.applySelection()">
         Apply
       </button>
