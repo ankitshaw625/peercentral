@@ -454,7 +454,7 @@ RecognitionDAO.prototype = {
 
 
     // Get all the edges with counts
-    const uniqueGroups = new Set();
+    // const uniqueGroups = new Set();
     const edgeCounts = new Map();
     const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
 
@@ -480,18 +480,44 @@ RecognitionDAO.prototype = {
         edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
       }
 
-      const senderNode = userNodes.get(senderId);
-      if (senderNode && !senderNode.group) {
-        senderNode.group = recipientGr.getDisplayValue('recognition.sender.department') || 'N/A';
-      }
+      // const senderNode = userNodes.get(senderId);
+      // if (senderNode && !senderNode.group) {
+      //   senderNode.group = recipientGr.getDisplayValue('recognition.sender.department') || 'N/A';
+      // }
 
-      const recipientNode = userNodes.get(recipientId);
-      if (recipientNode && !recipientNode.group) {
-        recipientNode.group = recipientGr.getDisplayValue('recipient_user.department') || 'N/A';
-      }
+      // const recipientNode = userNodes.get(recipientId);
+      // if (recipientNode && !recipientNode.group) {
+      //   recipientNode.group = recipientGr.getDisplayValue('recipient_user.department') || 'N/A';
+      // }
 
-      uniqueGroups.add(senderNode.group);
-      uniqueGroups.add(recipientNode.group);
+      // uniqueGroups.add(senderNode.group);
+      // uniqueGroups.add(recipientNode.group);
+    }
+
+    const uniqueGroups = new Set();
+    const userIds = Array.from(userNodes.keys());
+
+    if (userIds.length > 0) {
+      const grUser = new GlideRecord('sys_user');
+      grUser.addQuery('sys_id', 'IN', userIds);
+      grUser.query();
+
+      while (grUser.next()) {
+        const userId = grUser.getUniqueValue();
+        const photo = grUser.getValue('photo');
+        const department = grUser.getDisplayValue('department') || 'N/A';
+
+        // Directly get the node from the userNodes map
+        const node = userNodes.get(userId);
+
+        if (node) {
+          // Update the node object directly with the fetched details
+          node.group = department;
+          node.userImage = photo ? 'sys_attachment.do?sys_id=' + photo : '';
+
+          uniqueGroups.add(department);
+        }
+      }
     }
 
 
@@ -499,11 +525,14 @@ RecognitionDAO.prototype = {
     for (const [key, value] of edgeCounts.entries()) {
       const [fromId, toId] = key.split('->');
 
+      const title = value === 1 ? value + ' recognition.' : value + ' recognition(s).';
+
       edges.push({
+        id: key,
         from: fromId,
         to: toId,
         value: value,
-        title: value + ' recognition(s).'
+        title: title
       });
     }
 
@@ -679,13 +708,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>90</sys_mod_count>
+        <sys_mod_count>99</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-28 18:52:47</sys_updated_on>
+        <sys_updated_on>2025-09-28 21:37:46</sys_updated_on>
     </sys_script_include>
 </record_update>

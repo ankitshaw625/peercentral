@@ -8,6 +8,7 @@
   c.currentScale = 'total';
   c.selectedOccasions = [];
   c.timeframe = 'all';
+  c.hiddenGroups = [];
 
   var networkInstance = null;
   var originalNodes = [];
@@ -103,10 +104,61 @@
     c.loadGraphData();
   });
 
+
+  c.isGroupHidden = function (groupName) {
+    return c.hiddenGroups.includes(groupName);
+  };
+
+  c.toggleGroup = (groupName) => {
+    // 1. Update the list of hidden groups based on the legend click
+    if (c.isGroupHidden(groupName)) {
+      c.hiddenGroups = c.hiddenGroups.filter(g => g !== groupName);
+    } else {
+      c.hiddenGroups.push(groupName);
+    }
+
+    const nodesDataset = networkInstance.body.data.nodes;
+    const edgesDataset = networkInstance.body.data.edges;
+
+    // 2. Determine which nodes should be hidden based on the legend
+    const nodesToHideByGroup = new Set(
+      originalNodes
+        .filter(node => c.hiddenGroups.includes(node.group))
+        .map(node => node.id)
+    );
+
+    // 3. Determine which nodes have no visible edges
+    const visibleEdges = c.data.edges.filter(edge =>
+      !nodesToHideByGroup.has(edge.from) && !nodesToHideByGroup.has(edge.to)
+    );
+
+    const nodesWithVisibleEdges = new Set();
+    visibleEdges.forEach(edge => {
+      nodesWithVisibleEdges.add(edge.from);
+      nodesWithVisibleEdges.add(edge.to);
+    });
+
+    // 4. Create the final node update list
+    const nodeUpdates = originalNodes.map(node => {
+      const isHiddenByGroup = nodesToHideByGroup.has(node.id);
+      const hasNoVisibleEdges = !nodesWithVisibleEdges.has(node.id);
+
+      // Hide the node if it's in a hidden group OR if it has no more visible connections
+      return {
+        id: node.id,
+        hidden: isHiddenByGroup || hasNoVisibleEdges
+      };
+    });
+
+    // 5. Apply the updates
+    nodesDataset.update(nodeUpdates);
+  };
+
+
   c.hasActiveFilters = function () {
     return c.currentScale !== 'total' ||
       c.selectedOccasions.length > 0 ||
-      c.timeframe !== 'all';
+      c.timeframe !== 'all' || c.hiddenGroups.length > 0;
   };
 
   c.resetFilters = function () {
@@ -116,6 +168,7 @@
     c.currentScale = 'total';
     c.selectedOccasions = [];
     c.timeframe = 'all';
+    c.hiddenGroups = [];
 
     c.loadGraphData();
   };
@@ -177,14 +230,39 @@
     });
   }
 
+  const groupColors = {
+    // Core Blues
+    'Development': '#005F9E',      // Strong Blue
+    'Product Management': '#00A4E0',// Bright Cyan-Blue
 
-  var graphOptions = {
+    // Core Greens
+    'Customer Support': '#00847B', // Teal
+    'Sales': '#8BC53F',            // Lime Green
+
+    // Accent & Neutral
+    'HR': '#E04E39',               // Muted Red/Terracotta
+    'IT': '#7E8C9A',               // Slate Gray
+    'N/A': '#D1D7DD'               // Light Gray
+  };
+
+  const graphOptions = {
+
     nodes: {
-      shape: 'dot',
-      size: 10,
-      font: { size: 14, face: 'Source Sans Pro', color: '#333' },
-      borderWidth: 2,
-      scaling: { min: 10, max: 30 }
+      size: 15, // A good default size for both images and dots
+      font: {
+        size: 14,
+        face: 'Source Sans Pro',
+        color: '#333' // White text looks good inside the colored dots
+      },
+      borderWidth: 3,
+
+      scaling: {
+        min: 15,
+        max: 40
+      },
+      shapeProperties: {
+        interpolation: false
+      }
     },
 
     edges: {
@@ -201,7 +279,7 @@
         gravitationalConstant: -2000,
         centralGravity: 0.3,
         springLength: 100,
-        avoidOverlap: 1.0
+        avoidOverlap: 1.5
       },
 
       stabilization: { iterations: 2000 }
@@ -209,8 +287,68 @@
 
     interaction: {
       tooltipDelay: 200,
-      navigationButtons: true
+      navigationButtons: true,
+      hover: true
     },
+
+    groups: {
+      'Development': {
+        color: {
+          border: groupColors['Development'],
+          background: groupColors['Development'],
+          highlight: { border: '#003E6B', background: '#005F9E' },
+          hover: { border: '#003E6B', background: '#005F9E' }
+        }
+      },
+      'Product Management': {
+        color: {
+          border: groupColors['Product Management'],
+          background: groupColors['Product Management'],
+          highlight: { border: '#007BAA', background: '#00A4E0' },
+          hover: { border: '#007BAA', background: '#00A4E0' }
+        }
+      },
+      'Customer Support': {
+        color: {
+          border: groupColors['Customer Support'],
+          background: groupColors['Customer Support'],
+          highlight: { border: '#005851', background: '#00847B' },
+          hover: { border: '#005851', background: '#00847B' }
+        }
+      },
+      'Sales': {
+        color: {
+          border: groupColors['Sales'],
+          background: groupColors['Sales'],
+          highlight: { border: '#679A2B', background: '#8BC53F' },
+          hover: { border: '#679A2B', background: '#8BC53F' }
+        }
+      },
+      'HR': {
+        color: {
+          border: groupColors['HR'],
+          background: groupColors['HR'],
+          highlight: { border: '#B33E2C', background: '#E04E39' },
+          hover: { border: '#B33E2C', background: '#E04E39' }
+        }
+      },
+      'IT': {
+        color: {
+          border: groupColors['IT'],
+          background: groupColors['IT'],
+          highlight: { border: '#5A636C', background: '#7E8C9A' },
+          hover: { border: '#5A636C', background: '#7E8C9A' }
+        }
+      },
+      'N/A': {
+        color: {
+          border: groupColors['N/A'],
+          background: groupColors['N/A'],
+          highlight: { border: '#A9B1B8', background: '#D1D7DD' },
+          hover: { border: '#A9B1B8', background: '#D1D7DD' }
+        }
+      },
+    }
 
     // layout: { hierarchical: { enabled: true } }
   };
@@ -223,17 +361,20 @@
 
       newNode.value = node.sent + node.received;
 
-      // newNode.color = {
-      //   background: '#4A90E2',
-      //   border: '#357ABD',
-      //   highlight: {
-      //     background: '#6BB5FF',
-      //     border: '#2C5AA0'
-      //   }
-      // };
-
-      newNode.shape = 'dot';
       newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' + node.received + ')';
+
+
+      if (node.userImage) {
+        // If an image exists, use it
+        newNode.shape = 'circularImage';
+        newNode.image = node.userImage;
+        // newNode.label = ''; // Hide the external label
+      } else {
+        // If no image, use initials inside the dot
+        newNode.shape = 'dot';
+        // newNode.label = node.initials; // Use initials as the label inside the node
+      }
+
       return newNode;
 
     });
@@ -333,6 +474,8 @@
     display: flex;
     align-items: center;
     font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.2s ease-in-out;
 }
 
 .legend-color-box {
@@ -341,6 +484,12 @@
     border: 1px solid #ccc;
     margin-right: 5px;
     border-radius: 2px;
+}
+
+.legend-item-hidden {
+    opacity: 0.4;
+    text-decoration: line-through;
+    cursor: pointer;
 }
 </css>
         <data_table>sp_instance</data_table>
@@ -418,14 +567,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>199</sys_mod_count>
+        <sys_mod_count>236</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-28 18:40:49</sys_updated_on>
+        <sys_updated_on>2025-09-28 21:57:51</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -436,11 +585,11 @@
 
   <div class="graph-filter">
     <div class="filter-wrapper">
-      <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+      <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
     </div>
 
     <div class="filter-wrapper">
-      <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
+      <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
     </div>
 
     <div class="filter-wrapper">
@@ -451,7 +600,8 @@
 
     <div class="legend-container">
       <h4 class="legend-header">Departments</h4>
-      <div ng-repeat="item in c.data.legendData" class="legend-item">
+      <div ng-repeat="item in c.data.legendData" class="legend-item" ng-click="c.toggleGroup(item)"
+        ng-class="{'legend-item-hidden': c.isGroupHidden(item)}">
         <span class="legend-color-box" ng-style="{'background-color': c.getColorForGroup(item)}"></span>
         {{item}}
       </div>
