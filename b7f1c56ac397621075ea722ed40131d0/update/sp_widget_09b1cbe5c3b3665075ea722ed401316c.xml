@@ -32,6 +32,7 @@
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
       c.data.edges = response.data.edges;
+      c.data.legendData = response.data.legendData;
 
       originalNodes = c.data.nodes.map(n => ({ ...n }));
 
@@ -119,6 +120,15 @@
     c.loadGraphData();
   };
 
+  c.getColorForGroup = function (groupName) {
+    if (!networkInstance) {
+      return '#cccccc'; // Default color if graph isn't ready
+    }
+
+    // This asks the vis.js instance for the color it generated for a group
+    return networkInstance.groups.get(groupName).color.background;
+  };
+
   function animateNodeSizes(targetValues, duration) {
     if (!networkInstance) return;
 
@@ -178,7 +188,7 @@
     },
 
     edges: {
-      scaling: { min: 0.2, max: 2.0 },
+      scaling: { min: 0.4, max: 4 },
       color: { inherit: 'from' },
       smooth: { type: 'continuous' },
       arrows: { to: { enabled: true, scaleFactor: 0.5 } }
@@ -200,7 +210,9 @@
     interaction: {
       tooltipDelay: 200,
       navigationButtons: true
-    }
+    },
+
+    // layout: { hierarchical: { enabled: true } }
   };
 
   function initializeGraph() {
@@ -211,14 +223,14 @@
 
       newNode.value = node.sent + node.received;
 
-      newNode.color = {
-        background: '#4A90E2',
-        border: '#357ABD',
-        highlight: {
-          background: '#6BB5FF',
-          border: '#2C5AA0'
-        }
-      };
+      // newNode.color = {
+      //   background: '#4A90E2',
+      //   border: '#357ABD',
+      //   highlight: {
+      //     background: '#6BB5FF',
+      //     border: '#2C5AA0'
+      //   }
+      // };
 
       newNode.shape = 'dot';
       newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' + node.received + ')';
@@ -287,7 +299,8 @@
 }
 
 .graph-container {
-    height: 448px;
+    height: 70vh; /* 60% of the viewport height */
+    min-height: 400px; /* Ensure it doesn't get too small */
 }
 
 .graph-filter {
@@ -297,6 +310,37 @@
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.legend-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-left: auto;
+}
+
+.legend-header {
+    width: 100%;
+    font-size: 13px;
+    font-weight: bold;
+    color: #666;
+    margin: 0 0 5px 0;
+    padding: 0;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+}
+
+.legend-color-box {
+    width: 12px;
+    height: 12px;
+    border: 1px solid #ccc;
+    margin-right: 5px;
+    border-radius: 2px;
 }
 </css>
         <data_table>sp_instance</data_table>
@@ -321,6 +365,8 @@
     const graphData = new x_1794402_peerce_0.RecognitionDAO().getGraphData(occasionIds, daysAgo);
     data.nodes = graphData.nodes;
     data.edges = graphData.edges;
+
+    data.legendData = graphData.groups;
 
     return;
   }
@@ -349,7 +395,7 @@
         { display: 'Last 7 days', value: '7' }
       ],
 
-      initialSelection: '0',
+      initialSelection: 'all',
     }
   );
 
@@ -372,14 +418,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>178</sys_mod_count>
+        <sys_mod_count>199</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-28 15:44:04</sys_updated_on>
+        <sys_updated_on>2025-09-28 18:40:49</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -402,6 +448,15 @@
     </div>
 
     <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link" title="Reset filters">↺</a>
+
+    <div class="legend-container">
+      <h4 class="legend-header">Departments</h4>
+      <div ng-repeat="item in c.data.legendData" class="legend-item">
+        <span class="legend-color-box" ng-style="{'background-color': c.getColorForGroup(item)}"></span>
+        {{item}}
+      </div>
+    </div>
+
   </div>
 
   <div ng-if="c.isLoading" class="text-center mt-10">
