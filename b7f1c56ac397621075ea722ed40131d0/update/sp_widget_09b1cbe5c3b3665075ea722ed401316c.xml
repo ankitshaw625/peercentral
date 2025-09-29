@@ -9,6 +9,8 @@
   c.selectedOccasions = [];
   c.timeframe = 'all';
   c.hiddenGroups = [];
+  c.selectedNode = null;
+  c.showMyNetwork = false;
 
   var networkInstance = null;
   var originalNodes = [];
@@ -23,7 +25,7 @@
     c.isLoading = true;
 
     // Call the server to get the graph data
-    console.log(c);
+    // console.log(c);
 
     c.server.get({
       action: 'get_graph_data',
@@ -90,6 +92,7 @@
     }
   };
 
+
   $scope.$on('graph.scale.filter.updated', function (event, data) {
     c.updateScale(data.selected.value);
   });
@@ -104,32 +107,47 @@
     c.loadGraphData();
   });
 
-
-  c.isGroupHidden = function (groupName) {
-    return c.hiddenGroups.includes(groupName);
-  };
-
-  c.toggleGroup = (groupName) => {
-    // 1. Update the list of hidden groups based on the legend click
-    if (c.isGroupHidden(groupName)) {
-      c.hiddenGroups = c.hiddenGroups.filter(g => g !== groupName);
-    } else {
-      c.hiddenGroups.push(groupName);
-    }
+  c.applyVisibilityFilters = function () {
+    if (!networkInstance || !originalNodes.length) return;
 
     const nodesDataset = networkInstance.body.data.nodes;
-    const edgesDataset = networkInstance.body.data.edges;
+    let nodesToHide = new Set();
 
-    // 2. Determine which nodes should be hidden based on the legend
+    // 1. Hide by department groups
     const nodesToHideByGroup = new Set(
       originalNodes
         .filter(node => c.hiddenGroups.includes(node.group))
         .map(node => node.id)
     );
+    nodesToHideByGroup.forEach(id => nodesToHide.add(id));
 
-    // 3. Determine which nodes have no visible edges
+    // 2. If "My Network" is active, restrict to first-degree connections
+    if (c.showMyNetwork) {
+      const currentUser = c.data.currentUserId;
+      const userInGraph = originalNodes.some(n => n.id === currentUser);
+
+      if (userInGraph) {
+        const connectedNodeIds = new Set([currentUser]); // include self
+        c.data.edges.forEach(edge => {
+          if (edge.from === currentUser || edge.to === currentUser) {
+            connectedNodeIds.add(edge.from);
+            connectedNodeIds.add(edge.to);
+          }
+        });
+
+        // Hide anyone NOT in the connected set
+        originalNodes.forEach(node => {
+          if (!connectedNodeIds.has(node.id)) {
+            nodesToHide.add(node.id);
+          }
+        });
+      }
+      // If user not in graph, all nodes will be hidden → acceptable
+    }
+
+    // 3. Hide nodes with no visible edges (your existing logic)
     const visibleEdges = c.data.edges.filter(edge =>
-      !nodesToHideByGroup.has(edge.from) && !nodesToHideByGroup.has(edge.to)
+      !nodesToHide.has(edge.from) && !nodesToHide.has(edge.to)
     );
 
     const nodesWithVisibleEdges = new Set();
@@ -138,37 +156,52 @@
       nodesWithVisibleEdges.add(edge.to);
     });
 
-    // 4. Create the final node update list
-    const nodeUpdates = originalNodes.map(node => {
-      const isHiddenByGroup = nodesToHideByGroup.has(node.id);
-      const hasNoVisibleEdges = !nodesWithVisibleEdges.has(node.id);
+    // 4. Apply final visibility
+    const nodeUpdates = originalNodes.map(node => ({
+      id: node.id,
+      hidden: nodesToHide.has(node.id) || !nodesWithVisibleEdges.has(node.id)
+    }));
 
-      // Hide the node if it's in a hidden group OR if it has no more visible connections
-      return {
-        id: node.id,
-        hidden: isHiddenByGroup || hasNoVisibleEdges
-      };
-    });
-
-    // 5. Apply the updates
     nodesDataset.update(nodeUpdates);
+  };
+
+  c.isGroupHidden = function (groupName) {
+    return c.hiddenGroups.includes(groupName);
+  };
+
+  // Updated toggleGroup
+  c.toggleGroup = (groupName) => {
+    if (c.isGroupHidden(groupName)) {
+      c.hiddenGroups = c.hiddenGroups.filter(g => g !== groupName);
+    } else {
+      c.hiddenGroups.push(groupName);
+    }
+
+    c.applyVisibilityFilters(); // ← Use unified logic
+  };
+
+  // New toggleMyNetwork
+  c.toggleMyNetwork = function () {
+    c.showMyNetwork = !c.showMyNetwork;
+    c.applyVisibilityFilters();
   };
 
 
   c.hasActiveFilters = function () {
     return c.currentScale !== 'total' ||
       c.selectedOccasions.length > 0 ||
-      c.timeframe !== 'all' || c.hiddenGroups.length > 0;
+      c.timeframe !== 'all' || c.hiddenGroups.length > 0 || c.showMyNetwork === true;
   };
 
   c.resetFilters = function () {
-    // 1. Tell all listening child widgets to reset themselves
+    // Tell all listening child widgets to reset themselves
     $rootScope.$broadcast('filters.reset');
 
     c.currentScale = 'total';
     c.selectedOccasions = [];
     c.timeframe = 'all';
     c.hiddenGroups = [];
+    c.showMyNetwork = false;
 
     c.loadGraphData();
   };
@@ -180,6 +213,10 @@
 
     // This asks the vis.js instance for the color it generated for a group
     return networkInstance.groups.get(groupName).color.background;
+  };
+
+  c.closeModal = function () {
+    c.selectedNode = null;
   };
 
   function animateNodeSizes(targetValues, duration) {
@@ -248,13 +285,14 @@
   const graphOptions = {
 
     nodes: {
-      size: 15, // A good default size for both images and dots
+      size: 15,
       font: {
         size: 14,
         face: 'Source Sans Pro',
-        color: '#333' // White text looks good inside the colored dots
+        color: '#333'
       },
-      borderWidth: 3,
+
+      borderWidth: 4,
 
       scaling: {
         min: 15,
@@ -388,8 +426,49 @@
 
     networkInstance = new vis.Network(container, data, graphOptions);
 
-    networkInstance.once("stabilizationIterationsDone", centerNetworkView);
+
+    // Event listeners for network graph
+    networkInstance.on('click', function (params) {
+      // If the click was on the empty canvas (not a node), close the sidebar.
+      if (params.nodes.length === 0) {
+        c.closeModal();
+        $scope.$applyAsync();
+      }
+    });
+
+    networkInstance.on('oncontext', function (params) {
+      // Prevent the default browser right-click menu
+      params.event.preventDefault();
+
+      const nodeId = networkInstance.getNodeAt(params.pointer.DOM);
+
+      if (!nodeId) return;
+
+      if (c.selectedNode && c.selectedNode.id === nodeId) return;
+
+      // Find the basic node data immediately
+      c.selectedNode = originalNodes.find(n => n.id === nodeId);
+
+      // Fetch the detailed activity feed from the server
+      if (c.selectedNode) {
+        c.selectedNode.loadingDetails = true;
+        c.server.get({
+          action: 'get_recognition_details',
+          userId: c.selectedNode.id
+        }).then(function (response) {
+          c.selectedNode.details = response.data.details;
+          c.selectedNode.loadingDetails = false;
+        });
+      }
+
+      $scope.$applyAsync();
+    });
+
+
+    networkInstance.once('stabilizationIterationsDone', centerNetworkView);
   }
+
+
 
   function centerNetworkView() {
     const positions = networkInstance.getPositions();
@@ -417,6 +496,9 @@
         <css>.network-container {
     background: #fff;
     margin: 0 0 15px 0;
+
+    position: relative;
+    overflow: hidden;
 }
 
 .network-container .panel-heading {
@@ -440,8 +522,8 @@
 }
 
 .graph-container {
-    height: 70vh; /* 60% of the viewport height */
-    min-height: 400px; /* Ensure it doesn't get too small */
+    height: 70vh;
+    min-height: 400px;
 }
 
 .graph-filter {
@@ -458,6 +540,7 @@
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+    justify-content: flex-end;
     margin-left: auto;
 }
 
@@ -468,6 +551,7 @@
     color: #666;
     margin: 0 0 5px 0;
     padding: 0;
+    text-align: right;
 }
 
 .legend-item {
@@ -490,6 +574,102 @@
     opacity: 0.4;
     text-decoration: line-through;
     cursor: pointer;
+}
+
+.empty-state-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 70vh;
+    min-height: 400px;
+    padding: 40px;
+}
+
+.network-view-toggle {
+    background-color: #fff;
+    border-radius: 0.6rem;
+    border: 0.1rem solid #ccc;
+    color: #10171a;
+    padding: 0.8rem 1.4rem;
+}
+
+.sidebar-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 320px;
+    height: 100%;
+    background-color: #fff;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    transform: translateX(100%); /* Start off-screen */
+    transition: transform 0.3s ease-in-out;
+    border-left: 1px solid #e5e5e5;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-open {
+    transform: translateX(0); /* Slide in */
+}
+
+/* Re-using some modal classes for consistency */
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.sidebar-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.sidebar-body {
+    padding: 15px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.activity-feed {
+    font-size: 14px;
+}
+
+.activity-item {
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.activity-text {
+    margin-bottom: 2px;
+}
+
+.recipient-name {
+    font-weight: 600; /* Bolder font */
+    color: #337ab7; /* A distinct blue color */
+}
+
+.activity-message {
+    padding-left: 10px;
+    display: block; /* Ensures it sits on its own line */
+    font-size: 13px;
+}
+
+.occasions-container {
+    margin-top: 5px;
+    padding-left: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.badge {
+    font-weight: 500;
+    font-size: 11px;
 }
 </css>
         <data_table>sp_instance</data_table>
@@ -520,6 +700,13 @@
     return;
   }
 
+  if (input && input.action === 'get_recognition_details') {
+    data.details = new x_1794402_peerce_0.RecognitionDAO().getRecognitionDetails(input.userId);
+    return;
+  }
+
+  data.currentUserId = gs.getUserID();
+
   data.nodeScalingFilterWidget = $sp.getWidget('single-select-filter', {
     title: 'Scale nodes by',
     eventName: 'graph.scale.filter.updated',
@@ -548,6 +735,18 @@
     }
   );
 
+  // In your widget's Server Script
+  data.viewFilterWidget = $sp.getWidget('single-select-filter', {
+    title: 'Graph View',
+    eventName: 'graph.view.filter.updated',
+    choices: [
+      { display: 'Global View', value: 'global' },
+      { display: 'My View', value: 'my_view' }
+    ],
+
+    initialSelection: 'global'
+  });
+
   const recognitionOccasions =
     new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
 
@@ -567,14 +766,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>236</sys_mod_count>
+        <sys_mod_count>283</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-28 21:57:51</sys_updated_on>
+        <sys_updated_on>2025-09-29 16:51:47</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -596,9 +795,16 @@
       <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
     </div>
 
+    <div class="filter-wrapper">
+      <button type="button" class="btn btn-secondary network-view-toggle" ng-click="c.toggleMyNetwork()"
+        title="{{ c.showMyNetwork ? 'Show complete recognition network' : 'Show only your direct recognition network' }}">
+        {{ c.showMyNetwork ? 'Show Full Network' : 'Show My Network' }}
+      </button>
+    </div>
+
     <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link" title="Reset filters">↺</a>
 
-    <div class="legend-container">
+    <div class="legend-container" ng-if="c.data.legendData.length > 0">
       <h4 class="legend-header">Departments</h4>
       <div ng-repeat="item in c.data.legendData" class="legend-item" ng-click="c.toggleGroup(item)"
         ng-class="{'legend-item-hidden': c.isGroupHidden(item)}">
@@ -614,8 +820,69 @@
     <p>Loading graph data...</p>
   </div>
 
-  <div ng-if="!c.isLoading" id="recognition-graph-container" class="graph-container">
+  <div ng-if="!c.isLoading && c.data.nodes.length === 0" class="empty-state-container text-center text-muted">
+    <i class="fa fa-info-circle fa-3x" aria-hidden="true"></i>
+    <h4 class="mt-3">No Recognition Data Found</h4>
+    <p>
+      There is no recognition data available for the selected filters. <br>
+      Try selecting a different timeframe or resetting the filters.
+    </p>
   </div>
+
+  <div ng-if="!c.isLoading && c.data.nodes.length > 0" id="recognition-graph-container" class="graph-container">
+  </div>
+
+
+  <div class="sidebar-container" ng-class="{'sidebar-open': c.selectedNode}">
+    <div class="sidebar-header">
+      <h4 class="sidebar-title">{{c.selectedNode.label}}</h4>
+      <button type="button" class="close" ng-click="c.closeModal()">&times;</button>
+    </div>
+
+    <div class="sidebar-body">
+      <p><strong>Department:</strong> {{c.selectedNode.group}}</p>
+      <hr>
+      <h4>Recognition Stats</h4>
+      <p><strong>Recognitions Sent:</strong> {{c.selectedNode.sent || 0}}</p>
+      <p><strong>Recognitions Received:</strong> {{c.selectedNode.received || 0}}</p>
+
+      <hr>
+      <h4>Recent Activity</h4>
+      <div ng-if="c.selectedNode.loadingDetails" class="text-center">
+        <i class="fa fa-spinner fa-spin"></i> Loading...
+      </div>
+
+      <ul ng-if="!c.selectedNode.loadingDetails" class="list-unstyled activity-feed">
+        <li ng-repeat="item in c.selectedNode.details" class="activity-item">
+          <div class="activity-text">
+            <strong ng-class="{'text-success': item.type === 'Received', 'text-info': item.type === 'Sent'}">
+              {{item.type}}:
+            </strong>
+            <span ng-if="item.type === 'Sent'">You recognized <span
+                class="recipient-name">{{item.recipientNames}}</span></span>
+            <span ng-if="item.type === 'Received'">You received recognition from <span
+                class="recipient-name">{{item.senderName}}</span></span>
+          </div>
+          <em class="text-muted activity-message">"{{item.message}}"</em>
+
+          <div class="occasions-container" ng-if="item.occasions.length > 0">
+            <span ng-repeat="occasion in item.occasions" class="badge badge-default">
+              {{occasion}}
+            </span>
+          </div>
+        </li>
+
+        <li ng-if="c.selectedNode.details.length === 0">
+          No recent activity found.
+        </li>
+      </ul>
+
+    </div>
+
+  </div>
+
+
+
 </div>]]></template>
     </sp_widget>
     <sys_es_latest_script action="INSERT_OR_UPDATE">
