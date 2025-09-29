@@ -39,6 +39,8 @@
 
       originalNodes = c.data.nodes.map(n => ({ ...n }));
 
+      c.computeRoleThresholds();
+
       // Turn off the loading indicator
       c.isLoading = false;
 
@@ -46,6 +48,9 @@
       $timeout(function () {
         initializeGraph();
       });
+    }).catch(err => {
+      console.error('Graph load failed:', error);
+      c.isLoading = false;
     });
   };
 
@@ -204,6 +209,65 @@
     c.showMyNetwork = false;
 
     c.loadGraphData();
+  };
+
+  c.computeRoleThresholds = function () {
+    if (!c.data.nodes || c.data.nodes.length === 0) {
+      c.roleThresholds = { sent: 1, received: 1 };
+      return;
+    }
+
+    const sentValues = c.data.nodes.map(n => n.sent).sort((a, b) => a - b);
+    const receivedValues = c.data.nodes.map(n => n.received).sort((a, b) => a - b);
+
+    function getPercentile(arr, p) {
+      if (arr.length === 0) return 0;
+      const index = Math.floor(p * (arr.length - 1));
+      return arr[Math.max(0, index)];
+    }
+
+    // 75th percentile = top 25% contributors
+    const sent75 = getPercentile(sentValues, 0.75);
+    const received75 = getPercentile(receivedValues, 0.75);
+
+    c.roleThresholds = {
+      sent: Math.max(2, sent75),
+      received: Math.max(2, received75)
+    };
+
+    console.log('sent values: ', sentValues);
+    console.log('received values: ', receivedValues);
+    console.log('thresholds: ', c.roleThresholds);
+
+  };
+
+  c.getRoleExplanation = function (node) {
+    if (!node || !c.roleThresholds) return '';
+
+    var sent = node.sent;
+    var received = node.received;
+    var sentThresh = c.roleThresholds.sent;
+    var receivedThresh = c.roleThresholds.received;
+
+    if (sent >= sentThresh && received >= receivedThresh) {
+      return "You've sent recognition " + sent + " times and received it " + received + " times — placing you among the most connected contributors.";
+    }
+
+    if (received >= receivedThresh && sent < sentThresh) {
+      return "You've been recognized " + received + " times (top contributors have at least " + receivedThresh + "), showing your impact is widely valued.";
+    }
+
+    if (sent >= sentThresh && received < receivedThresh) {
+      return "You've sent recognition " + sent + " times (top contributors send at least " + sentThresh + "), actively uplifting your peers.";
+    }
+
+    if (sent === 0)
+      return "You've received " + received + " recognition(s) — thank you for being part of our recognition culture!";
+
+    if (received === 0)
+      return "You've sent " + sent + " recognition(s) — thank you for uplifting your peers!";
+
+    return "You've sent " + sent + " and received " + received + " recognition(s) — thank you for participating in our recognition culture!";
   };
 
   c.getColorForGroup = function (groupName) {
@@ -635,6 +699,18 @@
     overflow-y: auto;
 }
 
+.network-role-primary {
+    color: #007bff !important;
+}
+
+.network-role-success {
+    color: #28a745 !important;
+}
+
+.network-role-info {
+    color: #17a7b8 !important;
+}
+
 .activity-feed {
     font-size: 14px;
 }
@@ -766,14 +842,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>283</sys_mod_count>
+        <sys_mod_count>290</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-29 16:51:47</sys_updated_on>
+        <sys_updated_on>2025-09-29 18:26:44</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -841,6 +917,34 @@
 
     <div class="sidebar-body">
       <p><strong>Department:</strong> {{c.selectedNode.group}}</p>
+
+      <p><strong>Network Role:</strong>
+        <span
+          ng-if="c.selectedNode.sent >= c.roleThresholds.sent && c.selectedNode.received >= c.roleThresholds.received"
+          class="network-role-primary">
+          Key Connector
+        </span>
+        <span
+          ng-if="c.selectedNode.received >= c.roleThresholds.received && c.selectedNode.sent < c.roleThresholds.sent"
+          class="network-role-success">
+          Highly Recognized
+        </span>
+        <span
+          ng-if="c.selectedNode.sent >= c.roleThresholds.sent && c.selectedNode.received < c.roleThresholds.received"
+          class="network-role-info">
+          Recognition Leader
+        </span>
+        <span
+          ng-if="c.selectedNode.sent < c.roleThresholds.sent && c.selectedNode.received < c.roleThresholds.received">
+          Active Participant
+        </span>
+      </p>
+
+      <em class="small text-muted">
+        {{ c.getRoleExplanation(c.selectedNode) }}
+      </em>
+
+
       <hr>
       <h4>Recognition Stats</h4>
       <p><strong>Recognitions Sent:</strong> {{c.selectedNode.sent || 0}}</p>

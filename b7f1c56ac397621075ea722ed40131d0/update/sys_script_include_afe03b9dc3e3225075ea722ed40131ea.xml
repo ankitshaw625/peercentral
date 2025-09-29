@@ -415,7 +415,7 @@ RecognitionDAO.prototype = {
     let edges = [], nodes = [];
 
     // Get all users who sent recognitions as nodes
-    const sentAgg = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
+    const sentAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
 
     if (daysAgo > 0)
       sentAgg.addQuery('sys_created_on', '>=', gs.daysAgo(daysAgo));
@@ -423,18 +423,18 @@ RecognitionDAO.prototype = {
     if (validRecognitionIds.length > 0)
       sentAgg.addQuery('sys_id', 'IN', validRecognitionIds);
 
-    sentAgg.addQuery('is_team', false);
-    sentAgg.addNotNullQuery('sender');
+    sentAgg.addQuery('recognition.is_team', false);
+    sentAgg.addNotNullQuery('recognition.sender');
     sentAgg.addAggregate('COUNT');
-    sentAgg.groupBy('sender');
+    sentAgg.groupBy('recognition.sender');
     sentAgg.query();
 
     while (sentAgg.next()) {
-      const senderId = sentAgg.getValue('sender');
+      const senderId = sentAgg.getValue('recognition.sender');
 
       const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
 
-      const senderName = sentAgg.getDisplayValue('sender');
+      const senderName = sentAgg.getDisplayValue('recognition.sender');
 
       userNodes.set(senderId, {
         id: senderId,
@@ -469,7 +469,7 @@ RecognitionDAO.prototype = {
       if (userNodes.has(recipientId)) {
         const existingNode = userNodes.get(recipientId);
         existingNode.received = count;
-        existingNode.value = count;
+        existingNode.value = existingNode.sent + count;
 
         continue;
       }
@@ -742,13 +742,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>103</sys_mod_count>
+        <sys_mod_count>104</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-29 13:13:01</sys_updated_on>
+        <sys_updated_on>2025-09-29 18:12:39</sys_updated_on>
     </sys_script_include>
 </record_update>
