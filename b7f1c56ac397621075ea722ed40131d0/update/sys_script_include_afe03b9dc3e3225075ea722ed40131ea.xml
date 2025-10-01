@@ -223,19 +223,24 @@ RecognitionDAO.prototype = {
 
       const recognitions = this.getRecognitionsForFeed('you', limit, offset, filters);
 
+      const recognitionDetails = [];
 
-      return recognitions.map(rec => {
+      recognitions.forEach(rec => {
+        if (rec.isTeam) return;
+
         const isSent = (rec.senderId === userId);
-        return {
+
+        recognitionDetails.push({
           type: isSent ? 'Sent' : 'Received',
           recipientNames: isSent ? rec.recipients.join(', ') : '',
           senderName: isSent ? '' : rec.senderDisplay,
           message: rec.message,
           timestamp: rec.createdOn,
           occasions: rec.occasions
-        };
+        });
       });
 
+      return recognitionDetails;
     } finally {
       // Restore the original user ID
       this.currentUserId = originalUserId;
@@ -421,7 +426,7 @@ RecognitionDAO.prototype = {
       sentAgg.addQuery('sys_created_on', '>=', gs.daysAgo(daysAgo));
 
     if (validRecognitionIds.length > 0)
-      sentAgg.addQuery('sys_id', 'IN', validRecognitionIds);
+      sentAgg.addQuery('recognition', 'IN', validRecognitionIds);
 
     sentAgg.addQuery('recognition.is_team', false);
     sentAgg.addNotNullQuery('recognition.sender');
@@ -488,7 +493,6 @@ RecognitionDAO.prototype = {
 
 
     // Get all the edges with counts
-    // const uniqueGroups = new Set();
     const edgeCounts = new Map();
     const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
 
@@ -513,19 +517,6 @@ RecognitionDAO.prototype = {
         // const currentCount = edgeCounts.get(key) || 0;
         edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
       }
-
-      // const senderNode = userNodes.get(senderId);
-      // if (senderNode && !senderNode.group) {
-      //   senderNode.group = recipientGr.getDisplayValue('recognition.sender.department') || 'N/A';
-      // }
-
-      // const recipientNode = userNodes.get(recipientId);
-      // if (recipientNode && !recipientNode.group) {
-      //   recipientNode.group = recipientGr.getDisplayValue('recipient_user.department') || 'N/A';
-      // }
-
-      // uniqueGroups.add(senderNode.group);
-      // uniqueGroups.add(recipientNode.group);
     }
 
     const uniqueGroups = new Set();
@@ -554,19 +545,26 @@ RecognitionDAO.prototype = {
       }
     }
 
+    const allEdgeKeys = new Set(edgeCounts.keys());
 
     // Conver the edges into the required format
     for (const [key, value] of edgeCounts.entries()) {
       const [fromId, toId] = key.split('->');
 
-      const title = value === 1 ? value + ' recognition.' : value + ' recognition(s).';
+      const reverseKey = toId + '->' + fromId;
+      const reciprocal = allEdgeKeys.has(reverseKey);
+
+      const title = value === 1
+        ? value + ' recognition.'
+        : value + ' recognition(s).';
 
       edges.push({
         id: key,
         from: fromId,
         to: toId,
         value: value,
-        title: title
+        title: title,
+        reciprocal: reciprocal
       });
     }
 
@@ -574,9 +572,9 @@ RecognitionDAO.prototype = {
     nodes = Array.from(userNodes.values());
 
     const sortedGroups = Array.from(uniqueGroups).sort((a, b) => {
-      // First, handle the special 'N/A' case.
-      if (a === 'N/A') return 1;  // Always move 'a' to the end if it's 'N/A'
-      if (b === 'N/A') return -1; // Always move 'b' to the end if it's 'N/A'
+      // Handle the special 'N/A' case.
+      if (a === 'N/A') return 1;  // Move 'a' to the end if it's 'N/A'
+      if (b === 'N/A') return -1; // Move 'b' to the end if it's 'N/A'
 
       // For all other cases, use the standard alphabetical sort.
       return a.localeCompare(b);
@@ -742,13 +740,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>104</sys_mod_count>
+        <sys_mod_count>109</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-29 18:12:39</sys_updated_on>
+        <sys_updated_on>2025-10-01 17:44:15</sys_updated_on>
     </sys_script_include>
 </record_update>

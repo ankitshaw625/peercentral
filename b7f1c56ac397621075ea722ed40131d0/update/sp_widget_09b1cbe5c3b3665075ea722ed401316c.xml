@@ -10,10 +10,12 @@
   c.timeframe = 'all';
   c.hiddenGroups = [];
   c.selectedNode = null;
+  // c.selectedNodeBalance = null;
   c.showMyNetwork = false;
 
-  var networkInstance = null;
-  var originalNodes = [];
+  let networkInstance = null;
+  let originalNodes = [];
+  const nodeMap = {};
 
   // This function runs automatically when the widget initializes
   c.$onInit = function () {
@@ -36,8 +38,15 @@
       c.data.nodes = response.data.nodes;
       c.data.edges = response.data.edges;
       c.data.legendData = response.data.legendData;
+      c.data.participationCount = response.data.participationCount;
+      c.data.networkDensity = response.data.networkDensity;
+      c.data.reciprocityRate = response.data.reciprocityRate;
+      c.data.crossTeamRate = response.data.crossTeamRate;
 
-      originalNodes = c.data.nodes.map(n => ({ ...n }));
+      originalNodes = c.data.nodes.map(n => {
+        nodeMap[n.id] = n; // Store a node map for quicker lookups
+        return { ...n };
+      });
 
       c.computeRoleThresholds();
 
@@ -49,7 +58,7 @@
         initializeGraph();
       });
     }).catch(err => {
-      console.error('Graph load failed:', error);
+      console.error('Graph load failed:', err);
       c.isLoading = false;
     });
   };
@@ -200,7 +209,7 @@
 
   c.resetFilters = function () {
     // Tell all listening child widgets to reset themselves
-    $rootScope.$broadcast('filters.reset');
+    $scope.$broadcast('filters.reset');
 
     c.currentScale = 'total';
     c.selectedOccasions = [];
@@ -235,10 +244,9 @@
       received: Math.max(2, received75)
     };
 
-    console.log('sent values: ', sentValues);
-    console.log('received values: ', receivedValues);
-    console.log('thresholds: ', c.roleThresholds);
-
+    // console.log('sent values: ', sentValues);
+    // console.log('received values: ', receivedValues);
+    // console.log('thresholds: ', c.roleThresholds);
   };
 
   c.getRoleExplanation = function (node) {
@@ -249,25 +257,84 @@
     var sentThresh = c.roleThresholds.sent;
     var receivedThresh = c.roleThresholds.received;
 
+    // Key Connector
     if (sent >= sentThresh && received >= receivedThresh) {
-      return "You've sent recognition " + sent + " times and received it " + received + " times — placing you among the most connected contributors.";
+      return "You've recognized " + sent + " people and received " + received + " recognitions — placing you among the most connected contributors.";
     }
 
+    // Highly Recognized
     if (received >= receivedThresh && sent < sentThresh) {
-      return "You've been recognized " + received + " times (top contributors have at least " + receivedThresh + "), showing your impact is widely valued.";
+      return "You've received " + received + " recognitions (top contributors have at least " + receivedThresh + "), showing your impact is widely valued.";
     }
 
+    // Recognition Leader
     if (sent >= sentThresh && received < receivedThresh) {
-      return "You've sent recognition " + sent + " times (top contributors send at least " + sentThresh + "), actively uplifting your peers.";
+      return "You've recognized " + sent + " people (top contributors recognize at least " + sentThresh + "), actively uplifting your peers.";
     }
 
+    // Only Recieved 
     if (sent === 0)
       return "You've received " + received + " recognition(s) — thank you for being part of our recognition culture!";
 
+    // Only Sent
     if (received === 0)
-      return "You've sent " + sent + " recognition(s) — thank you for uplifting your peers!";
+      return "You've recognized " + sent + " people — thank you for uplifting your peers!";
 
-    return "You've sent " + sent + " and received " + received + " recognition(s) — thank you for participating in our recognition culture!";
+    // General Participant
+    return "You've recognized " + sent + " and received " + received + " recognition(s) — thank you for participating in our recognition culture!";
+  };
+
+  c.getRecognitionBalance = function (node) {
+    if (!node) return null;
+
+    const sent = node.sent || 0;
+    const received = node.received || 0;
+
+    if (sent === 0 && received === 0)
+      return { label: 'No Activity', ratio: null };
+
+    if (sent === 0)
+      return { label: 'Only Receiving', ratio: null };
+
+    if (received === 0)
+      return { label: 'Only Giving', ratio: null };
+
+    const ratio = received / sent;
+
+    let label = 'Balanced';
+
+    if (ratio <= 0.5) {
+      label = 'Mostly Giving';
+    } else if (ratio >= 2) {
+      label = 'Mostly Receiving';
+    }
+
+    return {
+      label: label,
+      ratio: ratio.toFixed(2)
+    };
+  };
+
+  c.getDepartmentSpan = function (userId) {
+    // Use the pre-built map for an instant lookup
+    const userNode = nodeMap[userId];
+    if (!userNode) return 1; // Default to 1 if user isn't found
+
+    const depts = new Set();
+    depts.add(userNode.group);
+
+    // Iterate through edges to find all connected departments
+    c.data.edges.forEach(edge => {
+      if (edge.from === userId || edge.to === userId) {
+        const otherId = (edge.from === userId) ? edge.to : edge.from;
+        const otherNode = nodeMap[otherId];
+        if (otherNode) {
+          depts.add(otherNode.group);
+        }
+      }
+    });
+
+    return depts.size;
   };
 
   c.getColorForGroup = function (groupName) {
@@ -281,6 +348,7 @@
 
   c.closeModal = function () {
     c.selectedNode = null;
+    // c.selectedNodeBalance = null;
   };
 
   function animateNodeSizes(targetValues, duration) {
@@ -347,29 +415,29 @@
   };
 
   const graphOptions = {
-
     nodes: {
       size: 15,
       font: {
-        size: 14,
-        face: 'Source Sans Pro',
-        color: '#333'
+        size: 14, face: 'Source Sans Pro', color: '#333'
       },
 
-      borderWidth: 4,
+      borderWidth: 6,
+      borderWidthSelected: 8,
 
       scaling: {
-        min: 15,
-        max: 40
+        min: 15, max: 40
       },
+
       shapeProperties: {
         interpolation: false
       }
     },
 
     edges: {
-      scaling: { min: 0.4, max: 4 },
-      color: { inherit: 'from' },
+      scaling: {
+        min: 0.4, max: 4
+      },
+      // color: { inherit: 'from' },
       smooth: { type: 'continuous' },
       arrows: { to: { enabled: true, scaleFactor: 0.5 } }
     },
@@ -458,8 +526,13 @@
   function initializeGraph() {
     if (!c.data.nodes || c.data.nodes.length === 0) return;
 
-    var processedNodes = c.data.nodes.map(function (node) {
-      var newNode = { ...node };
+    if (networkInstance) {
+      networkInstance.destroy();
+      networkInstance = null;
+    }
+
+    const processedNodes = c.data.nodes.map(function (node) {
+      const newNode = { ...node };
 
       newNode.value = node.sent + node.received;
 
@@ -481,8 +554,14 @@
 
     });
 
+    const processedEdges = c.data.edges.map(edge => ({
+      ...edge,
+      color: edge.reciprocal ? '#28a745' : '#007bff',
+      dashes: !edge.reciprocal
+    }));
+
     var nodes = new vis.DataSet(processedNodes);
-    var edges = new vis.DataSet(c.data.edges);
+    var edges = new vis.DataSet(processedEdges);
 
     var container = document.getElementById('recognition-graph-container');
     var data = { nodes, edges };
@@ -513,6 +592,9 @@
       // Find the basic node data immediately
       c.selectedNode = originalNodes.find(n => n.id === nodeId);
 
+      c.selectedNode.balance = c.getRecognitionBalance(c.selectedNode);
+      c.selectedNode.bridgeCount = c.getDepartmentSpan(c.selectedNode.id);
+
       // Fetch the detailed activity feed from the server
       if (c.selectedNode) {
         c.selectedNode.loadingDetails = true;
@@ -521,6 +603,9 @@
           userId: c.selectedNode.id
         }).then(function (response) {
           c.selectedNode.details = response.data.details;
+          c.selectedNode.loadingDetails = false;
+        }).catch(err => {
+          console.error('User details load failed:', err);
           c.selectedNode.loadingDetails = false;
         });
       }
@@ -548,7 +633,7 @@
 
     networkInstance.moveTo({
       position: center,
-      scale: 1,
+      scale: 0.85,
       animation: {
         duration: 800,
         easingFunction: "easeOutCubic"
@@ -595,8 +680,63 @@
     background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.filter-column-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.filter-controls {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
     gap: 12px;
+}
+
+.network-metrics-banner {
+    padding: 8px 0;
+    background-color: #f9f9f9;
+    font-size: 13px;
+    color: #444;
+}
+
+.network-metrics-header {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.metrics-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.metric-item abbr {
+    text-decoration: none;
+    border: none;
+    cursor: help;
+}
+
+.metric-item abbr::after {
+    content: '\f05a';
+    font-family: FontAwesome;
+    font-size: 11px;
+    color: #999;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.graph-filter &gt; * {
+    align-self: flex-start;
+}
+
+.reset-link {
+    margin-top: 0.85rem;
 }
 
 .legend-container {
@@ -605,7 +745,6 @@
     gap: 10px;
     align-items: center;
     justify-content: flex-end;
-    margin-left: auto;
 }
 
 .legend-header {
@@ -616,6 +755,11 @@
     margin: 0 0 5px 0;
     padding: 0;
     text-align: right;
+    margin-top: 12px;
+}
+
+.legend-container &gt; .legend-header:first-child {
+    margin-top: 0;
 }
 
 .legend-item {
@@ -638,6 +782,10 @@
     opacity: 0.4;
     text-decoration: line-through;
     cursor: pointer;
+}
+
+.edge-legend {
+    cursor: none;
 }
 
 .empty-state-container {
@@ -768,10 +916,58 @@
     const daysAgo = parseInt(input.timeframe || 0, 10);
 
     const graphData = new x_1794402_peerce_0.RecognitionDAO().getGraphData(occasionIds, daysAgo);
-    data.nodes = graphData.nodes;
-    data.edges = graphData.edges;
+    data.nodes = graphData.nodes || [];
+    data.edges = graphData.edges || [];
 
-    data.legendData = graphData.groups;
+    data.legendData = graphData.groups || [];
+
+    // Calculate network metrics
+    const nodeCount = graphData.nodes.length;
+    const actualEdges = graphData.edges.length;
+
+    data.participationCount = nodeCount;
+
+    // Calculate network density percentage
+    const possibleEdges = nodeCount > 1 ? nodeCount * (nodeCount - 1) : 1;
+    const density = nodeCount > 0 ? Math.min(1, actualEdges / possibleEdges) : 0;
+    data.networkDensity = parseFloat(density.toFixed(3));
+
+    // Calculate network reciprocity percentage
+    let mutualEdges = 0;
+    const uniqueConnections = new Set();
+
+    data.edges.forEach(function (edge) {
+      if (edge.reciprocal)
+        mutualEdges++;
+
+      // Create a unique, sorted key for each pair to count unique user pairs
+      const key = [edge.from, edge.to].sort().join('-');
+      uniqueConnections.add(key);
+    });
+
+    const mutualPairs = mutualEdges / 2; // Each mutual pair has two reciprocal edges
+    const reciprocityRate = (uniqueConnections.size > 0) ? (mutualPairs / uniqueConnections.size) : 0;
+
+    data.reciprocityRate = parseFloat(reciprocityRate.toFixed(3));
+
+    // Calculate Cross-Team Ties Percentage
+    const userDepartmentMap = {};
+    data.nodes.forEach(function (node) {
+      userDepartmentMap[node.id] = node.group;
+    });
+
+    let crossTeamTies = 0;
+    data.edges.forEach(function (edge) {
+
+      if (userDepartmentMap[edge.from] !== userDepartmentMap[edge.to])
+        crossTeamTies++;
+
+    });
+
+    const totalTies = data.edges.length;
+    const crossTeamRate = (totalTies > 0) ? (crossTeamTies / totalTies) : 0;
+
+    data.crossTeamRate = parseFloat(crossTeamRate.toFixed(3));
 
     return;
   }
@@ -787,9 +983,9 @@
     title: 'Scale nodes by',
     eventName: 'graph.scale.filter.updated',
     choices: [
-      { display: 'Total Recognitions', value: 'total' },
-      { display: 'Sent Recognitions', value: 'sent' },
-      { display: 'Received Recognitions', value: 'received' }
+      { display: 'Degree Centrality (Total)', value: 'total' },
+      { display: 'Out-Degree (Sent)', value: 'sent' },
+      { display: 'In-Degree (Received)', value: 'received' }
     ],
 
     initialSelection: 'total'
@@ -811,17 +1007,6 @@
     }
   );
 
-  // In your widget's Server Script
-  data.viewFilterWidget = $sp.getWidget('single-select-filter', {
-    title: 'Graph View',
-    eventName: 'graph.view.filter.updated',
-    choices: [
-      { display: 'Global View', value: 'global' },
-      { display: 'My View', value: 'my_view' }
-    ],
-
-    initialSelection: 'global'
-  });
 
   const recognitionOccasions =
     new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
@@ -842,54 +1027,115 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>290</sys_mod_count>
+        <sys_mod_count>390</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-29 18:26:44</sys_updated_on>
+        <sys_updated_on>2025-10-01 17:56:55</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
     <h2 tabindex="0" class="network-graph-title panel-title"><i class="fa fa-share-alt" aria-hidden="true"></i>
       Recognition Network</h2>
-    <span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"></span>
+    <span class="glyphicon glyphicon-refresh refresh-icon" ng-click="c.loadGraphData()"
+      aria-label="Refresh recognition network"></span>
   </div>
 
   <div class="graph-filter">
-    <div class="filter-wrapper">
-      <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
+
+    <div class="filter-column-left">
+
+      <div class="network-metrics-banner" ng-if="!c.isLoading && c.data.nodes.length > 0">
+        <h4 class="network-metrics-header">Network Overview</h4>
+
+        <div class="metrics-container">
+          <div class="metric-item">
+            <abbr title="Number of users who sent or received at least one recognition">
+              ]]>👥<![CDATA[ Participants: <strong>{{c.data.participationCount}}</strong>
+            </abbr>
+
+          </div>
+
+          <div class="metric-item">
+            <abbr
+              title="Proportion of all possible directed recognition ties that exist (range: 0–100%). Higher = more interconnected.">
+              ]]>🔗<![CDATA[ Density: <strong>{{(c.data.networkDensity * 100) | number:1}}%</strong>
+            </abbr>
+          </div>
+
+          <div class="metric-item">
+            <abbr
+              title="Percent of connected user pairs with bidirectional recognition (i.e., A recognized B and B recognized A).">
+              ]]>🤝<![CDATA[ Reciprocity: <strong>{{(c.data.reciprocityRate * 100) | number:1}}%</strong>
+            </abbr>
+          </div>
+
+          <div class="col-xs-6 col-sm-3 metric-item">
+            <abbr
+              title="Percentage of recognition given across different departments (higher = more cross-team collaboration).">
+              ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.data.crossTeamRate * 100) | number:1}}%</strong>
+            </abbr>
+
+          </div>
+        </div>
+
+      </div>
+
+      <div class="filter-controls">
+        <div class="filter-wrapper">
+          <sp-widget widget="c.data.nodeScalingFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper">
+          <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper">
+          <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
+        </div>
+
+        <div class="filter-wrapper">
+          <button type="button" class="btn btn-secondary network-view-toggle" ng-click="c.toggleMyNetwork()"
+            title="{{ c.showMyNetwork ? 'Show complete recognition network' : 'Show only your direct recognition network' }}">
+            {{ c.showMyNetwork ? 'Show Full Network' : 'Show My Network' }}
+          </button>
+        </div>
+
+        <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link"
+          title="Reset filters">↺</a>
+      </div>
+
     </div>
 
-    <div class="filter-wrapper">
-      <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
-    </div>
+    <div class="filter-column-right">
+      <div class="legend-container" ng-if="c.data.legendData.length > 0">
+        <h4 class="legend-header">Departments</h4>
+        <div ng-repeat="item in c.data.legendData track by item" class="legend-item" ng-click="c.toggleGroup(item)"
+          ng-class="{'legend-item-hidden': c.isGroupHidden(item)}">
+          <span class="legend-color-box" ng-style="{'background-color': c.getColorForGroup(item)}"></span>
+          {{item}}
+        </div>
 
-    <div class="filter-wrapper">
-      <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
-    </div>
 
-    <div class="filter-wrapper">
-      <button type="button" class="btn btn-secondary network-view-toggle" ng-click="c.toggleMyNetwork()"
-        title="{{ c.showMyNetwork ? 'Show complete recognition network' : 'Show only your direct recognition network' }}">
-        {{ c.showMyNetwork ? 'Show Full Network' : 'Show My Network' }}
-      </button>
-    </div>
+        <h4 class="legend-header">Edge Types</h4>
+        <div class="legend-item edge-legend" title="Mutual recognition (both users recognized each other)">
+          <span class="legend-color-box" style="background-color: #28a745;"></span>
+          Mutual
+        </div>
 
-    <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link" title="Reset filters">↺</a>
+        <div class="legend-item edge-legend" title="One-way recognition (only one user recognized the other)">
+          <span class="legend-color-box" style="background-color: #007bff;"></span>
+          One-way
+        </div>
 
-    <div class="legend-container" ng-if="c.data.legendData.length > 0">
-      <h4 class="legend-header">Departments</h4>
-      <div ng-repeat="item in c.data.legendData" class="legend-item" ng-click="c.toggleGroup(item)"
-        ng-class="{'legend-item-hidden': c.isGroupHidden(item)}">
-        <span class="legend-color-box" ng-style="{'background-color': c.getColorForGroup(item)}"></span>
-        {{item}}
       </div>
     </div>
-
   </div>
+
+
 
   <div ng-if="c.isLoading" class="text-center mt-10">
     <i class="fa fa-spinner fa-spin fa-2x"></i>
@@ -940,6 +1186,27 @@
         </span>
       </p>
 
+      <p ng-if="c.selectedNode.balance">
+        <strong>Recognition Balance:</strong>
+        <span class="network-balance-label" ng-class="{
+          'text-info': c.selectedNode.balance.label.includes('Giving'),
+          'text-success': c.selectedNode.balance.label.includes('Receiving')
+          }">
+          {{c.selectedNode.balance.label}}
+        </span>
+        <em ng-if="c.selectedNode.balance.ratio" class="small text-muted" title="Received / Sent Ratio">
+          ({{c.selectedNode.balance.ratio}})
+        </em>
+      </p>
+
+      <p ng-if="c.selectedNode.bridgeCount">
+        <strong>Network Bridge:</strong>
+        <span class="text-muted">
+          {{ c.selectedNode.id === c.data.currentUserId ? 'You connect' : 'User' + ' connects' }}
+          {{c.selectedNode.bridgeCount}} department{{c.selectedNode.bridgeCount > 1 ? 's' : ''}}.
+        </span>
+      </p>
+
       <em class="small text-muted">
         {{ c.getRoleExplanation(c.selectedNode) }}
       </em>
@@ -947,7 +1214,7 @@
 
       <hr>
       <h4>Recognition Stats</h4>
-      <p><strong>Recognitions Sent:</strong> {{c.selectedNode.sent || 0}}</p>
+      <p><strong>People Recognized:</strong> {{c.selectedNode.sent || 0}}</p>
       <p><strong>Recognitions Received:</strong> {{c.selectedNode.received || 0}}</p>
 
       <hr>
@@ -957,7 +1224,7 @@
       </div>
 
       <ul ng-if="!c.selectedNode.loadingDetails" class="list-unstyled activity-feed">
-        <li ng-repeat="item in c.selectedNode.details" class="activity-item">
+        <li ng-repeat="item in c.selectedNode.details track by $index" class="activity-item">
           <div class="activity-text">
             <strong ng-class="{'text-success': item.type === 'Received', 'text-info': item.type === 'Sent'}">
               {{item.type}}:
