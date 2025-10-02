@@ -12,6 +12,7 @@
   c.selectedNode = null;
   // c.selectedNodeBalance = null;
   c.showMyNetwork = false;
+  c.isCurrentUserInGraph = false;
 
   let networkInstance = null;
   let originalNodes = [];
@@ -27,13 +28,13 @@
     c.isLoading = true;
 
     // Call the server to get the graph data
-    // console.log(c);
-
     c.server.get({
       action: 'get_graph_data',
       occasions: c.selectedOccasions,
       timeframe: c.timeframe
     }).then(function (response) {
+      console.log('Graph data loaded:', response.data);
+
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
       c.data.edges = response.data.edges;
@@ -47,6 +48,8 @@
         nodeMap[n.id] = n; // Store a node map for quicker lookups
         return { ...n };
       });
+
+      c.isCurrentUserInGraph = nodeMap[c.data.currentUserId] !== undefined;
 
       c.computeRoleThresholds();
 
@@ -78,13 +81,20 @@
 
       if (scaleBy === 'sent') {
         value = node.sent || 0;
-        tooltip = node.label + " - Recognitions Sent: " + (node.sent || 0);
+        tooltip = node.label + ' (' + node.group + ')' +
+          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)';
+
       } else if (scaleBy === 'received') {
         value = node.received || 0;
-        tooltip = node.label + " - Recognitions Received: " + (node.received || 0);
+        tooltip = node.label + ' (' + node.group + ')' +
+          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
+
       } else {
         value = (node.sent || 0) + (node.received || 0);
-        tooltip = node.label + " - Recognitions (Sent: " + (node.sent || 0) + ", Received: " + (node.received || 0) + ")";
+        tooltip = node.label + ' (' + node.group + ')' +
+          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
+          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
+
       }
 
       // Update tooltip immediately
@@ -222,12 +232,12 @@
 
   c.computeRoleThresholds = function () {
     if (!c.data.nodes || c.data.nodes.length === 0) {
-      c.roleThresholds = { sent: 1, received: 1 };
+      c.roleThresholds = { outDegree: 1, inDegree: 1 };
       return;
     }
 
-    const sentValues = c.data.nodes.map(n => n.sent).sort((a, b) => a - b);
-    const receivedValues = c.data.nodes.map(n => n.received).sort((a, b) => a - b);
+    const outDegrees = c.data.nodes.map(n => n.outDegree).sort((a, b) => a - b);
+    const inDegrees = c.data.nodes.map(n => n.inDegree).sort((a, b) => a - b);
 
     function getPercentile(arr, p) {
       if (arr.length === 0) return 0;
@@ -236,71 +246,61 @@
     }
 
     // 75th percentile = top 25% contributors
-    const sent75 = getPercentile(sentValues, 0.75);
-    const received75 = getPercentile(receivedValues, 0.75);
+    const out75 = getPercentile(outDegrees, 0.75);
+    const in75 = getPercentile(inDegrees, 0.75);
 
     c.roleThresholds = {
-      sent: Math.max(2, sent75),
-      received: Math.max(2, received75)
+      outDegree: Math.max(2, out75),
+      inDegree: Math.max(2, in75)
     };
 
-    // console.log('sent values: ', sentValues);
-    // console.log('received values: ', receivedValues);
-    // console.log('thresholds: ', c.roleThresholds);
   };
 
   c.getRoleExplanation = function (node) {
     if (!node || !c.roleThresholds) return '';
 
-    var sent = node.sent;
-    var received = node.received;
-    var sentThresh = c.roleThresholds.sent;
-    var receivedThresh = c.roleThresholds.received;
+    const outDegree = node.outDegree;
+    const inDegree = node.inDegree;
+    const outThresh = c.roleThresholds.outDegree;
+    const inThresh = c.roleThresholds.inDegree;
 
-    // Key Connector
-    if (sent >= sentThresh && received >= receivedThresh) {
-      return "You've recognized " + sent + " people and received " + received + " recognitions — placing you among the most connected contributors.";
+    if (outDegree >= outThresh && inDegree >= inThresh) {
+      return "You've recognized " + outDegree + " people and been recognized by " + inDegree + " people — placing you among the most connected contributors.";
     }
 
-    // Highly Recognized
-    if (received >= receivedThresh && sent < sentThresh) {
-      return "You've received " + received + " recognitions (top contributors have at least " + receivedThresh + "), showing your impact is widely valued.";
+    if (inDegree >= inThresh && outDegree < outThresh) {
+      return "You've been recognized by " + inDegree + " people (top contributors are recognized by at least " + inThresh + "), showing your impact is widely valued.";
     }
 
-    // Recognition Leader
-    if (sent >= sentThresh && received < receivedThresh) {
-      return "You've recognized " + sent + " people (top contributors recognize at least " + sentThresh + "), actively uplifting your peers.";
+    if (outDegree >= outThresh && inDegree < inThresh) {
+      return "You've recognized " + outDegree + " people (top contributors recognize at least " + outThresh + "), actively uplifting your peers.";
     }
 
-    // Only Recieved 
-    if (sent === 0)
-      return "You've received " + received + " recognition(s) — thank you for being part of our recognition culture!";
+    if (outDegree === 0)
+      return "You've been recognized by " + inDegree + " peer" + (inDegree !== 1 ? "s" : "") + " — thank you for being part of our recognition culture!";
 
-    // Only Sent
-    if (received === 0)
-      return "You've recognized " + sent + " people — thank you for uplifting your peers!";
+    if (inDegree === 0)
+      return "You've recognized " + outDegree + " peer" + (outDegree !== 1 ? "s" : "") + " — thank you for uplifting your peers!";
 
-    // General Participant
-    return "You've recognized " + sent + " and received " + received + " recognition(s) — thank you for participating in our recognition culture!";
+    return "You've recognized " + outDegree + " and been recognized by " + inDegree + " peer" + (outDegree !== 1 || inDegree !== 1 ? "s" : "") + " — thank you for participating in our recognition culture!";
   };
 
   c.getRecognitionBalance = function (node) {
     if (!node) return null;
 
-    const sent = node.sent || 0;
-    const received = node.received || 0;
+    const outDegree = node.outDegree || 0;
+    const inDegree = node.inDegree || 0;
 
-    if (sent === 0 && received === 0)
+    if (outDegree === 0 && inDegree === 0)
       return { label: 'No Activity', ratio: null };
 
-    if (sent === 0)
+    if (outDegree === 0)
       return { label: 'Only Receiving', ratio: null };
 
-    if (received === 0)
+    if (inDegree === 0)
       return { label: 'Only Giving', ratio: null };
 
-    const ratio = received / sent;
-
+    const ratio = inDegree / outDegree;
     let label = 'Balanced';
 
     if (ratio <= 0.5) {
@@ -425,7 +425,7 @@
       borderWidthSelected: 8,
 
       scaling: {
-        min: 15, max: 40
+        min: 15, max: 40,
       },
 
       shapeProperties: {
@@ -435,7 +435,7 @@
 
     edges: {
       scaling: {
-        min: 0.4, max: 4
+        min: 2, max: 4,
       },
       // color: { inherit: 'from' },
       smooth: { type: 'continuous' },
@@ -536,7 +536,9 @@
 
       newNode.value = node.sent + node.received;
 
-      newNode.title = node.label + ' - Recognitions (Sent: ' + node.sent + ', Received: ' + node.received + ')';
+      newNode.title = node.label + ' (' + node.group + ')' +
+        '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
+        '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
 
 
       if (node.userImage) {
@@ -983,9 +985,9 @@
     title: 'Scale nodes by',
     eventName: 'graph.scale.filter.updated',
     choices: [
-      { display: 'Degree Centrality (Total)', value: 'total' },
-      { display: 'Out-Degree (Sent)', value: 'sent' },
-      { display: 'In-Degree (Received)', value: 'received' }
+      { display: 'Recognition Activity (Total)', value: 'total', title: 'Node size reflects total recognitions sent and received (weighted degree / node strength).' },
+      { display: 'Recognitions Sent', value: 'sent', title: 'Node size reflects total number of recognitions you sent (weighted out-degree).' },
+      { display: 'Recognitions Received', value: 'received', title: 'Node size reflects total number of recognitions you received (weighted in-degree).' }
     ],
 
     initialSelection: 'total'
@@ -1027,14 +1029,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>390</sys_mod_count>
+        <sys_mod_count>412</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-01 17:56:55</sys_updated_on>
+        <sys_updated_on>2025-10-02 19:27:09</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -1075,7 +1077,7 @@
 
           <div class="col-xs-6 col-sm-3 metric-item">
             <abbr
-              title="Percentage of recognition given across different departments (higher = more cross-team collaboration).">
+              title="Percentage of recognition given across different departments (higher = more cross-department collaboration).">
               ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.data.crossTeamRate * 100) | number:1}}%</strong>
             </abbr>
 
@@ -1097,7 +1099,7 @@
           <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
         </div>
 
-        <div class="filter-wrapper">
+        <div class="filter-wrapper" ng-if="c.isCurrentUserInGraph">
           <button type="button" class="btn btn-secondary network-view-toggle" ng-click="c.toggleMyNetwork()"
             title="{{ c.showMyNetwork ? 'Show complete recognition network' : 'Show only your direct recognition network' }}">
             {{ c.showMyNetwork ? 'Show Full Network' : 'Show My Network' }}
@@ -1166,22 +1168,25 @@
 
       <p><strong>Network Role:</strong>
         <span
-          ng-if="c.selectedNode.sent >= c.roleThresholds.sent && c.selectedNode.received >= c.roleThresholds.received"
+          ng-if="c.selectedNode.outDegree >= c.roleThresholds.outDegree && c.selectedNode.inDegree >= c.roleThresholds.inDegree"
           class="network-role-primary">
           Key Connector
         </span>
+
         <span
-          ng-if="c.selectedNode.received >= c.roleThresholds.received && c.selectedNode.sent < c.roleThresholds.sent"
+          ng-if="c.selectedNode.inDegree >= c.roleThresholds.inDegree && c.selectedNode.outDegree < c.roleThresholds.outDegree"
           class="network-role-success">
           Highly Recognized
         </span>
+
         <span
-          ng-if="c.selectedNode.sent >= c.roleThresholds.sent && c.selectedNode.received < c.roleThresholds.received"
+          ng-if="c.selectedNode.outDegree >= c.roleThresholds.outDegree && c.selectedNode.inDegree < c.roleThresholds.inDegree"
           class="network-role-info">
           Recognition Leader
         </span>
+
         <span
-          ng-if="c.selectedNode.sent < c.roleThresholds.sent && c.selectedNode.received < c.roleThresholds.received">
+          ng-if="c.selectedNode.outDegree < c.roleThresholds.outDegree && c.selectedNode.inDegree < c.roleThresholds.inDegree">
           Active Participant
         </span>
       </p>
@@ -1214,8 +1219,8 @@
 
       <hr>
       <h4>Recognition Stats</h4>
-      <p><strong>People Recognized:</strong> {{c.selectedNode.sent || 0}}</p>
-      <p><strong>Recognitions Received:</strong> {{c.selectedNode.received || 0}}</p>
+      <p><strong>People Recognized:</strong> {{c.selectedNode.outDegree || 0}}</p>
+      <p><strong>People Who Recognized You:</strong> {{c.selectedNode.inDegree || 0}}</p>
 
       <hr>
       <h4>Recent Activity</h4>

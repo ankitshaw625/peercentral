@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function ($scope, $location) {
+        <client_script><![CDATA[api.controller = function ($scope, $location, spUtil, $timeout) {
   var c = this;
 
   c.data.filteredRecognitions = [];
   c.isLoading = false;
   c.isLoadingMore = false;
   c.canLoadMore = true;
+  c.showRefreshIndicator = false; // Flag to show the new recognition indicator
 
   c.offset = 0;
   c.limit = c.options.limit || 10;
 
-  // State
+  // Default filter state
   c.filters = getDefaultFilters();
 
   // This function now simply broadcasts a message and then re-fetches the data.
   c.resetFilters = function () {
-    // 1. Tell all listening child widgets to reset themselves
+    // Tell all listening child widgets to reset themselves
     $scope.$broadcast('filters.reset');
 
-    // 2. Reset the parent's data model
+    c.showRefreshIndicator = false;
+
+    // Reset the parent's data model
     c.filters = getDefaultFilters();
 
-    // 3. Fetch the new, unfiltered data
+    // Fetch the new, unfiltered data
     c.setTab(c.activeTab);
   };
 
@@ -36,16 +39,11 @@
       c.filters.teamMember.length > 0;
   };
 
-  //	c.setSortOrder = function(order) {
-  //		if (c.sortOrder === order) return;
-
-  //	c.sortOrder = order;
-  //c.setTab(c.activeTab);
-  //};
-
 
   c.setTab = function (tabName) {
     if (!tabName) return;
+
+    c.data.filteredRecognitions = [];
 
     c.activeTab = tabName;
     $location.hash(tabName);
@@ -53,15 +51,24 @@
     c.offset = 0;
     c.canLoadMore = true;
     c.isLoading = true;
+    c.showRefreshIndicator = false;
+
     loadFeed(tabName, 0, false);
   };
 
   c.loadMore = function () {
     if (!c.canLoadMore || c.isLoadingMore) return;
 
+
     c.isLoadingMore = true;
 
     loadFeed(c.activeTab, c.offset, true);
+  };
+
+  // Hide refresh banner and do a feed refresh
+  c.refreshAndShow = function () {
+    c.showRefreshIndicator = false;
+    c.setTab(c.activeTab);
   };
 
 
@@ -78,6 +85,8 @@
 
   // Event listeners for filters
   $scope.$on('activity.filter.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     if (c.filters.activity !== data.selected.value) {
       c.filters.activity = data.selected.value;
       c.setTab(c.activeTab);
@@ -85,16 +94,22 @@
   });
 
   $scope.$on('teammember.filter.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     c.filters.teamMember = data.selected.map(item => item.value);
     c.setTab(c.activeTab);
   });
 
   $scope.$on('team.filter.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     c.filters.team = data.selected.map(item => item.value);
     c.setTab(c.activeTab);
   });
 
   $scope.$on('timeframe.filter.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     if (c.filters.timeframe !== data.selected.value) {
       c.filters.timeframe = data.selected.value;
       c.setTab(c.activeTab);
@@ -102,17 +117,74 @@
   });
 
   $scope.$on('occasion.filter.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     // For multi-select, data.selected is an array of objects
     c.filters.occasions = data.selected.map(item => item.value);
     c.setTab(c.activeTab);
   });
 
   $scope.$on('sort.order.updated', function (event, data) {
+    c.showRefreshIndicator = false;
+
     if (c.filters.sortOrder !== data.selected.value) {
       c.filters.sortOrder = data.selected.value;
       c.setTab(c.activeTab);
     }
   });
+
+
+  let debounceTimer = null;
+  function handleRecognitionInsert(response) {
+    console.log('New recognition inserted: ', response);
+
+    if (response.data.operation !== 'insert') return;
+
+    $timeout.cancel(debounceTimer);
+
+    debounceTimer = $timeout(function () {
+      const isRelevantView = c.filters.sortOrder === 'newest';
+      if (!isRelevantView || c.showRefreshIndicator) return;
+
+      const currentTopId = c.data.filteredRecognitions.length > 0 ? c.data.filteredRecognitions[0].id : null;
+
+      // Check if the new recognition is newer than the current top item
+      c.server.get({
+        action: 'get_latest_recognition_id',
+        feedType: c.activeTab,
+        filters: c.filters,
+        currentTopId: currentTopId
+      }).then(function (response) {
+        console.log('Latest recognition check response: ', response);
+        const payload = response.data.payload;
+
+        if (!payload || !payload.newRecognition) return;
+
+        // Show banner for new recognition sent by others
+        if (!payload.isSelf) {
+          c.showRefreshIndicator = true;
+          return
+        }
+
+        const transformedItem = transformRecognitions([payload.newRecognition])[0];
+
+        // Add a flag for the CSS highlight effect
+        transformedItem.isNew = true;
+        c.data.filteredRecognitions.unshift(transformedItem);
+        c.offset++;
+
+        // // Remove the highlight class after the animation completes
+        // $timeout(function () {
+        //   transformedItem.isNew = false;
+        // }, 3500);
+
+      });
+
+    }, 750); // 750ms debounce
+
+  }
+
+  spUtil.recordWatch($scope, 'x_1794402_peerce_0_peer_recognition', '', handleRecognitionInsert);
 
 
   function getDefaultFilters() {
@@ -301,6 +373,78 @@
     background: white;
 }
 
+/* New recognition banner styles */
+.refresh-indicator {
+    background-color: #eef6f8;
+    border: 1px solid #cce6ec;
+    border-radius: 4px;
+    color: #005f79;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    margin: 0;
+}
+
+.refresh-indicator.is-sticky {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+}
+
+.refresh-indicator-content {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.refresh-indicator-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.refresh-icon {
+    margin-right: 8px;
+    font-size: 16px;
+    color: #0080a3;
+}
+
+.refresh-indicator .close {
+    font-size: 20px;
+    line-height: 1;
+    opacity: 0.6;
+    color: #005f79;
+    text-shadow: none;
+    padding: 0;
+    margin-left: 10px;
+}
+
+.refresh-indicator .close:hover {
+    opacity: 1;
+    color: #000;
+}
+
+.refresh-indicator .btn-primary {
+    background-color: #0080a3;
+    border-color: #0080a3;
+    color: #fff;
+    font-weight: 600;
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.refresh-indicator .btn-primary:hover {
+    background-color: #006a88;
+    border-color: #006a88;
+}
+
 /* This is the list of recognitions */
 .feed-content {
     opacity: 1;
@@ -315,6 +459,11 @@
 .feed-content.content-faded {
     opacity: 0.5;
     pointer-events: none;
+}
+
+.new-badge {
+    margin-right: 8px;
+    vertical-align: middle;
 }
 
 .recognition-indicators abbr {
@@ -352,12 +501,12 @@
   initializeFilters();
 
   if (input && input.action == 'getFeed') {
-    const currentFeed = input.feedType || 'you';
-    const limit = parseInt(input.limit, 10) || 15;
-    const offset = parseInt(input.offset, 10) || 0;
-    const filters = input.filters || {};
+    let currentFeed = input.feedType || 'you';
+    let limit = parseInt(input.limit, 10) || 15;
+    let offset = parseInt(input.offset, 10) || 0;
+    let filters = input.filters || {};
 
-    const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+    let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
     data.recognitions =
       recognitionDAO.getRecognitionsForFeed(
@@ -366,6 +515,37 @@
         offset,
         filters
       ) || [];
+  }
+
+  if (input && input.action == 'get_latest_recognition_id') {
+    data.payload = null;
+
+    let currentFeed = input.feedType || 'you';
+    let limit = 1;
+    let offset = 0;
+    let filters = input.filters || {};
+
+    // Skip the check if not sorting by newest, as we don't need to show indicator or prepend it
+    if (filters.sortOrder !== 'newest') return;
+
+    let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+
+    const latestRecognitions =
+      recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset, filters) || [];
+
+    // If no recognitions found, exit early
+    if (latestRecognitions.length === 0) return;
+
+    const latestRecognition = latestRecognitions[0];
+
+    if (latestRecognition.id !== input.currentTopId) {
+      data.payload = {
+        newRecognition: latestRecognition,
+        isSelf: latestRecognition.senderId === gs.getUserID()
+      };
+    }
+
+    // data.latestRecognitionId = latestRecognition.length > 0 ? latestRecognition[0].id : null;
   }
 
   function initializeFilters() {
@@ -466,14 +646,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>501</sys_mod_count>
+        <sys_mod_count>530</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-30 19:01:58</sys_updated_on>
+        <sys_updated_on>2025-10-02 16:58:35</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
     <!-- Default panel contents -->
@@ -539,8 +719,28 @@
       </div>
     </div>
 
+
+
+    <div class="alert refresh-indicator is-sticky" ng-if="c.showRefreshIndicator" aria-live="polite">
+      <div class="refresh-indicator-content">
+        <i class="fa fa-bell-o refresh-icon" aria-hidden="true"></i>
+        New recognition available!
+      </div>
+      <div class="refresh-indicator-actions">
+        <button class="btn btn-xs btn-primary" ng-click="c.refreshAndShow()">Refresh</button>
+        <button type="button" class="close" ng-click="c.showRefreshIndicator = false"
+          aria-label="Dismiss">&times;</button>
+      </div>
+    </div>
+
     <!-- List group -->
     <section class="feed-container">
+      <div ng-if="c.isLoading" class="feed-loading-overlay">
+        <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
+      </div>
+
+
+
       <div ng-if="c.isLoading" class="feed-loading-overlay">
         <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
       </div>
@@ -561,7 +761,10 @@
                 applause to
                 <a href>{{recognition.recipients.join(', ')}}</a>
 
-                <small class="text-muted pull-right">{{recognition.timeAgo}}</small>
+                <small class="text-muted pull-right">
+                  <span ng-if="recognition.isNew" class="label label-default new-badge">New</span>
+                  {{recognition.timeAgo}}
+                </small>
               </h4>
 
               <span class="recognition-indicators mb-5 pull-right">

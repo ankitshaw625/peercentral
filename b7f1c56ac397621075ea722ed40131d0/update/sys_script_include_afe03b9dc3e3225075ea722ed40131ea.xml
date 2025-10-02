@@ -417,7 +417,7 @@ RecognitionDAO.prototype = {
     }
 
     const userNodes = new Map();
-    let edges = [], nodes = [];
+    let edges = [];
 
     // Get all users who sent recognitions as nodes
     const sentAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
@@ -494,6 +494,8 @@ RecognitionDAO.prototype = {
 
     // Get all the edges with counts
     const edgeCounts = new Map();
+    const outDegreeMap = new Map(); // senderId → Set(recipientIds)
+    const inDegreeMap = new Map();  // recipientId → Set(senderIds)
     const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
 
     if (daysAgo > 0)
@@ -512,11 +514,20 @@ RecognitionDAO.prototype = {
       const senderId = recipientGr.getElement('recognition.sender').getValue();
       const recipientId = recipientGr.getValue('recipient_user');
 
-      if (senderId !== recipientId) {
-        const key = senderId + '->' + recipientId;
-        // const currentCount = edgeCounts.get(key) || 0;
-        edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
-      }
+      if (senderId === recipientId) continue;
+
+      // if (senderId !== recipientId) {
+      const key = senderId + '->' + recipientId;
+      // const currentCount = edgeCounts.get(key) || 0;
+      edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
+      // }
+
+      // Track node degrees
+      if (!outDegreeMap.has(senderId)) outDegreeMap.set(senderId, new Set());
+      if (!inDegreeMap.has(recipientId)) inDegreeMap.set(recipientId, new Set());
+
+      outDegreeMap.get(senderId).add(recipientId);
+      inDegreeMap.get(recipientId).add(senderId);
     }
 
     const uniqueGroups = new Set();
@@ -556,7 +567,7 @@ RecognitionDAO.prototype = {
 
       const title = value === 1
         ? value + ' recognition.'
-        : value + ' recognition(s).';
+        : value + ' recognitions.';
 
       edges.push({
         id: key,
@@ -569,7 +580,16 @@ RecognitionDAO.prototype = {
     }
 
     // Get all the computed notes with statistics
-    nodes = Array.from(userNodes.values());
+    const nodes = Array.from(userNodes.values());
+
+    // Add the degrees for the nodes
+    nodes.forEach(node => {
+      const uniqueSent = outDegreeMap.get(node.id);
+      const uniqueReceived = inDegreeMap.get(node.id);
+
+      node.outDegree = uniqueSent ? uniqueSent.size : 0;
+      node.inDegree = uniqueReceived ? uniqueReceived.size : 0;
+    });
 
     const sortedGroups = Array.from(uniqueGroups).sort((a, b) => {
       // Handle the special 'N/A' case.
@@ -740,13 +760,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>109</sys_mod_count>
+        <sys_mod_count>111</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-01 17:44:15</sys_updated_on>
+        <sys_updated_on>2025-10-02 18:54:03</sys_updated_on>
     </sys_script_include>
 </record_update>
