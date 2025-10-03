@@ -229,11 +229,27 @@
   }
 
   function transformRecognitions(recognitions) {
+    // === MOCK INTERACTIONS FOR TESTING ===
+    const mockInteractions = {
+      reactions: [
+        { userId: 'user_001' },
+        { userId: 'user_002' },
+        { userId: 'user_003' }
+      ],
+      comments: [
+        { id: 'c1', text: 'Well deserved!', author: 'Jamie Smith', created: '2024-05-15T10:00:00Z' },
+        { id: 'c2', text: 'This made my day!', author: 'Riley Chen', created: '2024-05-15T11:30:00Z' }
+      ],
+      currentUserHasReacted: Math.random() > 0.5, // Randomly true/false for variety
+      showComments: false
+    };
+
     return recognitions.map(function (rec) {
       return {
         ...rec,
         senderInitials: generateInitials(rec.senderDisplay),
-        timeAgo: formatTimeAgo(rec.createdOn)
+        timeAgo: formatTimeAgo(rec.createdOn),
+        interactions: mockInteractions,
       };
     });
   }
@@ -277,7 +293,11 @@
   });
 };]]></client_script>
         <controller_as>c</controller_as>
-        <css>.nav-tabs li a:hover {
+        <css>li {
+    list-style-type: none;
+}
+
+.nav-tabs li a:hover {
     cursor: pointer;
 }
 
@@ -320,9 +340,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 12px;
+    padding: 10px 15px;
     background: #fff;
-    border-bottom: 1px solid #eee;
 }
 
 .filters {
@@ -451,8 +470,15 @@
     transition: opacity 0.4s linear;
 }
 
-.feed-content li {
+.feed-content-item {
     list-style-type: none;
+    border: none;
+}
+
+.recognition-container {
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 2px;
 }
 
 /* This class is applied to the list when the spinner is active */
@@ -482,6 +508,120 @@
 .occasion-tag {
     font-size: 1.2rem;
     border-radius: 3px;
+}
+
+/* Main interaction row */
+.interaction-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid #eee;
+    margin-top: 12px;
+}
+
+/* Left group: Like &amp; Comment */
+.action-group {
+    display: flex;
+    gap: 16px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.action-btn:hover {
+    background-color: #f8f9fa;
+    color: #1955be;
+}
+
+.action-btn.active {
+    color: #1955be;
+}
+
+.action-btn .fa {
+    font-size: 14px;
+}
+
+/* Count badge — small pill */
+.count-badge {
+    background: #e9ecef;
+    color: #495057;
+    border-radius: 10px;
+    padding: 0 6px;
+    font-size: 12px;
+    min-width: 18px;
+    text-align: center;
+    margin-left: 4px;
+}
+
+/* Icon sizing for thumbs-up in count */
+.icon-small {
+    font-size: 12px;
+    color: #666;
+}
+
+/* Right side: reaction count + reply link */
+.meta-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #666;
+}
+
+.icon-small {
+    font-size: 12px;
+    color: #666; /* or #495057 for slightly darker */
+}
+
+.meta-info .reaction-count {
+    color: #666;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.reply-link {
+    color: #1955be;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.reply-link:hover {
+    background-color: #f0f8ff;
+    text-decoration: none;
+}
+
+/* Indicator icon — down arrow in blue circle */
+.indicator-icon {
+    font-size: 10px;
+    color: #1955be;
+    background: #e0f0ff;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 4px;
 }
 </css>
         <data_table>sp_instance</data_table>
@@ -646,14 +786,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>530</sys_mod_count>
+        <sys_mod_count>553</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-02 16:58:35</sys_updated_on>
+        <sys_updated_on>2025-10-03 19:27:00</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
     <!-- Default panel contents -->
@@ -746,13 +886,14 @@
       </div>
 
       <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
-        <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id" class="list-group-item">
-          <article class="media">
+        <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id"
+          class="list-group-item feed-content-item">
+          <article class="media recognition-container">
+
             <div class="media-left">
-              <span class="fa-stack fa-lg">
-                <i class="fa fa-circle fa-stack-2x text-info"></i>
-                <span class="fa-stack-1x fa-inverse">{{recognition.senderInitials}}</span>
-              </span>
+              <user-avatar image-id="recognition.senderImageId" initials="recognition.senderInitials"
+                user-name="recognition.senderDisplay">
+              </user-avatar>
             </div>
 
             <div class="media-body p-5">
@@ -784,6 +925,44 @@
                 <small class="label label-default occasion-tag" title="{{occasion}}">
                   <strong>{{occasion}}</strong> </small>&nbsp;
               </span>
+
+              <div class="interaction-row">
+                <!-- Left: Like & Comment buttons -->
+                <div class="action-group">
+                  <button class="action-btn" ng-click="c.toggleReaction(recognition)"
+                    ng-class="{active: recognition.interactions.currentUserHasReacted}"
+                    aria-label="{{ recognition.interactions.currentUserHasReacted ? 'Unlike' : 'Like' }}">
+                    <i class="fa fa-thumbs-up"></i>
+                    <span>Like</span>
+                  </button>
+
+                  <button class="action-btn"
+                    ng-click="recognition.interactions.showComments = !recognition.interactions.showComments"
+                    aria-label="Comment">
+                    <i class="fa fa-comment-o"></i>
+                    <span>Comment</span>
+                  </button>
+                </div>
+
+                <!-- Right: Total reactions + Show comments -->
+                <div class="meta-info">
+                  <span class="reaction-count" ng-if="recognition.interactions.reactions.length > 0">
+                    {{ recognition.interactions.reactions.length }} <i class="fa fa-thumbs-o-up icon-small"></i>
+                  </span>
+                  <span
+                    ng-if="recognition.interactions.reactions.length > 0 && recognition.interactions.comments.length > 0">
+                    |
+                  </span>
+                  <span class="reply-link" ng-if="recognition.interactions.comments.length > 0"
+                    ng-click="c.scrollToComments(recognition)">
+                    <i class="fa fa-angle-down indicator-icon"></i>
+                    Show {{ recognition.interactions.comments.length }} comment{{
+                    recognition.interactions.comments.length !== 1 ? 's'
+                    : '' }}
+                  </span>
+                </div>
+              </div>
+
             </div>
           </article>
         </li>
