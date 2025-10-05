@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_angular_provider">
+    <sp_angular_provider action="DELETE">
+        <name>autoFocusScroll</name>
+        <script><![CDATA[function autoFocusScroll($timeout) {
+  return {
+    restrict: 'A',
+    link: function (scope, element, attrs) {
+      var inputField = element.find('input.form-control');
+      element.hide();
+
+      element.slideDown(400, function () {
+        if (inputField.length > 0) {
+          inputField[0].focus();
+          inputField[0].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
+      });
+
+      scope.$on('$destroy', function () {
+        element.slideUp(400);
+      });
+    }
+  };
+}]]></script>
+        <sys_class_name>sp_angular_provider</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-05 16:36:11</sys_created_on>
+        <sys_id>b8d692d3c39cfa1075ea722ed401315c</sys_id>
+        <sys_mod_count>9</sys_mod_count>
+        <sys_name>autoFocusScroll</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_angular_provider_b8d692d3c39cfa1075ea722ed401315c</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-05 17:42:17</sys_updated_on>
+        <type>directive</type>
+    </sp_angular_provider>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>sp_angular_provider_b8d692d3c39cfa1075ea722ed401315c</name>
+        <payload>&lt;?xml version="1.0" encoding="UTF-8"?&gt;&lt;record_update table="sp_angular_provider"&gt;&lt;sp_angular_provider action="INSERT_OR_UPDATE"&gt;&lt;name&gt;autoFocusScroll&lt;/name&gt;&lt;script&gt;&lt;![CDATA[function autoFocusScroll($timeout) {
+  return {
+    restrict: 'A',
+    link: function (scope, element, attrs) {
+      var inputField = element.find('input.form-control');
+      element.hide();
+
+      element.slideDown(400, function () {
+        if (inputField.length &gt; 0) {
+          inputField[0].focus();
+          inputField[0].scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }
+      });
+
+      scope.$on('$destroy', function () {
+        element.slideUp(400);
+      });
+    }
+  };
+}]]&gt;&lt;/script&gt;&lt;sys_class_name&gt;sp_angular_provider&lt;/sys_class_name&gt;&lt;sys_created_by&gt;admin&lt;/sys_created_by&gt;&lt;sys_created_on&gt;2025-10-05 16:36:11&lt;/sys_created_on&gt;&lt;sys_id&gt;b8d692d3c39cfa1075ea722ed401315c&lt;/sys_id&gt;&lt;sys_mod_count&gt;9&lt;/sys_mod_count&gt;&lt;sys_name&gt;autoFocusScroll&lt;/sys_name&gt;&lt;sys_package display_value="PeerCentral" source="x_1794402_peerce_0"&gt;b7f1c56ac397621075ea722ed40131d0&lt;/sys_package&gt;&lt;sys_policy/&gt;&lt;sys_scope display_value="PeerCentral"&gt;b7f1c56ac397621075ea722ed40131d0&lt;/sys_scope&gt;&lt;sys_update_name&gt;sp_angular_provider_b8d692d3c39cfa1075ea722ed401315c&lt;/sys_update_name&gt;&lt;sys_updated_by&gt;admin&lt;/sys_updated_by&gt;&lt;sys_updated_on&gt;2025-10-05 17:42:17&lt;/sys_updated_on&gt;&lt;type&gt;directive&lt;/type&gt;&lt;/sp_angular_provider&gt;&lt;/record_update&gt;</payload>
+        <payload_hash>-685810505</payload_hash>
+        <record_name>autoFocusScroll</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>current</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-05 17:42:17</sys_created_on>
+        <sys_id>c3f56e97c3dcfa1075ea722ed401316a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>199b577987f0000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-05 17:42:17</sys_updated_on>
+        <type>Widget Angular Provider</type>
+        <update_guid>4bf56e9730dcfa10d7e3f227bd7f6b69</update_guid>
+        <update_guid_history>4bf56e9730dcfa10d7e3f227bd7f6b69:-685810505,5ca5669715dcfa10a25dd9ef050af572:942752283,9155ae5724dcfa10bcd72921a761e2d8:1027583901,fc64ea17cbdcfa10bd1a5e557d183198:341008011,ef97d217699cfa10170cb81a0abafe53:1609491931,29979217a29cfa10509feb05c1463527:2038552542,54875ad34a9cfa10975edded77f560b7:-1117653838,27e616d36e9cfa10459f73ed7637dac5:1810482255,6fd6d2d3a89cfa10a17f7c1ccbc4069c:-275906175,2ed616df8c5cfa10062486b4366d75c6:167695234</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete display_value="autoFocusScroll">113dae13c3103e1075ea722ed401314b</sys_audit_delete>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-05 18:13:52</sys_created_on>
+        <sys_db_object display_value="" name="sp_angular_provider">sp_angular_provider</sys_db_object>
+        <sys_id>14ed7ed61f6c46c082bf9fb087fb9a90</sys_id>
+        <sys_metadata>b8d692d3c39cfa1075ea722ed401315c</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>autoFocusScroll</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent/>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>sp_angular_provider_b8d692d3c39cfa1075ea722ed401315c</sys_update_name>
+        <sys_update_version display_value="sp_angular_provider_b8d692d3c39cfa1075ea722ed401315c">c3f56e97c3dcfa1075ea722ed401316a</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-05 18:13:52</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>

@@ -9,8 +9,9 @@
   c.selectedOccasions = [];
   c.timeframe = 'all';
   c.hiddenGroups = [];
+  c.hiddenEdgeTypes = [];
   c.selectedNode = null;
-  // c.selectedNodeBalance = null;
+  c.displayedMetrics = {};
   c.showMyNetwork = false;
   c.isCurrentUserInGraph = false;
 
@@ -33,7 +34,7 @@
       occasions: c.selectedOccasions,
       timeframe: c.timeframe
     }).then(function (response) {
-      console.log('Graph data loaded:', response.data);
+      // console.log('Graph data loaded:', response.data);
 
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
@@ -53,6 +54,8 @@
 
       c.computeRoleThresholds();
 
+      c.calculateMetrics(c.data.nodes, c.data.edges);
+
       // Turn off the loading indicator
       c.isLoading = false;
 
@@ -66,6 +69,55 @@
     });
   };
 
+  c.calculateMetrics = function (visibleNodes, visibleEdges) {
+    // Calculate network metrics
+    const nodeCount = visibleNodes.length;
+    const actualEdges = visibleEdges.length;
+
+    c.displayedMetrics.participationCount = nodeCount;
+
+    // Calculate network density percentage
+    const possibleEdges = nodeCount > 1 ? nodeCount * (nodeCount - 1) : 1;
+    const density = nodeCount > 0 ? Math.min(1, actualEdges / possibleEdges) : 0;
+    c.displayedMetrics.networkDensity = parseFloat(density.toFixed(3));
+
+    // Calculate network reciprocity percentage
+    let mutualEdges = 0;
+    const uniqueConnections = new Set();
+
+    visibleEdges.forEach(function (edge) {
+      if (edge.reciprocal)
+        mutualEdges++;
+
+      // Create a unique, sorted key for each pair to count unique user pairs
+      const key = [edge.from, edge.to].sort().join('-');
+      uniqueConnections.add(key);
+    });
+
+    const mutualPairs = mutualEdges / 2; // Each mutual pair has two reciprocal edges
+    const reciprocityRate = (uniqueConnections.size > 0) ? (mutualPairs / uniqueConnections.size) : 0;
+
+    c.displayedMetrics.reciprocityRate = parseFloat(reciprocityRate.toFixed(3));
+
+    // Calculate Cross-Team Ties Percentage
+    const userDepartmentMap = {};
+    visibleNodes.forEach(function (node) {
+      userDepartmentMap[node.id] = node.group;
+    });
+
+    let crossTeamTies = 0;
+    visibleEdges.forEach(function (edge) {
+      if (userDepartmentMap[edge.from] !== userDepartmentMap[edge.to])
+        crossTeamTies++;
+
+    });
+
+    const crossTeamRate = (actualEdges > 0) ? (crossTeamTies / actualEdges) : 0;
+    c.displayedMetrics.crossTeamRate = parseFloat(crossTeamRate.toFixed(3));
+
+    console.log('Calculated displayed metrics:', c.displayedMetrics);
+  };
+
   c.updateScale = function (scale) {
     if (!networkInstance || !originalNodes.length) return;
 
@@ -74,36 +126,19 @@
 
     // First, update tooltips instantly (no need to animate text)
     const currentNodes = networkInstance.body.data.nodes;
-    var targetValues = {};
+    const targetValues = {};
 
     originalNodes.forEach(function (node) {
-      var value, tooltip;
 
-      if (scaleBy === 'sent') {
-        value = node.sent || 0;
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)';
-
-      } else if (scaleBy === 'received') {
-        value = node.received || 0;
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-      } else {
-        value = (node.sent || 0) + (node.received || 0);
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
-          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-      }
+      const metrics = getNodeMetrics(node, scaleBy);
 
       // Update tooltip immediately
       currentNodes.update({
         id: node.id,
-        title: tooltip
+        title: metrics.tooltip
       });
 
-      targetValues[node.id] = value;
+      targetValues[node.id] = metrics.value;
     });
 
     // Animate size change over 600ms
@@ -135,58 +170,96 @@
     if (!networkInstance || !originalNodes.length) return;
 
     const nodesDataset = networkInstance.body.data.nodes;
-    let nodesToHide = new Set();
+    const edgesDataset = networkInstance.body.data.edges;
 
-    // 1. Hide by department groups
-    const nodesToHideByGroup = new Set(
-      originalNodes
-        .filter(node => c.hiddenGroups.includes(node.group))
-        .map(node => node.id)
-    );
-    nodesToHideByGroup.forEach(id => nodesToHide.add(id));
-
-    // 2. If "My Network" is active, restrict to first-degree connections
-    if (c.showMyNetwork) {
-      const currentUser = c.data.currentUserId;
-      const userInGraph = originalNodes.some(n => n.id === currentUser);
-
-      if (userInGraph) {
-        const connectedNodeIds = new Set([currentUser]); // include self
-        c.data.edges.forEach(edge => {
-          if (edge.from === currentUser || edge.to === currentUser) {
-            connectedNodeIds.add(edge.from);
-            connectedNodeIds.add(edge.to);
-          }
-        });
-
-        // Hide anyone NOT in the connected set
-        originalNodes.forEach(node => {
-          if (!connectedNodeIds.has(node.id)) {
-            nodesToHide.add(node.id);
-          }
-        });
+    // Determine which nodes MUST be hidden based on group or network filters.
+    const nodesToHide = new Set();
+    originalNodes.forEach(node => {
+      if (c.hiddenGroups.includes(node.group)) {
+        nodesToHide.add(node.id);
       }
-      // If user not in graph, all nodes will be hidden → acceptable
-    }
-
-    // 3. Hide nodes with no visible edges (your existing logic)
-    const visibleEdges = c.data.edges.filter(edge =>
-      !nodesToHide.has(edge.from) && !nodesToHide.has(edge.to)
-    );
-
-    const nodesWithVisibleEdges = new Set();
-    visibleEdges.forEach(edge => {
-      nodesWithVisibleEdges.add(edge.from);
-      nodesWithVisibleEdges.add(edge.to);
     });
 
-    // 4. Apply final visibility
-    const nodeUpdates = originalNodes.map(node => ({
-      id: node.id,
-      hidden: nodesToHide.has(node.id) || !nodesWithVisibleEdges.has(node.id)
-    }));
 
+    if (c.showMyNetwork && c.isCurrentUserInGraph) {
+      const currentUser = c.data.currentUserId;
+
+      const connectedNodeIds = new Set([currentUser]);
+      c.data.edges.forEach(edge => {
+        if (edge.from === currentUser || edge.to === currentUser) {
+          connectedNodeIds.add(edge.from);
+          connectedNodeIds.add(edge.to);
+        }
+      });
+
+      originalNodes.forEach(node => {
+        if (!connectedNodeIds.has(node.id)) {
+          nodesToHide.add(node.id);
+        }
+      });
+    }
+
+    // Process all edge visibility and build collections in a SINGLE PASS.
+    const edgeUpdates = [];
+    const visibleEdges = [];
+    const nodesWithVisibleEdges = new Set();
+
+    c.data.edges.forEach(edge => {
+      const isMutual = edge.reciprocal;
+
+      const isTypeHidden = (isMutual && c.hiddenEdgeTypes.includes('mutual')) ||
+        (!isMutual && c.hiddenEdgeTypes.includes('oneway'));
+      const isEndpointHidden = nodesToHide.has(edge.from) || nodesToHide.has(edge.to);
+
+      const isHidden = isTypeHidden || isEndpointHidden;
+
+      edgeUpdates.push({ id: edge.id, hidden: isHidden });
+
+      // If the edge is visible, add it and its nodes to our collections.
+      if (!isHidden) {
+        visibleEdges.push(edge);
+        nodesWithVisibleEdges.add(edge.from);
+        nodesWithVisibleEdges.add(edge.to);
+      }
+    });
+
+    // Update the graph with the final edge visibility.
+    edgesDataset.update(edgeUpdates);
+
+    // Determine final node visibility, including "isolates".
+    const nodeUpdates = [];
+    const visibleNodes = [];
+    originalNodes.forEach(node => {
+      // A node is hidden if it's in a hidden group OR it no longer has any visible edges.
+      const isHidden = nodesToHide.has(node.id) || !nodesWithVisibleEdges.has(node.id);
+
+      nodeUpdates.push({ id: node.id, hidden: isHidden });
+
+      // Simultaneously, build our final list of visible nodes.
+      if (!isHidden) {
+        visibleNodes.push(node);
+      }
+    });
+
+    // Update the graph with the final node visibility.
     nodesDataset.update(nodeUpdates);
+
+    // Recalculate the metrics with our efficiently built lists.
+    c.calculateMetrics(visibleNodes, visibleEdges);
+  };
+
+  c.isEdgeTypeHidden = function (edgeType) {
+    return c.hiddenEdgeTypes.includes(edgeType);
+  };
+
+  c.toggleEdgeType = function (edgeType) {
+    if (c.isEdgeTypeHidden(edgeType)) {
+      c.hiddenEdgeTypes = c.hiddenEdgeTypes.filter(t => t !== edgeType);
+    } else {
+      c.hiddenEdgeTypes.push(edgeType);
+    }
+
+    c.applyVisibilityFilters();
   };
 
   c.isGroupHidden = function (groupName) {
@@ -346,9 +419,8 @@
     return networkInstance.groups.get(groupName).color.background;
   };
 
-  c.closeModal = function () {
+  c.closeSidebar = function () {
     c.selectedNode = null;
-    // c.selectedNodeBalance = null;
   };
 
   function animateNodeSizes(targetValues, duration) {
@@ -560,8 +632,6 @@
         }
       },
     }
-
-    // layout: { hierarchical: { enabled: true } }
   };
 
   function initializeGraph() {
@@ -573,30 +643,16 @@
     }
 
     const processedNodes = c.data.nodes.map(function (node) {
-      const newNode = { ...node };
+      const metrics = getNodeMetrics(node);
 
-      newNode.value = node.sent + node.received;
+      return {
+        ...node,
+        value: metrics.value,
+        title: metrics.tooltip,
+        shape: 'circularImage',
+        image: createInitialsAvatar(node.initials)
+      };
 
-      newNode.title = node.label + ' (' + node.group + ')' +
-        '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
-        '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-
-      // if (node.userImage) {
-      //   // If an image exists, use it
-      //   newNode.shape = 'circularImage';
-      //   newNode.image = node.userImage;
-      //   // newNode.label = ''; // Hide the external label
-      // } else {
-      //   // If no image, use initials inside the dot
-      //   newNode.shape = 'dot';
-      //   // newNode.label = node.initials; // Use initials as the label inside the node
-      // }
-
-      newNode.shape = 'circularImage';
-      newNode.image = createInitialsAvatar(node.initials);
-
-      return newNode;
     });
 
     const processedEdges = c.data.edges.map(edge => ({
@@ -605,11 +661,11 @@
       dashes: !edge.reciprocal
     }));
 
-    var nodes = new vis.DataSet(processedNodes);
-    var edges = new vis.DataSet(processedEdges);
+    const nodes = new vis.DataSet(processedNodes);
+    const edges = new vis.DataSet(processedEdges);
 
-    var container = document.getElementById('recognition-graph-container');
-    var data = { nodes, edges };
+    const container = document.getElementById('recognition-graph-container');
+    const data = { nodes, edges };
 
 
     networkInstance = new vis.Network(container, data, graphOptions);
@@ -617,12 +673,11 @@
     // Load real images in the background after initial render
     loadRealImages(nodes);
 
-
     // Event listeners for network graph
     networkInstance.on('click', function (params) {
       // If the click was on the empty canvas (not a node), close the sidebar.
       if (params.nodes.length === 0) {
-        c.closeModal();
+        c.closeSidebar();
         $scope.$applyAsync();
       }
     });
@@ -665,7 +720,34 @@
     networkInstance.once('stabilizationIterationsDone', centerNetworkView);
   }
 
+  function getNodeMetrics(node, scaleBy = 'total') {
+    let value;
+    let sentPart = '';
+    let receivedPart = '';
 
+    const baseTooltip = node.label + ' (' + node.group + ')';
+
+    if (node.sent > 0) {
+      sentPart = '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)';
+    }
+
+    if (node.received > 0) {
+      receivedPart = '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
+    }
+
+    if (scaleBy === 'sent') {
+      value = node.sent || 0;
+      return { value: value, tooltip: (baseTooltip + sentPart).trim() };
+    }
+
+    if (scaleBy === 'received') {
+      value = node.received || 0;
+      return { value: value, tooltip: (baseTooltip + receivedPart).trim() };
+    }
+
+    value = (node.sent || 0) + (node.received || 0);
+    return { value: value, tooltip: (baseTooltip + sentPart + receivedPart).trim() };
+  }
 
   function centerNetworkView() {
     const positions = networkInstance.getPositions();
@@ -818,6 +900,10 @@
     transition: opacity 0.2s ease-in-out;
 }
 
+.legend-item:hover {
+    opacity: 0.8;
+}
+
 .legend-color-box {
     width: 12px;
     height: 12px;
@@ -830,10 +916,6 @@
     opacity: 0.4;
     text-decoration: line-through;
     cursor: pointer;
-}
-
-.edge-legend {
-    cursor: auto;
 }
 
 .empty-state-container {
@@ -969,54 +1051,6 @@
 
     data.legendData = graphData.groups || [];
 
-    // Calculate network metrics
-    const nodeCount = graphData.nodes.length;
-    const actualEdges = graphData.edges.length;
-
-    data.participationCount = nodeCount;
-
-    // Calculate network density percentage
-    const possibleEdges = nodeCount > 1 ? nodeCount * (nodeCount - 1) : 1;
-    const density = nodeCount > 0 ? Math.min(1, actualEdges / possibleEdges) : 0;
-    data.networkDensity = parseFloat(density.toFixed(3));
-
-    // Calculate network reciprocity percentage
-    let mutualEdges = 0;
-    const uniqueConnections = new Set();
-
-    data.edges.forEach(function (edge) {
-      if (edge.reciprocal)
-        mutualEdges++;
-
-      // Create a unique, sorted key for each pair to count unique user pairs
-      const key = [edge.from, edge.to].sort().join('-');
-      uniqueConnections.add(key);
-    });
-
-    const mutualPairs = mutualEdges / 2; // Each mutual pair has two reciprocal edges
-    const reciprocityRate = (uniqueConnections.size > 0) ? (mutualPairs / uniqueConnections.size) : 0;
-
-    data.reciprocityRate = parseFloat(reciprocityRate.toFixed(3));
-
-    // Calculate Cross-Team Ties Percentage
-    const userDepartmentMap = {};
-    data.nodes.forEach(function (node) {
-      userDepartmentMap[node.id] = node.group;
-    });
-
-    let crossTeamTies = 0;
-    data.edges.forEach(function (edge) {
-
-      if (userDepartmentMap[edge.from] !== userDepartmentMap[edge.to])
-        crossTeamTies++;
-
-    });
-
-    const totalTies = data.edges.length;
-    const crossTeamRate = (totalTies > 0) ? (crossTeamTies / totalTies) : 0;
-
-    data.crossTeamRate = parseFloat(crossTeamRate.toFixed(3));
-
     return;
   }
 
@@ -1075,14 +1109,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>418</sys_mod_count>
+        <sys_mod_count>430</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-03 19:57:29</sys_updated_on>
+        <sys_updated_on>2025-10-05 19:38:39</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -1102,7 +1136,7 @@
         <div class="metrics-container">
           <div class="metric-item">
             <abbr title="Number of users who sent or received at least one recognition">
-              ]]>👥<![CDATA[ Participants: <strong>{{c.data.participationCount}}</strong>
+              ]]>👥<![CDATA[ Participants: <strong>{{c.displayedMetrics.participationCount}}</strong>
             </abbr>
 
           </div>
@@ -1110,21 +1144,21 @@
           <div class="metric-item">
             <abbr
               title="Proportion of all possible directed recognition ties that exist (range: 0–100%). Higher = more interconnected.">
-              ]]>🔗<![CDATA[ Density: <strong>{{(c.data.networkDensity * 100) | number:1}}%</strong>
+              ]]>🔗<![CDATA[ Density: <strong>{{(c.displayedMetrics.networkDensity * 100) | number:1}}%</strong>
             </abbr>
           </div>
 
           <div class="metric-item">
             <abbr
               title="Percent of connected user pairs with bidirectional recognition (i.e., A recognized B and B recognized A).">
-              ]]>🤝<![CDATA[ Reciprocity: <strong>{{(c.data.reciprocityRate * 100) | number:1}}%</strong>
+              ]]>🤝<![CDATA[ Reciprocity: <strong>{{(c.displayedMetrics.reciprocityRate * 100) | number:1}}%</strong>
             </abbr>
           </div>
 
           <div class="col-xs-6 col-sm-3 metric-item">
             <abbr
               title="Percentage of recognition given across different departments (higher = more cross-department collaboration).">
-              ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.data.crossTeamRate * 100) | number:1}}%</strong>
+              ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.displayedMetrics.crossTeamRate * 100) | number:1}}%</strong>
             </abbr>
 
           </div>
@@ -1169,12 +1203,14 @@
 
 
         <h4 class="legend-header">Edge Types</h4>
-        <div class="legend-item edge-legend" title="Mutual recognition (both users recognized each other)">
+        <div class="legend-item" title="Mutual recognition (both users recognized each other)"
+          ng-click="c.toggleEdgeType('mutual')" ng-class="{'legend-item-hidden': c.isEdgeTypeHidden('mutual')}">
           <span class="legend-color-box" style="background-color: #28a745;"></span>
           Mutual
         </div>
 
-        <div class="legend-item edge-legend" title="One-way recognition (only one user recognized the other)">
+        <div class="legend-item" title="One-way recognition (only one user recognized the other)"
+          ng-click="c.toggleEdgeType('oneway')" ng-class="{'legend-item-hidden': c.isEdgeTypeHidden('oneway')}">
           <span class="legend-color-box" style="background-color: #007bff;"></span>
           One-way
         </div>
@@ -1206,7 +1242,7 @@
   <div class="sidebar-container" ng-class="{'sidebar-open': c.selectedNode}">
     <div class="sidebar-header">
       <h4 class="sidebar-title">{{c.selectedNode.label}}</h4>
-      <button type="button" class="close" ng-click="c.closeModal()">&times;</button>
+      <button type="button" class="close" ng-click="c.closeSidebar()">&times;</button>
     </div>
 
     <div class="sidebar-body">
