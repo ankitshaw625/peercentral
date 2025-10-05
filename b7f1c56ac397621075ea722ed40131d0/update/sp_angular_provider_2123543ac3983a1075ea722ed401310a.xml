@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_angular_provider">
+    <sp_angular_provider action="INSERT_OR_UPDATE">
+        <name>userAvatar</name>
+        <script><![CDATA[function userAvatar() {
+  return {
+    restrict: 'E',
+    scope: {
+      imageId: '=',
+      initials: '=',
+      userName: '@'
+    },
+    template: [
+      // Embedded CSS for a fully self-contained component
+      '<style>',
+      '  .avatar-initials-b3 {',
+      '    width: 40px;',
+      '    height: 40px;',
+      '    display: flex;',
+      '    align-items: center;',
+      '    justify-content: center;',
+      '    font-size: 16px;',
+      '    font-weight: bold;',
+      '    background-color: #888;',
+      '    color: #fff;',
+      '  }',
+
+      '  .avatar-image-b3 {',
+      '    width: 40px;',
+      '    height: 40px;',
+      '    opacity: 1;',
+      '    transition: opacity 0.3s ease-in-out;',
+      '  }',
+      '</style>',
+
+      // Simple template that relies on Bootstrap 3 classes
+      '<div title="{{userName}}">',
+      '  ',
+      '  <div ng-if="!imageLoaded" class="media-object img-circle bg-info avatar-initials-b3">',
+      '    {{initials}}',
+      '  </div>',
+      '  ',
+      '  <img ng-if="imageLoaded" class="media-object img-circle avatar-image-b3" ng-src="{{imageUrl}}" alt="Profile picture for {{userName}}"/>',
+      '</div>'
+    ].join(''),
+
+    link: function (scope, element, attrs) {
+      scope.imageLoaded = false;
+
+      scope.$watch('imageId', function (newVal, oldVal) {
+        if (newVal) {
+          scope.imageUrl = 'sys_attachment.do?sys_id=' + newVal;
+
+          var image = new Image();
+          image.src = scope.imageUrl;
+
+          image.onload = function () {
+            scope.$apply(function () {
+              scope.imageLoaded = true;
+            });
+          };
+
+          image.onerror = function () {
+            // If image fails, ensure initials show.
+            scope.$apply(function () {
+              scope.imageLoaded = false;
+            });
+          };
+        } else {
+          // No imageId, so definitely show initials.
+          scope.imageLoaded = false;
+        }
+      });
+    }
+  };
+}]]></script>
+        <sys_class_name>sp_angular_provider</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-03 17:43:48</sys_created_on>
+        <sys_id>2123543ac3983a1075ea722ed401310a</sys_id>
+        <sys_mod_count>6</sys_mod_count>
+        <sys_name>userAvatar</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_angular_provider_2123543ac3983a1075ea722ed401310a</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-03 18:08:19</sys_updated_on>
+        <type>directive</type>
+    </sp_angular_provider>
+</record_update>

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_js_include">
+    <sp_js_include action="DELETE">
+        <display_name>graphology.js</display_name>
+        <source>local</source>
+        <sys_class_name>sp_js_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:06:22</sys_created_on>
+        <sys_id>084b1369c390f21075ea722ed4013108</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>graphology.js</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_ui_script/>
+        <sys_update_name>sp_js_include_084b1369c390f21075ea722ed4013108</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:06:22</sys_updated_on>
+        <url/>
+    </sp_js_include>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>sp_js_include_084b1369c390f21075ea722ed4013108</name>
+        <payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_js_include"><sp_js_include action="INSERT_OR_UPDATE"><display_name>graphology.js</display_name><source>local</source><sys_class_name>sp_js_include</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2025-09-30 11:06:22</sys_created_on><sys_id>084b1369c390f21075ea722ed4013108</sys_id><sys_mod_count>0</sys_mod_count><sys_name>graphology.js</sys_name><sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package><sys_policy/><sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope><sys_ui_script/><sys_update_name>sp_js_include_084b1369c390f21075ea722ed4013108</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2025-09-30 11:06:22</sys_updated_on><url/></sp_js_include></record_update>]]></payload>
+        <payload_hash>1290982103</payload_hash>
+        <record_name>graphology.js</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>previous</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:35:33</sys_created_on>
+        <sys_id>de122361c3d0f21075ea722ed40131f9</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>1999a680a940000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:35:33</sys_updated_on>
+        <type>JS Include</type>
+        <update_guid>e66bd369a890f21097588e6d9e4d5f79</update_guid>
+        <update_guid_history>e66bd369a890f21097588e6d9e4d5f79:-1785310153,e66bd369a890f21097588e6d9e4d5f79:-1785310153</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete display_value="graphology.js">8d32af61c3d0f21075ea722ed40131d5</sys_audit_delete>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:36:02</sys_created_on>
+        <sys_db_object display_value="" name="sp_js_include">sp_js_include</sys_db_object>
+        <sys_id>5555b365bbf14595bf6617c651a77361</sys_id>
+        <sys_metadata>084b1369c390f21075ea722ed4013108</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>graphology.js</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent/>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>sp_js_include_084b1369c390f21075ea722ed4013108</sys_update_name>
+        <sys_update_version display_value="sp_js_include_084b1369c390f21075ea722ed4013108">de122361c3d0f21075ea722ed40131f9</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:36:02</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>

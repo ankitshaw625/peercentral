@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="m2m_sp_widget_dependency">
+    <m2m_sp_widget_dependency action="DELETE">
+        <sp_dependency display_value="graphology.js">692b5f29c390f21075ea722ed401311c</sp_dependency>
+        <sp_widget display_value="Recognition Network Graph">09b1cbe5c3b3665075ea722ed401316c</sp_widget>
+        <sys_class_name>m2m_sp_widget_dependency</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:06:39</sys_created_on>
+        <sys_id>f27bdf29c390f21075ea722ed4013158</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>graphology.js.Recognition Network Graph</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>m2m_sp_widget_dependency_f27bdf29c390f21075ea722ed4013158</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:06:39</sys_updated_on>
+    </m2m_sp_widget_dependency>
+    <sys_update_version action="INSERT_OR_UPDATE">
+        <action>DELETE</action>
+        <application display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</application>
+        <file_path/>
+        <instance_id>2bb0f08f1b0271d07d9d2f8dee4bcb2e</instance_id>
+        <instance_name>dev195269</instance_name>
+        <name>m2m_sp_widget_dependency_f27bdf29c390f21075ea722ed4013158</name>
+        <payload><![CDATA[<?xml version="1.0" encoding="UTF-8"?><record_update table="m2m_sp_widget_dependency"><m2m_sp_widget_dependency action="INSERT_OR_UPDATE"><sp_dependency display_value="graphology.js">692b5f29c390f21075ea722ed401311c</sp_dependency><sp_widget display_value="Recognition Network Graph">09b1cbe5c3b3665075ea722ed401316c</sp_widget><sys_class_name>m2m_sp_widget_dependency</sys_class_name><sys_created_by>admin</sys_created_by><sys_created_on>2025-09-30 11:06:39</sys_created_on><sys_id>f27bdf29c390f21075ea722ed4013158</sys_id><sys_mod_count>0</sys_mod_count><sys_name>graphology.js.Recognition Network Graph</sys_name><sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package><sys_policy/><sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope><sys_update_name>m2m_sp_widget_dependency_f27bdf29c390f21075ea722ed4013158</sys_update_name><sys_updated_by>admin</sys_updated_by><sys_updated_on>2025-09-30 11:06:39</sys_updated_on></m2m_sp_widget_dependency></record_update>]]></payload>
+        <payload_hash>1383721826</payload_hash>
+        <record_name>graphology.js.Recognition Network Graph</record_name>
+        <reverted_from/>
+        <source>8a250d6ac397621075ea722ed4013179</source>
+        <source_table>sys_update_set</source_table>
+        <state>previous</state>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:06:39</sys_created_on>
+        <sys_id>fe7bdf29c390f21075ea722ed401315a</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_recorded_at>1999a4d959a0000001</sys_recorded_at>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:06:39</sys_updated_on>
+        <type>Widget Dependency</type>
+        <update_guid>767bdf291f90f2105ca2be736ed4d45a</update_guid>
+        <update_guid_history>767bdf291f90f2105ca2be736ed4d45a:1383721826</update_guid_history>
+    </sys_update_version>
+    <sys_metadata_delete action="INSERT_OR_UPDATE">
+        <sys_audit_delete display_value="graphology.js.Recognition Network Graph">984223a1c3d0f21075ea722ed4013186</sys_audit_delete>
+        <sys_class_name>sys_metadata_delete</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-09-30 11:36:14</sys_created_on>
+        <sys_db_object display_value="" name="m2m_sp_widget_dependency">m2m_sp_widget_dependency</sys_db_object>
+        <sys_id>6c7894da9ae545d7983778b51b3a23c9</sys_id>
+        <sys_metadata>f27bdf29c390f21075ea722ed4013158</sys_metadata>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>graphology.js.Recognition Network Graph</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_parent/>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_scope_delete display_value="">2fc32fc9330b4a999e1036c51f6ce8e9</sys_scope_delete>
+        <sys_update_name>m2m_sp_widget_dependency_f27bdf29c390f21075ea722ed4013158</sys_update_name>
+        <sys_update_version display_value="m2m_sp_widget_dependency_f27bdf29c390f21075ea722ed4013158">fe7bdf29c390f21075ea722ed401315a</sys_update_version>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-09-30 11:36:14</sys_updated_on>
+    </sys_metadata_delete>
+</record_update>

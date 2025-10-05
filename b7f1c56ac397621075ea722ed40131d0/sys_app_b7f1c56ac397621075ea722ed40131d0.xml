@@ -22,7 +22,7 @@
         <runtime_access_tracking>permissive</runtime_access_tracking>
         <scope>x_1794402_peerce_0</scope>
         <scoped_administration>false</scoped_administration>
-        <short_description>Employee recognition and appreciation platform for ServiceNow.</short_description>
+        <short_description>Employee recognition application for ServiceNow.</short_description>
         <source>x_1794402_peerce_0</source>
         <store_correlation_id/>
         <store_url/>
@@ -32,9 +32,9 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 09:27:12</sys_created_on>
         <sys_id>b7f1c56ac397621075ea722ed40131d0</sys_id>
-        <sys_mod_count>3</sys_mod_count>
+        <sys_mod_count>4</sys_mod_count>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-14 09:51:50</sys_updated_on>
+        <sys_updated_on>2025-09-17 12:02:09</sys_updated_on>
         <template/>
         <trackable>true</trackable>
         <uninstall_blocked>false</uninstall_blocked>

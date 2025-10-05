@@ -4,6 +4,16 @@
         <client_script><![CDATA[api.controller=function() {
   /* widget controller */
   var c = this;
+	
+	c.hasData = function() {
+		var snap = c.data.myRecognitionSnapshot;
+		if (!snap) return false;
+
+		var given = snap.given || 0;
+		var received = snap.received || 0;
+
+		return given > 0 || received > 0;
+	};
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.recognition-snapshot .col-xs-6 {
@@ -44,6 +54,10 @@
     font-weight: bold;
     color: #007bff;
 }
+
+.no-data {
+	margin: 0;
+}
 </css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -55,44 +69,15 @@
         <internal>false</internal>
         <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
         <name>My Recognition Snapshot</name>
-        <option_schema>[{"hint":"Number of days to consider for recognitions","name":"days","section":"Data","default_value":"90","label":"Days","type":"integer"}]</option_schema>
+        <option_schema>[{"hint":"Number of days to consider for recognitions","name":"days","section":"Data","default_value":"90","label":"Days","type":"integer"},{"hint":"Shows the report title","name":"show_title","section":"Behavior","default_value":"true","label":"Show title","type":"boolean"}]</option_schema>
         <public>false</public>
         <roles/>
         <script><![CDATA[(function() {
-		var user = gs.getUserID();
-    var days = options.days || 90; // Default to 90 if not provided
+		var defaultState = { given: 0, received: 0, total: 0 };
 
-    var received = 0, given = 0;
-    
-		// Get recognition count given by each user
-    var gaGiven = new GlideAggregate('x_1794402_peerce_0_peer_recognition');
-		gaGiven.addQuery('sender', user);
-    gaGiven.addAggregate('COUNT', 'sender');
-    gaGiven.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-
-    gaGiven.query();
-
-    while (gaGiven.next()) {
-			given = parseInt(gaGiven.getAggregate('COUNT', 'sender'), 10);
-    }
-
-
-    // Get recognition count received by current user
-    var gaReceived = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
-    gaReceived.addNotNullQuery('recipient_user');
-		gaReceived.addQuery('recipient_user', user);
-    gaReceived.addAggregate('COUNT', 'recipient_user');
-    gaReceived.addQuery('sys_created_on', '>=', gs.daysAgo(days));
-    gaReceived.query();
-
-    if (gaReceived.next()) {
-        received = parseInt(gaReceived.getAggregate('COUNT', 'recipient_user'), 10);
-    }
-
-    // Limit to top 5
-    data.given = given;
-    data.received = received;
-    data.total = given + received;
+	
+		data.myRecognitionSnapshot = options.recognitionSnapshot || defaultState;
+		data.days = options.days || 90;
 
 })();]]></script>
         <servicenow>false</servicenow>
@@ -100,33 +85,41 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-03 15:42:21</sys_created_on>
         <sys_id>96a71101c373a25075ea722ed4013191</sys_id>
-        <sys_mod_count>35</sys_mod_count>
+        <sys_mod_count>53</sys_mod_count>
         <sys_name>My Recognition Snapshot</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_96a71101c373a25075ea722ed4013191</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-06 13:36:44</sys_updated_on>
+        <sys_updated_on>2025-09-20 12:40:33</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary recognition-snapshot">
-    <div class="panel-heading">
-        <h3 class="panel-title"><i class="glyphicon glyphicon-stats"></i> My Recognition Snapshot (Last {{c.options.days}} Days)</h3>
+    <div class="panel-heading" ng-if="c.options.show_title">
+        <h3 class="panel-title"><i class="glyphicon glyphicon-stats"></i> My Recognition Snapshot (Last {{c.data.days}} Days)</h3>
     </div>
   
-    <div class="panel-body pb-5">
+  
+    <div ng-if="!c.hasData()" class="no-data">
+      <i class="glyphicon glyphicon-heart-empty"></i>
+      <h4>No recognition activity yet</h4>
+      <p>You haven’t given or received any recognition in the last {{c.data.days}} days.</p>
+      <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#recognition-modal"><strong>Give recognition</strong></button>
+    </div>
+  
+    <div class="panel-body pb-5" ng-if="c.hasData()">
         <div class="row">
             <div class="col-xs-6">
                 <div class="kpi-card">
                     <i class="glyphicon glyphicon-send"></i>
                     <h4>Recognitions Given</h4>
-                    <p class="kpi-value">{{c.data.given || 0}}</p>
+                    <p class="kpi-value">{{c.data.myRecognitionSnapshot.given || 0}}</p>
                 </div>
             </div>
             <div class="col-xs-6">
                 <div class="kpi-card">
                     <i class="glyphicon glyphicon-inbox"></i>
                     <h4>Recognitions Received</h4>
-                    <p class="kpi-value">{{c.data.received || 0}}</p>
+                    <p class="kpi-value">{{c.data.myRecognitionSnapshot.received || 0}}</p>
                 </div>
             </div>
         </div>
@@ -135,7 +128,7 @@
                 <div class="kpi-card">
                     <i class="glyphicon glyphicon-thumbs-up"></i>
                     <h4>Total Recognitions</h4>
-                    <p class="kpi-value">{{c.data.total || 0}}</p>
+                    <p class="kpi-value">{{c.data.myRecognitionSnapshot.total || 0}}</p>
                 </div>
             </div>
         </div>
