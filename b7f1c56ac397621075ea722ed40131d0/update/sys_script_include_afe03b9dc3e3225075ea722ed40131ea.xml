@@ -157,6 +157,18 @@ RecognitionDAO.prototype = {
 
     // gs.info('Query: ' + grRecognitions.getEncodedQuery());
 
+    // var interactions = {
+    //   comments: rec.comments || [
+    //     { id: 'temp-1', text: 'Great job!', authorName: 'Alice Johnson', authorInitials: 'AJ', userId: 'user_temp_1', created: '2025-10-01T12:00:00Z', timeAgo: formatTimeAgo('2025-10-01T12:00:00Z'), likeCount: 0, currentUserHasReacted: false },
+    //     { id: 'temp-2', text: 'Well deserved!', authorName: 'Bob Lee', authorInitials: 'BL', userId: 'user_temp_2', created: '2025-10-02T15:30:00Z', timeAgo: formatTimeAgo('2025-10-02T15:30:00Z'), likeCount: 1, currentUserHasReacted: true }
+    //   ],   // from server (or empty)
+    //   currentUserHasReacted: (rec.reactions || []).some(r => r.userId === c.currentUserSysId),
+    //   showCommentInput: false,
+    //   showCommentList: false,
+    //   newCommentText: ''
+    // };
+
+
     while (grRecognitions.next()) {
       const recognitionSysId = grRecognitions.getUniqueValue();
       const recognitionSender = grRecognitions.getValue('sender');
@@ -175,6 +187,9 @@ RecognitionDAO.prototype = {
         feed: feedType,
         id: recognitionSysId,
         senderImageId: grRecognitions.getElement('sender.photo').getValue(),
+        reactions: [],
+        comments: [],
+        currentUserHasReacted: false
       };
 
       const recognitionData = this.getRecognitionRecipients(
@@ -202,6 +217,13 @@ RecognitionDAO.prototype = {
       // Get recognition occasions
       recognition.occasions =
         this.getRecognitionOccasions(recognitionSysId);
+
+      // Get recognition reactions
+      const reactionData = this.getRecognitionReactions(recognitionSysId);
+      recognition.reactions = reactionData.reactions;
+      recognition.currentUserHasReacted = reactionData.currentUserHasReacted;
+
+      recognition.comments = this.getRecognitionComments(recognitionSysId);
 
       // Add recognitions to list
       recognitions.push(recognition);
@@ -410,206 +432,6 @@ RecognitionDAO.prototype = {
   },
 
 
-  // getGraphData: function (occasionIds = [], daysAgo = 0) {
-  //   let validRecognitionIds = [];
-
-  //   if (Array.isArray(occasionIds) && occasionIds.length > 0) {
-  //     validRecognitionIds = this._getRecognitionIdsForOccasions(occasionIds);
-  //   }
-
-  //   const userNodes = new Map();
-  //   let edges = [];
-
-  //   // Get all users who sent recognitions as nodes
-  //   const sentAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
-
-  //   if (daysAgo > 0)
-  //     sentAgg.addQuery('sys_created_on', '>=', gs.daysAgo(daysAgo));
-
-  //   if (validRecognitionIds.length > 0)
-  //     sentAgg.addQuery('recognition', 'IN', validRecognitionIds);
-
-  //   sentAgg.addQuery('recognition.is_team', false);
-  //   sentAgg.addNotNullQuery('recognition.sender');
-  //   sentAgg.addAggregate('COUNT');
-  //   sentAgg.groupBy('recognition.sender');
-  //   sentAgg.query();
-
-  //   while (sentAgg.next()) {
-  //     const senderId = sentAgg.getValue('recognition.sender');
-
-  //     const count = parseInt(sentAgg.getAggregate('COUNT'), 10);
-
-  //     const senderName = sentAgg.getDisplayValue('recognition.sender');
-
-  //     userNodes.set(senderId, {
-  //       id: senderId,
-  //       label: senderName,
-  //       sent: count,
-  //       received: 0,
-  //       value: 0,
-  //       initials: this.utils.getInitials(senderName)
-  //     });
-  //   }
-
-  //   // Get all users who received recognitions as nodes
-  //   const receivedAgg = new GlideAggregate('x_1794402_peerce_0_recognition_recipient');
-
-  //   if (daysAgo > 0)
-  //     receivedAgg.addQuery('sys_created_on', '>=', gs.daysAgo(daysAgo));
-
-  //   if (validRecognitionIds.length > 0)
-  //     receivedAgg.addQuery('recognition', 'IN', validRecognitionIds);
-
-  //   receivedAgg.addQuery('recognition.is_team', false);
-  //   receivedAgg.addNotNullQuery('recipient_user');
-  //   receivedAgg.addAggregate('COUNT');
-  //   receivedAgg.groupBy('recipient_user');
-  //   receivedAgg.query();
-
-  //   while (receivedAgg.next()) {
-  //     const recipientId = receivedAgg.getValue('recipient_user');
-
-  //     const count = parseInt(receivedAgg.getAggregate('COUNT'), 10);
-
-  //     if (userNodes.has(recipientId)) {
-  //       const existingNode = userNodes.get(recipientId);
-  //       existingNode.received = count;
-  //       existingNode.value = existingNode.sent + count;
-
-  //       continue;
-  //     }
-
-  //     const recipientName = receivedAgg.getDisplayValue('recipient_user');
-
-  //     userNodes.set(recipientId, {
-  //       id: recipientId,
-  //       label: recipientName,
-  //       sent: 0,
-  //       received: count,
-  //       value: count,
-  //       initials: this.utils.getInitials(recipientName)
-  //     });
-  //   }
-
-
-  //   // Get all the edges with counts
-  //   const edgeCounts = new Map();
-  //   const outDegreeMap = new Map(); // senderId → Set(recipientIds)
-  //   const inDegreeMap = new Map();  // recipientId → Set(senderIds)
-  //   const recipientGr = new GlideRecordSecure('x_1794402_peerce_0_recognition_recipient');
-
-  //   if (daysAgo > 0)
-  //     recipientGr.addQuery('sys_created_on', '>=', gs.daysAgo(daysAgo));
-
-  //   if (validRecognitionIds.length > 0)
-  //     recipientGr.addQuery('recognition', 'IN', validRecognitionIds);
-
-
-  //   recipientGr.addQuery('recognition.is_team', false);
-  //   recipientGr.addNotNullQuery('recognition.sender');
-  //   recipientGr.addNotNullQuery('recipient_user');
-  //   recipientGr.query();
-
-  //   while (recipientGr.next()) {
-  //     const senderId = recipientGr.getElement('recognition.sender').getValue();
-  //     const recipientId = recipientGr.getValue('recipient_user');
-
-  //     if (senderId === recipientId) continue;
-
-  //     // if (senderId !== recipientId) {
-  //     const key = senderId + '->' + recipientId;
-  //     // const currentCount = edgeCounts.get(key) || 0;
-  //     edgeCounts.set(key, (edgeCounts.get(key) || 0) + 1);
-  //     // }
-
-  //     // Track node degrees
-  //     if (!outDegreeMap.has(senderId)) outDegreeMap.set(senderId, new Set());
-  //     if (!inDegreeMap.has(recipientId)) inDegreeMap.set(recipientId, new Set());
-
-  //     outDegreeMap.get(senderId).add(recipientId);
-  //     inDegreeMap.get(recipientId).add(senderId);
-  //   }
-
-  //   const uniqueGroups = new Set();
-  //   const userIds = Array.from(userNodes.keys());
-
-  //   if (userIds.length > 0) {
-  //     const grUser = new GlideRecord('sys_user');
-  //     grUser.addQuery('sys_id', 'IN', userIds);
-  //     grUser.query();
-
-  //     while (grUser.next()) {
-  //       const userId = grUser.getUniqueValue();
-  //       const photo = grUser.getValue('photo');
-  //       const department = grUser.getDisplayValue('department') || 'N/A';
-
-  //       // Directly get the node from the userNodes map
-  //       const node = userNodes.get(userId);
-
-  //       if (node) {
-  //         // Update the node object directly with the fetched details
-  //         node.group = department;
-  //         node.userImage = photo ? 'sys_attachment.do?sys_id=' + photo : '';
-
-  //         uniqueGroups.add(department);
-  //       }
-  //     }
-  //   }
-
-  //   const allEdgeKeys = new Set(edgeCounts.keys());
-
-  //   // Convert the edges into the required format
-  //   for (const [key, value] of edgeCounts.entries()) {
-  //     const [fromId, toId] = key.split('->');
-
-  //     const reverseKey = toId + '->' + fromId;
-  //     const reciprocal = allEdgeKeys.has(reverseKey);
-
-  //     const title = value === 1
-  //       ? value + ' recognition.'
-  //       : value + ' recognitions.';
-
-  //     edges.push({
-  //       id: key,
-  //       from: fromId,
-  //       to: toId,
-  //       value: value,
-  //       title: title,
-  //       reciprocal: reciprocal
-  //     });
-  //   }
-
-  //   // Get all the computed notes with statistics
-  //   const nodes = Array.from(userNodes.values());
-
-  //   // Add the degrees for the nodes
-  //   nodes.forEach(node => {
-  //     const uniqueSent = outDegreeMap.get(node.id);
-  //     const uniqueReceived = inDegreeMap.get(node.id);
-
-  //     node.outDegree = uniqueSent ? uniqueSent.size : 0;
-  //     node.inDegree = uniqueReceived ? uniqueReceived.size : 0;
-  //   });
-
-  //   const sortedGroups = Array.from(uniqueGroups).sort((a, b) => {
-  //     // Handle the special 'N/A' case.
-  //     if (a === 'N/A') return 1;  // Move 'a' to the end if it's 'N/A'
-  //     if (b === 'N/A') return -1; // Move 'b' to the end if it's 'N/A'
-
-  //     // For all other cases, use the standard alphabetical sort.
-  //     return a.localeCompare(b);
-  //   });
-
-  //   // Return the final data object
-  //   return {
-  //     nodes: nodes,
-  //     edges: edges,
-  //     groups: sortedGroups
-  //   };
-  // },
-
-
   getGraphData: function (occasionIds = [], daysAgo = 0) {
     const userNodes = new Map();
     const edgeCounts = new Map();
@@ -787,6 +609,207 @@ RecognitionDAO.prototype = {
     return recognitionIds;
   },
 
+
+  // CRUD methods for Recognition Interactions
+
+  // Toggles a 'like' interaction for a given recognition.
+  toggleRecognitionReaction: function (recognitionId, userId) {
+    if (!recognitionId || !userId) {
+      return false;
+    }
+
+    const interactionGR = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+    interactionGR.addQuery('recognition', recognitionId);
+    interactionGR.addQuery('user', userId);
+    interactionGR.addQuery('type', 'reaction');
+    interactionGR.addQuery('reaction', 'like');
+    interactionGR.setLimit(1);
+    interactionGR.query();
+
+    if (interactionGR.next()) {
+      // Delete existing like reaction - unlike action
+      return interactionGR.deleteRecord();
+    }
+
+
+    // If no existing like reaction, exists add one
+    interactionGR.newRecord();
+    interactionGR.setValue('recognition', recognitionId);
+    interactionGR.setValue('user', userId);
+    interactionGR.setValue('type', 'reaction');
+    interactionGR.setValue('reaction', 'like');
+
+    var interactionSysId = interactionGR.insert();
+
+    return interactionSysId !== null;
+  },
+
+  getRecognitionReactions: function (recognitionId) {
+
+    const reactions = [];
+    let currentUserHasReacted = false;
+
+    const interactionGR = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+    interactionGR.addQuery('recognition', recognitionId);
+    interactionGR.addQuery('type', 'reaction');
+    interactionGR.addQuery('reaction', 'like');
+    interactionGR.orderBy('sys_created_on');
+    interactionGR.query();
+
+    while (interactionGR.next()) {
+      const reactionUserId = interactionGR.getValue('user');
+
+      reactions.push({
+        userId: reactionUserId,
+        userName: interactionGR.getDisplayValue('user'),
+        created: interactionGR.getValue('sys_created_on')
+      });
+
+      if (reactionUserId == this.currentUserId)
+        currentUserHasReacted = true;
+
+    }
+
+    return { reactions, currentUserHasReacted };
+  },
+
+  addRecognitionComment: function (recognitionId, commentText, userId) {
+    if (!recognitionId || !commentText || !userId) {
+      gs.error('InteractionDAO.createComment: Missing required parameters.');
+      return null;
+    }
+
+    const grInteractionComment = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+
+    grInteractionComment.newRecord();
+    grInteractionComment.setValue('recognition', recognitionId);
+    grInteractionComment.setValue('user', userId);
+    grInteractionComment.setValue('type', 'comment');
+    grInteractionComment.setValue('comment', commentText);
+
+    var newCommentId = grInteractionComment.insert();
+
+    if (!newCommentId) {
+      gs.error('RecognitionDAO.addRecognitionComment: Failed to insert comment for recognition ' + recognitionId);
+      return null;
+    }
+
+    return {
+      id: newCommentId,
+      text: grInteractionComment.getValue('comment'),
+      authorName: grInteractionComment.getDisplayValue('user'),
+      userId: userId,
+      created: grInteractionComment.getValue('sys_created_on'),
+      likeCount: 0
+    };
+  },
+
+  // Toggles a 'like' interaction for a given comment.
+  toggleCommentReaction: function (parentCommentId, userId) {
+    if (!parentCommentId || !userId) {
+      return false;
+    }
+
+    const grCommentReaction = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+    grCommentReaction.addQuery('parent', parentCommentId);
+    grCommentReaction.addQuery('user', userId);
+    grCommentReaction.addQuery('type', 'reaction');
+    grCommentReaction.addQuery('reaction', 'like');
+    grCommentReaction.setLimit(1);
+    grCommentReaction.query();
+
+    if (grCommentReaction.next()) {
+      // Delete existing like reaction - unlike action
+      return grCommentReaction.deleteRecord();
+    }
+
+
+    // If no existing like reaction, exists add one
+    grCommentReaction.newRecord();
+    grCommentReaction.setValue('parent', parentCommentId);
+    grCommentReaction.setValue('user', userId);
+    grCommentReaction.setValue('type', 'reaction');
+    grCommentReaction.setValue('reaction', 'like');
+
+    var interactionSysId = grCommentReaction.insert();
+
+    return interactionSysId !== null;
+  },
+
+  getRecognitionComments: function (recognitionId) {
+    const commentsMap = new Map();
+
+    const grInteractionComments = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+
+    grInteractionComments.addQuery('recognition', recognitionId);
+    grInteractionComments.addQuery('type', 'comment');
+    grInteractionComments.orderBy('sys_created_on');
+    grInteractionComments.query();
+
+    while (grInteractionComments.next()) {
+      const commentId = grInteractionComments.getValue('sys_id');
+
+      commentsMap.set(commentId, {
+        id: grInteractionComments.getValue('sys_id'),
+        text: grInteractionComments.getValue('comment'),
+        authorName: grInteractionComments.getDisplayValue('user'),
+        userId: grInteractionComments.getValue('user'),
+        authorImage: grInteractionComments.getElement('user.photo').getValue(),
+        created: grInteractionComments.getValue('sys_created_on'),
+        currentUserHasReacted: false,
+        likeCount: 0
+      });
+
+    }
+
+    // If there're no comments, return early
+    if (commentsMap.size === 0) {
+      return [];
+    }
+
+
+    // Do a single aggregate query to get like counts for all the comments
+    const commentIds = Array.from(commentsMap.keys());
+    const gaCommentReactions = new GlideAggregate('x_1794402_peerce_0_rec_interaction');
+    gaCommentReactions.addQuery('parent', 'IN', commentIds);
+    gaCommentReactions.addQuery('type', 'reaction');
+    gaCommentReactions.groupBy('parent');
+    gaCommentReactions.addAggregate('COUNT');
+    gaCommentReactions.query();
+
+    while (gaCommentReactions.next()) {
+      const parentId = gaCommentReactions.getValue('parent');
+      const count = gaCommentReactions.getAggregate('COUNT');
+
+      // Retrieve the comment from the map and update its likeCount
+      if (commentsMap.has(parentId)) {
+        const comment = commentsMap.get(parentId);
+        comment.likeCount = parseInt(count, 10);
+      }
+    }
+
+    // Get the current user's liked comments
+    const userLikedComments = new Set();
+    const grUserReactions = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+    grUserReactions.addQuery('parent', 'IN', commentIds);
+    grUserReactions.addQuery('type', 'reaction');
+    grUserReactions.addQuery('user', this.currentUserId);
+    grUserReactions.query();
+
+    while (grUserReactions.next()) {
+      userLikedComments.add(grUserReactions.getValue('parent'));
+    }
+
+    commentIds.forEach(commentId => {
+      if (userLikedComments.has(commentId))
+        commentsMap.get(commentId).currentUserHasReacted = true;
+
+    });
+
+    return Array.from(commentsMap.values());
+  },
+
+
   // /**
   //  * Retrieves a complete recognition record, including its recipients.
   //  * @param {string} sysId - The sys_id of the recognition to retrieve.
@@ -884,13 +907,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>118</sys_mod_count>
+        <sys_mod_count>139</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-03 18:08:47</sys_updated_on>
+        <sys_updated_on>2025-10-05 17:24:57</sys_updated_on>
     </sys_script_include>
 </record_update>
