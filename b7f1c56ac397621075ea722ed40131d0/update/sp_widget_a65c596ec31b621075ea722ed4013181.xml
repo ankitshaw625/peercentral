@@ -64,55 +64,55 @@
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.recognition-header {
-  margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .recognition-header h1 {
-	margin-top: 1rem;
+    margin-top: 1rem;
 }
 
 .modal-title {
-	display: inline-block;
+    display: inline-block;
 }
 
 .recognition-header {
-  background: url('x_1794402_peerce_0.recognition-header-banner.png') no-repeat right center;
-  background-size: contain;   
-  padding: 0 0 4rem 0;    
-  color: #333;          
+    background: url('x_1794402_peerce_0.recognition-header-banner.png')
+        no-repeat right center;
+    background-size: contain;
+    padding: 0 0 4rem 0;
+    color: #333;
 }
-
 
 .form-group .control-label {
-  font-weight: 600; 
+    font-weight: 600;
 }
 
-#message::placeholder { 
-   color: #aaa;
+#message::placeholder {
+    color: #aaa;
 }
-
 
 .mandatory {
-  color: #c0392b;
-  font-size: 8px; 
-  padding-left: .25em;
-  transition: color 0.2s ease-in-out;
+    color: #c0392b;
+    font-size: 8px;
+    padding-left: 0.25em;
+    transition: color 0.2s ease-in-out;
+    margin-right: 5px;
 }
 
-
 .mandatory-filled {
-  color: #777; 
+    color: #777;
 }
 
 .flex-label {
-  display: flex;
-  align-items: center;
+    display: flex;
+    align-items: flex-start;
 }
 
 .field-error {
-  font-size: 10px;
-  font-weight: 500;
-}</css>
+    font-size: 10px;
+    font-weight: 500;
+}
+</css>
         <data_table>sp_instance</data_table>
         <demo_data/>
         <description/>
@@ -145,14 +145,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>179</sys_mod_count>
+        <sys_mod_count>187</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-19 08:51:33</sys_updated_on>
+        <sys_updated_on>2025-10-07 08:14:06</sys_updated_on>
         <template><![CDATA[<header class="recognition-header">
 <h1>Recognize your teams and peers</h1>
   <p>
@@ -198,8 +198,8 @@
         
         <div class="form-group" ng-show="c.recipientType == 'members'">
           <label for="recipients" class="control-label flex-label">
-            Team members
             <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.recipients.value}"></span>
+            Team members
           </label>
           
           <sn-record-picker 
@@ -221,8 +221,8 @@
         
         <div class="form-group" ng-show="c.recipientType == 'teams'">
           <label for="teams" class="control-label flex-label">
-            Teams 
             <span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.teams.value}"></span>
+            Teams 
           </label>
           
           <sn-record-picker 
@@ -244,8 +244,8 @@
         
         <div class="form-group">
           <label for="category" class="control-label flex-label">
+						<span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.category.value}"></span>
             Occasion 
-    				<span title="Mandatory" class="fa fa-asterisk mandatory" ng-class="{'mandatory-filled': c.category.value}"></span>
           </label>
           
           <sn-record-picker 

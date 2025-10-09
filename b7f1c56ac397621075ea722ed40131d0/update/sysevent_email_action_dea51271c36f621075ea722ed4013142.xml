@@ -41,27 +41,61 @@
         <item_table/>
         <mandatory>false</mandatory>
         <message/>
-        <message_html><![CDATA[<p>Hi ${recipient_user},</p>
-<p>Great news! ${recognition.sender.name} has sent you a recognition for ${recognition.category}. Here's what they said:<br><br>&nbsp; &nbsp; &nbsp;${recognition.message}</p>
-<p>&nbsp;</p>
-<p><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><!----><a href="https://dev195269.service-now.com/pc?id=recognition_home" target="_blank" rel="noopener" data-ved="0CAAQ_4QMahgKEwib5ZjvhKOPAxUAAAAAHQAAAAAQgwE" data-hveid="0">View Recognition</a></p>
-<p>Keep up the fantastic work!<br><br></p>
-<p>Best,</p>
-<p>PeerCentral Team</p>]]></message_html>
+        <message_html><![CDATA[<table border="0" width="100%" cellspacing="0" cellpadding="0"><!-- HTML Banner -->
+<tbody>
+<tr>
+<td style="padding: 10px 25px;">
+<table style="border-radius: 6px;" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="padding: 40px 10px; border-radius: 6px;" align="center" bgcolor="#E9F5FF">
+<p style="font-family: Raleway, Arial, sans-serif; font-size: 36px; font-weight: bold; color: #0080a3; margin: 0;">Congratulations!</p>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<!-- Content -->
+<tr>
+<td style="padding: 20px 25px; text-align: left;">
+<p style="font-family: Arial, sans-serif; font-size: 18px; color: #333333; margin: 0 0 15px 0;">Hi ${recipient_user},</p>
+<p style="font-family: Arial, sans-serif; font-size: 16px; color: #555555; line-height: 1.5; margin: 0 0 20px 0;">You've received a recognition from <strong>${recognition.sender.name}</strong> for your great work!</p>
+<!-- Message Box -->
+<table style="border: 1px solid rgb(224, 224, 224); border-radius: 8px; background-color: rgb(250, 250, 250); margin-bottom: 20px; height: 22.4px;" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr style="height: 22.4px;">
+<td style="padding: 20px; font-family: Arial, sans-serif; font-size: 16px; color: rgb(51, 51, 51); font-style: italic; height: 22.4px;">"${recognition.message}"</td>
+</tr>
+</tbody>
+</table>
+<p style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; margin: 0 0 30px 0;"><strong>Company Value(s):</strong> <span style="background-color: #e0e0e0; color: #333333; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-left: 5px; white-space: nowrap;">${mail_script:getRecognitionOccasions}</span></p>
+<!-- Button -->
+<table border="0" cellspacing="0" cellpadding="0" align="center">
+<tbody>
+<tr>
+<td style="border-radius: 25px;" align="center" bgcolor="#0080A3"><a style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 25px; display: inline-block;" href="${link_to_portal}" target="_blank" rel="noopener"> View in PeerCentral </a></td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>]]></message_html>
         <message_list/>
         <message_text/>
         <name>Recognition received - Individual</name>
         <omit_watermark>false</omit_watermark>
         <order>100</order>
         <push_message_only>false</push_message_only>
-        <recipient_fields>recipient_user</recipient_fields>
+        <recipient_fields>recipient_user,recipient_user.manager,recognition.notify_to</recipient_fields>
         <recipient_groups/>
         <recipient_users/>
         <reply_to/>
         <send_self>true</send_self>
         <sms_alternate/>
         <style/>
-        <subject>You've Received a Recognition from ${recognition.sender}!</subject>
+        <subject>Congratulations! You've received a recognition from ${recognition.sender.name}</subject>
         <subscribable>false</subscribable>
         <sys_class_name>sysevent_email_action</sys_class_name>
         <sys_created_by>admin</sys_created_by>
@@ -69,7 +103,7 @@
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>dea51271c36f621075ea722ed4013142</sys_id>
-        <sys_mod_count>6</sys_mod_count>
+        <sys_mod_count>17</sys_mod_count>
         <sys_name>Recognition received - Individual</sys_name>
         <sys_overrides/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
@@ -77,9 +111,9 @@
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sysevent_email_action_dea51271c36f621075ea722ed4013142</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-04 16:10:29</sys_updated_on>
+        <sys_updated_on>2025-10-09 09:13:07</sys_updated_on>
         <sys_version>2</sys_version>
-        <template display_value="Unsubscribe and Preferences">7ed0481f3b0b2200c869c2c703efc487</template>
+        <template display_value="Recognition Template">0a601d24c3ec725075ea722ed4013135</template>
         <type>email</type>
         <weight>0</weight>
     </sysevent_email_action>
