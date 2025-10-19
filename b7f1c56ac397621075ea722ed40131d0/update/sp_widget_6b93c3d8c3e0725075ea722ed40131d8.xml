@@ -6,7 +6,7 @@
   c.showTray = false;
   c.isLoading = false;
 
-
+  console.log(c)
   // Toggle the visibility of the notification tray
   c.toggleTray = function () {
     c.showTray = !c.showTray;
@@ -103,6 +103,31 @@
   $rootScope.$on('simple-notifications.update', function () {
     c.server.update();
   });
+
+  c.formatTimeAgo = function (dateTime) {
+    if (!dateTime) return '';
+    return moment(dateTime, "YYYY-MM-DD HH:mm:ss").fromNow();
+  };
+
+  // ADD THIS MOMENT.JS CONFIGURATION AT THE END OF THE SCRIPT
+  moment.updateLocale('en', {
+    relativeTime: {
+      future: "in %s",
+      past: "%s ago",
+      s: "a few seconds",
+      ss: "%ds",
+      m: "1m",
+      mm: "%dm",
+      h: "1h",
+      hh: "%dh",
+      d: "1d",
+      dd: "%dd",
+      M: "1mo",
+      MM: "%dmo",
+      y: "1y",
+      yy: "%dy"
+    }
+  });
 }]]></client_script>
         <controller_as>c</controller_as>
         <css>/* Main Widget Container */&#13;
@@ -164,7 +189,7 @@
     border: 1px solid #e7e7e7;&#13;
     border-radius: 4px;&#13;
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);&#13;
-    z-index: 1000;&#13;
+    z-index: 10000;&#13;
     display: flex;&#13;
     flex-direction: column;&#13;
 }&#13;
@@ -211,6 +236,33 @@
 .notification-content {&#13;
     display: flex;&#13;
     align-items: center;&#13;
+}&#13;
+&#13;
+.notification-link {&#13;
+    display: flex;&#13;
+    justify-content: space-between;&#13;
+    align-items: flex-start;&#13;
+    gap: 15px;&#13;
+}&#13;
+&#13;
+.notification-body {&#13;
+    flex-grow: 1;&#13;
+    display: flex;&#13;
+    align-items: flex-start;&#13;
+    gap: 15px;&#13;
+    min-width: 0;&#13;
+}&#13;
+&#13;
+.notification-content {&#13;
+    display: contents;&#13;
+}&#13;
+&#13;
+.notification-time {&#13;
+    flex-shrink: 0;&#13;
+    white-space: nowrap;&#13;
+    color: #999;&#13;
+    padding-top: 2px;&#13;
+    font-size: 12px;&#13;
 }&#13;
 &#13;
 .unread-dot {&#13;
@@ -388,7 +440,8 @@
       sys_id: grNotifications.getUniqueValue(),
       message: message,
       is_read: grNotifications.getValue('status') != 'new',
-      url: recordId ? '?id=recognition_home&scrollTo=' + recordId + '#you' : ''
+      url: recordId ? '?id=recognition_home&scrollTo=' + recordId + '#you' : '',
+      created_on: grNotifications.getValue('sys_created_on')
     });
   }
 
@@ -411,14 +464,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-08 22:25:41</sys_created_on>
         <sys_id>6b93c3d8c3e0725075ea722ed40131d8</sys_id>
-        <sys_mod_count>19</sys_mod_count>
+        <sys_mod_count>24</sys_mod_count>
         <sys_name>PC Notification Bell</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_6b93c3d8c3e0725075ea722ed40131d8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-08 23:47:37</sys_updated_on>
+        <sys_updated_on>2025-10-09 16:40:11</sys_updated_on>
         <template><![CDATA[<div class="simple-bell-widget header-menu-item">
   <!-- Notification Bell Icon -->
   <!-- Notification Bell Icon -->
@@ -455,12 +508,16 @@
         <ul class="notification-list">
           <li ng-repeat="item in c.data.notifications track by item.sys_id" class="notification-item"
             ng-class="{'unread': !item.is_read}">
+
             <a href="javascript:void(0)" ng-click="c.openNotification(item)" class="notification-link">
-              <div class="notification-content">
+              <div class="notification-body">
                 <div class="unread-dot" ng-if="!item.is_read" title="Unread"></div>
                 <p class="message">{{ item.message }}</p>
               </div>
+
+              <small class="notification-time">{{ c.formatTimeAgo(item.created_on) }}</small>
             </a>
+
             <div class="notification-actions">
               <button ng-if="!item.is_read" class="btn btn-sm btn-link" ng-click="c.markAsRead(item, $event)"
                 title="Mark as Read">

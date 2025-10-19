@@ -69,26 +69,23 @@
 </tr>
 </tbody>
 </table>
-<p style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; margin: 0 0 30px 0;"><strong>Company Value(s):</strong> <span style="background-color: #e0e0e0; color: #333333; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-left: 5px; white-space: nowrap;">${mail_script:getRecognitionOccasions}</span></p>
+<div>${mail_script:printRecognitionValues}</div>
 <!-- Button -->
-<table border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="border-radius: 25px;" align="center" bgcolor="#2F855A"><a style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; padding: 15px 30px; border-radius: 25px; display: inline-block;" href="${link_to_portal}" target="_blank" rel="noopener"> View in PeerCentral </a></td>
-</tr>
-</tbody>
-</table>
+<div style="text-align: center;">
+<div style="background-color: #2f855a; border-radius: 25px; display: inline-block;">${mail_script:linkToRecognition}</div>
+</div>
 </td>
 </tr>
 </tbody>
-</table>]]></message_html>
+</table>
+<p>${mail_script:includeRecognitionCCRecipients}</p>]]></message_html>
         <message_list/>
         <message_text/>
         <name>Recognition received - Team</name>
         <omit_watermark>false</omit_watermark>
         <order>100</order>
         <push_message_only>false</push_message_only>
-        <recipient_fields>recipient_group,recipient_group.manager,recognition.notify_to</recipient_fields>
+        <recipient_fields>recipient_group</recipient_fields>
         <recipient_groups/>
         <recipient_users/>
         <reply_to/>
@@ -103,7 +100,7 @@
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>d6385a35c36f621075ea722ed40131af</sys_id>
-        <sys_mod_count>11</sys_mod_count>
+        <sys_mod_count>14</sys_mod_count>
         <sys_name>Recognition received - Team</sys_name>
         <sys_overrides/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
@@ -111,7 +108,7 @@
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sysevent_email_action_d6385a35c36f621075ea722ed40131af</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-09 10:37:12</sys_updated_on>
+        <sys_updated_on>2025-10-12 14:50:46</sys_updated_on>
         <sys_version>2</sys_version>
         <template display_value="Recognition Template">0a601d24c3ec725075ea722ed4013135</template>
         <type>email</type>

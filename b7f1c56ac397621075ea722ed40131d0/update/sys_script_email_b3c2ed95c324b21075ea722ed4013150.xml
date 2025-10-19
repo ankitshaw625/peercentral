@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_email">
+    <sys_script_email action="INSERT_OR_UPDATE">
+        <name>linkToRecognition</name>
+        <new_lines_to_html>false</new_lines_to_html>
+        <script><![CDATA[(function runMailScript( /* GlideRecord */ current, /* TemplatePrinter */ template,
+  /* Optional EmailOutbound */
+  email, /* Optional GlideRecord */ email_action,
+  /* Optional GlideRecord */
+  event) {
+
+  var recognitionURL = gs.getProperty('glide.servlet.uri') + 'pc?id=form&table=x_1794402_peerce_0_peer_recognition&sys_id=' + current.getValue('recognition');
+
+  var recognitionLink = '<a href="' + recognitionURL + '" target="_blank" rel="noopener noreferrer nofollow" style="font-size: 16px; font-family: Arial, sans-serif; font-weight: bold; color: #ffffff; text-decoration: none; padding: 15px 30px; display: inline-block;">View in PeerCentral </a>';
+
+  template.print(recognitionLink);
+
+})(current, template, email, email_action, event);]]></script>
+        <sys_class_name>sys_script_email</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-11 18:03:44</sys_created_on>
+        <sys_id>b3c2ed95c324b21075ea722ed4013150</sys_id>
+        <sys_mod_count>5</sys_mod_count>
+        <sys_name>linkToRecognition</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_email_b3c2ed95c324b21075ea722ed4013150</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-11 18:29:30</sys_updated_on>
+    </sys_script_email>
+</record_update>

@@ -4,6 +4,7 @@
         <client_script><![CDATA[api.controller = function ($scope, $location, spUtil, $timeout, $anchorScroll) {
   var c = this;
 
+  const MAX_RECIPIENTS_TO_SHOW = 2;
 
   c.currentUserId = $scope.user.sys_id;
   c.currentUserInitials = generateInitials($scope.user.name);
@@ -363,6 +364,19 @@
         };
       });
 
+      const finalRecipients = rec.recipients || [];
+      let visibleRecipients = [];
+      let remainingCount = 0;
+      let remainingRecipientsTooltip = '';
+
+      if (finalRecipients.length > MAX_RECIPIENTS_TO_SHOW) {
+        visibleRecipients = finalRecipients.slice(0, MAX_RECIPIENTS_TO_SHOW);
+        remainingCount = finalRecipients.length - MAX_RECIPIENTS_TO_SHOW;
+        remainingRecipientsTooltip = finalRecipients.slice(MAX_RECIPIENTS_TO_SHOW).join('\n');
+      } else {
+        visibleRecipients = finalRecipients;
+      }
+
       return {
         ...rec,
         senderInitials: generateInitials(rec.senderDisplay),
@@ -372,6 +386,10 @@
         showComments: false,
         newCommentText: '',
         _allowReactionAnimation: false,
+
+        visibleRecipients: visibleRecipients,
+        remainingCount: remainingCount,
+        remainingRecipientsTooltip: remainingRecipientsTooltip
       };
     });
   }
@@ -973,13 +991,31 @@
 
     let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
-    data.recognitions =
+    const recognitions =
       recognitionDAO.getRecognitionsForFeed(
         currentFeed,
         limit,
         offset,
         filters
       ) || [];
+
+    const currentUserId = gs.getUserID();
+
+    recognitions.forEach((rec) => {
+      // Display 'You' instead of the current user's name in the feed
+      if (rec.senderId === currentUserId) rec.senderDisplay = 'You';
+
+      // If current user is among the recipients, replace their name with 'You' and move to the front of the list
+      if (rec.recipientIds && rec.recipients) {
+        const currentUserIndex = rec.recipientIds.indexOf(currentUserId);
+        if (currentUserIndex > -1) {
+          rec.recipients.splice(currentUserIndex, 1);
+          rec.recipients.unshift('You');
+        }
+      }
+    });
+
+    data.recognitions = recognitions;
   }
 
   if (input && input.action == 'get_latest_recognition_id') {
@@ -1103,7 +1139,7 @@
     data.occasionFilterWidget = $sp.getWidget(
       'multi-select-slushbucket-filter',
       {
-        title: 'Occasion',
+        title: 'Value',
         eventName: 'occasion.filter.updated',
         choices: recognitionOccasions,
         initialSelection: '',
@@ -1133,16 +1169,17 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>703</sys_mod_count>
+        <sys_mod_count>709</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-08 23:52:28</sys_updated_on>
+        <sys_updated_on>2025-10-12 13:55:27</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
+
     <!-- Default panel contents -->
     <section class="panel-heading">
       <h3 class="panel-title">
