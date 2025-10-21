@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="12bdf308c3f8b21075ea722ed4013133" label="Recognition Recommendation Rule" max_length="40" name="x_1794402_peerce_0_recog_recomm_rule" type="collection">
+        <element label="Reason Template" mandatory="true" max_length="256" name="reason_template" type="string_full_utf8"/>
+        <element attributes="ref_auto_completer=AJAXReferenceChoice,ref_qual_elements=table" choice="1" choice_table="sys_dictionary" label="User Field" mandatory="true" max_length="40" name="user_field" reference="sys_dictionary" reference_qual="javascript: 'internal_type=reference^reference=sys_user^name=' + current.getValue('table') + '^EQ'" type="reference" use_reference_qualifier="advanced">
+            <choice/>
+        </element>
+        <element default="true" label="Active" max_length="255" name="active" type="boolean"/>
+        <element display="true" label="Name" mandatory="true" max_length="64" name="name" type="string"/>
+        <element dependent="table" dependent_on_field="table" label="Record Conditions" max_length="40" name="record_conditions" type="conditions" use_dependent_field="true"/>
+        <element default="1" label="Minimum Count" mandatory="true" max_length="255" name="minimum_count" type="integer"/>
+        <element label="Rule Weight" mandatory="true" max_length="40" name="rule_weight" type="integer"/>
+        <element label="Table" mandatory="true" max_length="40" name="table" type="table_name"/>
+        <element attributes="ref_auto_completer=AJAXReferenceChoice,ref_qual_elements=table" choice="1" label="Date Field" mandatory="true" max_length="32" name="date_field" reference="sys_dictionary" reference_qual="javascript: 'internal_type=glide_date^ORinternal_type=glide_date_time^name=' + current.getValue('table') + '^EQ'" type="reference" use_reference_qualifier="advanced">
+            <choice/>
+        </element>
+        <index name="index">
+            <element name="date_field"/>
+        </index>
+    </element>
+</database>
