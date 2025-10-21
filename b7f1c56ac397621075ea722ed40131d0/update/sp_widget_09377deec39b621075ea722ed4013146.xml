@@ -5,6 +5,7 @@
   var c = this;
 
   const MAX_RECIPIENTS_TO_SHOW = 2;
+  const FEED_TABS = ['you', 'team', 'all'];
 
   c.currentUserId = $scope.user.sys_id;
   c.currentUserInitials = generateInitials($scope.user.name);
@@ -35,7 +36,8 @@
     c.filters = getDefaultFilters();
 
     // Fetch the new, unfiltered data
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   };
 
   // Check if any filter is active
@@ -48,25 +50,65 @@
   };
 
 
+  // c.setTab = function (tabName) {
+  //   if (!tabName) return;
+
+  //   c.data.filteredRecognitions = [];
+
+  //   c.activeTab = tabName;
+  //   $location.hash(tabName);
+
+  //   c.offset = 0;
+  //   c.canLoadMore = true;
+  //   c.isLoading = true;
+  //   c.showRefreshIndicator = false;
+
+  //   loadFeed(tabName, 0, false);
+  // };
+
+
   c.setTab = function (tabName) {
-    if (!tabName) return;
-
-    c.data.filteredRecognitions = [];
-
-    c.activeTab = tabName;
-    $location.hash(tabName);
-
-    c.offset = 0;
-    c.canLoadMore = true;
-    c.isLoading = true;
-    c.showRefreshIndicator = false;
-
-    loadFeed(tabName, 0, false);
+    if (FEED_TABS.includes(tabName)) {
+      $location.hash(tabName);
+    }
   };
+
+  const initialHash = $location.hash();
+  const tabToLoad = FEED_TABS.includes(initialHash) ? initialHash : 'you';
+
+  c.activeTab = tabToLoad;
+  applyFiltersAndReload();
+
+  if (FEED_TABS.includes(initialHash) || !initialHash) {
+    $location.hash(tabToLoad);
+  }
+
+  $scope.$on('$locationChangeSuccess', function () {
+    console.log('Location changed: ', $location.hash());
+
+    const hash = $location.hash();
+    const tabToLoad = FEED_TABS.includes(hash) ? hash : 'you';
+
+    if (c.activeTab === tabToLoad) return;
+
+    c.activeTab = tabToLoad;
+    applyFiltersAndReload();
+  });
+
+  // const initialTab = FEED_TABS.includes($location.hash()) ? $location.hash() : 'you';
+  // c.setTab(initialTab);
+
+
+  // $scope.$on('$locationChangeSuccess', function () {
+  //   var newTab = $location.hash();
+
+  //   if (newTab && newTab !== c.activeTab) {
+  //     c.setTab(newTab);
+  //   }
+  // });
 
   c.loadMore = function () {
     if (!c.canLoadMore || c.isLoadingMore) return;
-
 
     c.isLoadingMore = true;
 
@@ -152,7 +194,6 @@
 
   c.toggleComments = function (recognition) {
     recognition.showComments = !recognition.showComments;
-
   };
 
   // Submit comment (UI only)
@@ -204,24 +245,14 @@
   };
 
 
-  var initialTab = $location.hash() || 'you';
-  c.setTab(initialTab);
-
-  $scope.$on('$locationChangeSuccess', function () {
-    var newTab = $location.hash();
-
-    if (newTab && newTab !== c.activeTab) {
-      c.setTab(newTab);
-    }
-  });
-
   // Event listeners for filters
   $scope.$on('activity.filter.updated', function (event, data) {
     c.showRefreshIndicator = false;
 
     if (c.filters.activity !== data.selected.value) {
       c.filters.activity = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
 
@@ -229,14 +260,16 @@
     c.showRefreshIndicator = false;
 
     c.filters.teamMember = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('team.filter.updated', function (event, data) {
     c.showRefreshIndicator = false;
 
     c.filters.team = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('timeframe.filter.updated', function (event, data) {
@@ -244,7 +277,8 @@
 
     if (c.filters.timeframe !== data.selected.value) {
       c.filters.timeframe = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
 
@@ -253,7 +287,8 @@
 
     // For multi-select, data.selected is an array of objects
     c.filters.occasions = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('sort.order.updated', function (event, data) {
@@ -261,9 +296,20 @@
 
     if (c.filters.sortOrder !== data.selected.value) {
       c.filters.sortOrder = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
+
+  function applyFiltersAndReload() {
+    c.data.filteredRecognitions = [];
+    c.offset = 0;
+    c.canLoadMore = true;
+    c.isLoading = true;
+    c.showRefreshIndicator = false;
+
+    loadFeed(c.activeTab, 0, false);
+  }
 
 
   let debounceTimer = null;
@@ -1169,14 +1215,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>710</sys_mod_count>
+        <sys_mod_count>719</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-20 07:53:56</sys_updated_on>
+        <sys_updated_on>2025-10-21 17:53:21</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
     <!-- Default panel contents -->

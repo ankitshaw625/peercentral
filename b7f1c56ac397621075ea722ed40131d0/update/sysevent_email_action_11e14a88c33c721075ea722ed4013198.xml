@@ -71,7 +71,7 @@
 <div style="padding: 0 20px 20px 20px;">
 <p style="font-size: 16px; margin: 0 0 20px 0;">Hi ${mail_script:get_user_first_name},</p>
 <p style="margin: 0 0 20px 0;">Here is the summary of recognition activity from your team over the last week.</p>
-<hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">${mail_script:render_manager_digest} <br><br>
+<hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">${mail_script:render_manager_digest} <br><br>${mail_script:render_recognition_recommendations}
 <table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0">
 <tbody>
 <tr>
@@ -107,7 +107,7 @@
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>11e14a88c33c721075ea722ed4013198</sys_id>
-        <sys_mod_count>13</sys_mod_count>
+        <sys_mod_count>14</sys_mod_count>
         <sys_name>PeerCentral: Weekly Manager Digest</sys_name>
         <sys_overrides/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
@@ -115,7 +115,7 @@
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sysevent_email_action_11e14a88c33c721075ea722ed4013198</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-20 09:46:48</sys_updated_on>
+        <sys_updated_on>2025-10-21 15:22:21</sys_updated_on>
         <sys_version>2</sys_version>
         <template/>
         <type>email</type>

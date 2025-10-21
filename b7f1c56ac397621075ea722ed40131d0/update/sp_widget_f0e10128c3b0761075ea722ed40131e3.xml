@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function ($scope, $rootScope) {
+  var c = this;
+
+  c.recognizeUser = function (userId) {
+    if (!userId) return;
+
+    $rootScope.$broadcast('x-peercentral-open-recognition-modal', {
+      user_id: userId
+    });
+  };
+
+  c.dismissRecommendation = function (index) {
+    var recommendation = c.data.recommendations[index];
+    if (!recommendation) return;
+
+    c.data.recommendations.splice(index, 1);
+
+    c.server.get({
+      action: 'dismiss_recommendation',
+      rec_sys_id: recommendation.id
+    }).then(function (response) {
+
+      if (!response.data.success)
+        console.error("Failed to dismiss recommendation on the server.");
+
+    });
+  };
+};]]></client_script>
+        <controller_as>c</controller_as>
+        <css>.rec-row-flex {&#13;
+    display: flex;&#13;
+    justify-content: space-between;&#13;
+    align-items: center;&#13;
+    padding: 15px 10px;&#13;
+    border-bottom: 1px solid #e0e0e0;&#13;
+}&#13;
+&#13;
+.rec-row-flex:last-child {&#13;
+    border-bottom: none;&#13;
+}&#13;
+&#13;
+.rec-info-flex {&#13;
+    flex-grow: 1;&#13;
+    margin-right: 15px;&#13;
+}&#13;
+&#13;
+.rec-actions-flex {&#13;
+    flex-shrink: 0;&#13;
+}&#13;
+&#13;
+.rec-actions-flex .btn {&#13;
+    margin-left: 5px;&#13;
+}&#13;
+&#13;
+.rec-user-name {&#13;
+    margin: 0;&#13;
+    font-size: 15px;&#13;
+    font-weight: bold;&#13;
+    color: #333;&#13;
+}&#13;
+&#13;
+.rec-user-details {&#13;
+    margin: 4px 0 0 0;&#13;
+    font-size: 13px;&#13;
+    color: #555;&#13;
+}&#13;
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>unsung_hero_recommendations</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>Unsung Hero Recommendations</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function () {
+
+
+  if (input && input.action === 'dismiss_recommendation') {
+    data.success = false;
+
+    const grCurrentRecommendation = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grCurrentRecommendation.addQuery('sys_id', input.rec_sys_id);
+    grCurrentRecommendation.setLimit(1);
+    grCurrentRecommendation.query();
+
+    if (grCurrentRecommendation.next()) {
+      grCurrentRecommendation.setValue('status', 'dismissed');
+      const recordSysId = grCurrentRecommendation.update();
+
+      if (recordSysId) sdata.success = true;
+    }
+
+    return;
+  }
+
+  data.recommendations = [];
+
+  if (options && options.recommendations) {
+    data.recommendations = options.recommendations;
+  } else {
+
+    // FOR TESTING LOAD SAMPLE RECORDS
+    var managerId = gs.getUserID();
+    var grRec = new GlideRecord('x_1794402_peerce_0_recomendations');
+    // grRec.addQuery('manager', managerId);
+    // grRec.addQuery('status', 'new');
+    grRec.orderByDesc('score');
+    grRec.query();
+
+    while (grRec.next()) {
+      data.recommendations.push({
+        rec_id: grRec.getUniqueValue(), // IMPORTANT: Pass the record's own sys_id
+        user: grRec.getDisplayValue('recommended_user'),
+        user_id: grRec.getValue('recommended_user'),
+        details: grRec.getValue('details'),
+        details_list: grRec.getValue('details').split(';'),
+      });
+    }
+  }
+
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-21 17:53:04</sys_created_on>
+        <sys_id>f0e10128c3b0761075ea722ed40131e3</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>Unsung Hero Recommendations</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_f0e10128c3b0761075ea722ed40131e3</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-21 18:15:56</sys_updated_on>
+        <template><![CDATA[<div class="unsung-heroes-widget">
+  <div class="rec-row-flex" ng-repeat="rec in c.data.recommendations">
+    <div class="rec-info-flex">
+      <p class="rec-user-name">{{rec.user}}</p>
+
+      <div class="rec-user-details">
+        <p ng-if="rec.details_list.length <= 1">{{ rec.details_list[0] }}</p>
+
+        <ul ng-if="rec.details_list.length > 1">
+          <li ng-repeat="detail in rec.details_list track by $index">{{ detail }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rec-actions-flex">
+      <button class="btn btn-default btn-sm" ng-click="c.dismissRecommendation($index)">Dismiss</button>
+      <button class="btn btn-primary btn-sm" ng-click="c.recognizeUser(rec.user_id)">Recognize</button>
+    </div>
+  </div>
+</div>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>f0e10128c3b0761075ea722ed40131e3</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-21 17:53:04</sys_created_on>
+        <sys_id>3ce10128c3b0761075ea722ed40131e7</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-21 17:53:04</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

@@ -27,6 +27,12 @@ RecognitionRecommender.prototype = {
       this._clearOldRecommendations();
 
 
+      const recommendationRules = this._getRecommendationRules();
+      if (recommendationRules.length === 0) {
+        gs.info("RecognitionRecommender: No active recommendation rules found. Exiting.\n");
+        return;
+      }
+
       const userDataMap = this._getDirectReportData();
       const directReportIds = Object.keys(userDataMap);
 
@@ -37,9 +43,9 @@ RecognitionRecommender.prototype = {
 
       gs.info("RecognitionRecommender: Found " + directReportIds.length + " total direct reports to analyze.\n");
 
-      const detailedContributions = this._getDetailedContributions(directReportIds, userDataMap);
+      const detailedContributions = this._getDetailedContributions(directReportIds, userDataMap, recommendationRules);
 
-      const eligibleContributors = this._filterByEligibility(detailedContributions);
+      const eligibleContributors = this._filterByEligibility(detailedContributions, recommendationRules);
       gs.info("RecognitionRecommender: Found " + eligibleContributors.length + " contributors meeting per-rule eligibility.\n");
 
       const unsungContributors = this._filterRecentlyIncludedUsers(eligibleContributors);
@@ -57,6 +63,30 @@ RecognitionRecommender.prototype = {
     } catch (e) {
       gs.error("RecognitionRecommender: An error occurred during recommendation generation. " + e);
     }
+  },
+
+  _getRecommendationRules: function () {
+    const rules = [];
+    const grRecommendationRules = new GlideRecord('x_1794402_peerce_0_recog_recomm_rule');
+    grRecommendationRules.addActiveQuery();
+    grRecommendationRules.query();
+
+    while (grRecommendationRules.next()) {
+      rules.push({
+        sys_id: grRecommendationRules.getValue('sys_id'),
+        user_field: grRecommendationRules.getValue('user_field'),
+        date_field: grRecommendationRules.getValue('date_field') || 'sys_updated_on',
+        table: grRecommendationRules.getValue('table'),
+        record_conditions: grRecommendationRules.getValue('record_conditions'),
+        rule_weight: parseInt(grRecommendationRules.getValue('rule_weight'), 10),
+        reason_template: grRecommendationRules.getValue('reason_template'),
+        minimum_count: parseInt(grRecommendationRules.getValue('minimum_count'), 10) || 0
+      });
+    }
+
+    gs.info("RecognitionRecommender: Loaded " + rules.length + " active recommendation rules.");
+
+    return rules;
   },
 
   _getDirectReportData: function () {
@@ -90,20 +120,16 @@ RecognitionRecommender.prototype = {
     return userDataMap;
   },
 
-  _getDetailedContributions: function (userIds, userDataMap) {
+  _getDetailedContributions: function (userIds, userDataMap, recommendationRules) {
     const userProfiles = {};
 
-    const grRecommendationRule = new GlideRecord('x_1794402_peerce_0_recog_recomm_rule');
-    grRecommendationRule.addActiveQuery();
-    grRecommendationRule.query();
+    for (const rule of recommendationRules) {
+      const ruleId = rule.sys_id;
+      const userField = rule.user_field;
+      const dateField = rule.date_field;
 
-    while (grRecommendationRule.next()) {
-      const ruleId = grRecommendationRule.getUniqueValue();
-      const userField = grRecommendationRule.getValue('user_field');
-      const dateField = grRecommendationRule.getValue('date_field') || 'sys_updated_on';
-
-      var ga = new GlideAggregate(grRecommendationRule.getValue('table'));
-      ga.addEncodedQuery(grRecommendationRule.getValue('record_conditions'));
+      var ga = new GlideAggregate(rule.table);
+      ga.addEncodedQuery(rule.record_conditions);
       ga.addNotNullQuery(userField);
 
       ga.addQuery(userField, 'IN', userIds);
@@ -130,8 +156,10 @@ RecognitionRecommender.prototype = {
 
         const count = ga.getAggregate('COUNT');
 
-        const points = count * parseInt(grRecommendationRule.getValue('rule_weight'), 10);
-        const reason = grRecommendationRule.getValue('reason_template').replace('{count}', count);
+        const points = count * rule.rule_weight;
+        const reason = rule.reason_template
+          .replace('{count}', count)
+          .replace('{lookback_days}', this.LOOKBACK_DAYS);;
 
         userProfiles[userId].total_score += points;
         userProfiles[userId].contributions[ruleId] = {
@@ -145,16 +173,12 @@ RecognitionRecommender.prototype = {
     return Object.values(userProfiles);
   },
 
-  _filterByEligibility: function (contributors) {
+  _filterByEligibility: function (contributors, recommendationRules) {
     const eligible = [];
     const ruleMinimums = {};
 
-    const grRecommendationRule = new GlideRecord('x_1794402_peerce_0_recog_recomm_rule');
-    grRecommendationRule.addActiveQuery();
-    grRecommendationRule.query();
-
-    while (grRecommendationRule.next()) {
-      ruleMinimums[grRecommendationRule.getUniqueValue()] = parseInt(grRecommendationRule.getValue('minimum_count'), 10) || 0;
+    for (const rule of recommendationRules) {
+      ruleMinimums[rule.sys_id] = rule.minimum_count;
     }
 
     for (const user of contributors) {
@@ -227,6 +251,7 @@ RecognitionRecommender.prototype = {
 
       const percentileCount = Math.ceil(team.length * (this.PERCENTILE_THRESHOLD / 100));
 
+      // Take the top percentile as defined, but ensure a minimum of 3 recommendations if there are enough users
       let countToTake = (percentileCount < 3 && team.length >= 3) ? 3 : percentileCount;
       countToTake = Math.min(countToTake, this.MANAGER_REC_LIMIT);
 
@@ -249,7 +274,7 @@ RecognitionRecommender.prototype = {
     grRecognitionRecommendation.setValue('score', heroData.total_score);
 
     grRecognitionRecommendation.setValue('reason', 'High score of ' + heroData.total_score + ' based on recent contributions.');
-    grRecognitionRecommendation.setValue('details', 'Score breakdown: ' + reasons.join('; ') + '.');
+    grRecognitionRecommendation.setValue('details', reasons.join('; '));
     grRecognitionRecommendation.setValue('status', 'new');
     grRecognitionRecommendation.insert();
   },
@@ -257,12 +282,39 @@ RecognitionRecommender.prototype = {
   _clearOldRecommendations: function () {
     var grRecognitionRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
     grRecognitionRecommendations.addQuery('status', 'new');
-    grRecognitionRecommendations.query();
+    // grRecognitionRecommendations.query();
 
-    if (grRecognitionRecommendations.hasNext()) {
-      grRecognitionRecommendations.setValue('status', 'dismissed');
-      grRecognitionRecommendations.updateMultiple();
+    grRecognitionRecommendations.setValue('status', 'dismissed');
+    grRecognitionRecommendations.updateMultiple();
+  },
+
+
+  getNewRecommendationsForManager: function (userId) {
+    if (!userId) {
+      return [];
     }
+
+    const recommendations = [];
+    const grRec = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRec.addQuery('manager', userId);
+    grRec.addQuery('status', 'new');
+    grRec.orderByDesc('score');
+    grRec.setLimit(this.MANAGER_REC_LIMIT);
+    grRec.query();
+
+    while (grRec.next()) {
+      recommendations.push({
+        user_id: grRec.getValue('recommended_user'),
+        user: grRec.getDisplayValue('recommended_user'),
+        score: grRec.getValue('score'),
+        reason: grRec.getValue('reason'),
+        details: grRec.getValue('details'),
+        details_list: grRec.getValue('details').split(';'),
+        id: grRec.getValue('sys_id')
+      });
+    }
+
+    return recommendations;
   },
 
   type: 'RecognitionRecommender'
@@ -271,13 +323,13 @@ RecognitionRecommender.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-20 19:58:43</sys_created_on>
         <sys_id>d2b3d894c3bcb21075ea722ed40131fc</sys_id>
-        <sys_mod_count>13</sys_mod_count>
+        <sys_mod_count>22</sys_mod_count>
         <sys_name>RecognitionRecommender</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_d2b3d894c3bcb21075ea722ed40131fc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-21 14:22:09</sys_updated_on>
+        <sys_updated_on>2025-10-21 18:16:08</sys_updated_on>
     </sys_script_include>
 </record_update>
