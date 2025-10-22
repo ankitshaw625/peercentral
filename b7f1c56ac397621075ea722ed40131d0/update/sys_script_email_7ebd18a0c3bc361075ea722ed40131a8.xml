@@ -15,29 +15,29 @@
 
     if (!recommendations || recommendations.length === 0) return;
 
-    template.print('<h3 style="font-family: Arial, sans-serif; color: #333;">Spotlight on Your Unsung Heroes</h3>');
+    template.print('<h3 style="font-family: Arial, sans-serif; color: #333;">Contribution Highlights</h3>');
     template.print('<p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">These are team members whose outstanding, behind-the-scenes contributions have marked them as potential <em>Unsung Heroes</em>. Consider giving them the special recognition they deserve!</p>');
     template.print('<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">');
 
     for (var i = 0; i < recommendations.length; i++) {
         var item = recommendations[i];
-		var detailsList = item.details_list;
+        var detailsList = item.details_list || [];
         var recognitionUrl = '/pc?sysparm_stack=no#recognize&user_id=' + item.user_id;
 
 
         template.print('<td style="padding: 15px 10px; border-bottom: 1px solid #e0e0e0;">');
         template.print('<p style="margin: 0; font-size: 16px; font-weight: bold;">' + item.user + '</p>');
 
-		// Conditionally print a list or a single paragraph
-        if (detailsList.length > 1) {
-            template.print('<ul style="margin: 4px 0 0 0; padding-left: 18px; font-size: 13px; color: #555;">');
-            for (var j = 0; j < detailsList.length; j++) {
+        if (detailsList.length > 0) {
+            template.print('<p style="margin: 8px 0 4px 0; font-size: 12px; font-weight: bold; color: #666;">Recent Highlights:</p>');
+
+            template.print('<ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #555;">');
+            
+			for (var j = 0; j < detailsList.length; j++) {
                 template.print('<li style="margin-bottom: 2px;">' + detailsList[j] + '</li>');
             }
-			
+
             template.print('</ul>');
-        } else if (detailsList.length === 1) {
-            template.print('<p style="margin: 4px 0 0 0; font-size: 13px; color: #555;">' + detailsList[0] + '</p>');
         }
 
         template.print('</td>');
@@ -56,13 +56,13 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-21 15:18:26</sys_created_on>
         <sys_id>7ebd18a0c3bc361075ea722ed40131a8</sys_id>
-        <sys_mod_count>6</sys_mod_count>
+        <sys_mod_count>9</sys_mod_count>
         <sys_name>render_recognition_recommendations</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_email_7ebd18a0c3bc361075ea722ed40131a8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-21 18:34:40</sys_updated_on>
+        <sys_updated_on>2025-10-21 19:11:54</sys_updated_on>
     </sys_script_email>
 </record_update>
