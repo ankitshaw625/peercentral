@@ -20,6 +20,7 @@ RecognitionDAO.prototype = {
   createRecognition: function (recognitionData) {
     recognitionData.sender = this.currentUserId;
 
+    var sourceRecommendationId = recognitionData.sourceRecommendationId;
     var isTeam = recognitionData.isTeam;
     var isPrivate = recognitionData.isPrivate;
     var recognitionSysId = null;
@@ -37,6 +38,9 @@ RecognitionDAO.prototype = {
     grRecognition.is_private = isPrivate;
     grRecognition.notify_to = recognitionData.notifyTo;
 
+    if (sourceRecommendationId)
+      grRecognition.source_recommendation = sourceRecommendationId;
+
     recognitionSysId = grRecognition.insert();
 
     // Handle error for recognition creation failure
@@ -52,6 +56,19 @@ RecognitionDAO.prototype = {
         status: 'failure',
         message: errorMessage,
       };
+    }
+
+    // Update the status of the source recommendation if applicable
+    if (sourceRecommendationId) {
+      const grCurrentRecommendation = new GlideRecord('x_1794402_peerce_0_recomendations');
+      grCurrentRecommendation.addQuery('sys_id', sourceRecommendationId);
+      grCurrentRecommendation.setLimit(1);
+      grCurrentRecommendation.query();
+
+      if (grCurrentRecommendation.next()) {
+        grCurrentRecommendation.setValue('status', 'action_taken');
+        grCurrentRecommendation.update();
+      }
     }
 
     var recipients = recognitionData.recipients.split(',');
@@ -118,7 +135,6 @@ RecognitionDAO.prototype = {
       message: 'Recognition created successfully.',
     };
   },
-
 
 
   getRecognitionsForFeed: function (feedType, limit, offset, filters) {
@@ -774,13 +790,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>142</sys_mod_count>
+        <sys_mod_count>144</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-12 13:35:04</sys_updated_on>
+        <sys_updated_on>2025-11-16 08:50:37</sys_updated_on>
     </sys_script_include>
 </record_update>

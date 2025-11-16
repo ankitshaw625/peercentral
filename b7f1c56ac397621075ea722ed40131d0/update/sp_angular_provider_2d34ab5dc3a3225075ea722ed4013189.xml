@@ -1,332 +1,332 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_angular_provider">
     <sp_angular_provider action="INSERT_OR_UPDATE">
         <name>cfTinyMceCustom</name>
-        <script><![CDATA[function(snAttachmentHandler, spUtil, $rootScope, $sce, $upload, spAriaUtil) {
-    return {
-        template: '<div><div ng-if="::accessibilityEnabled" tabindex="0" role="note">' +
-            '${In the following editor, press Alt F10 to focus on the toolbar. Press Escape to return to the editor}</div>' +
-            '<span id="vlbl1" class="sr-only">${Options}</span><textarea ui-tinymce="tinyMCEOptions" ng-model="model" ng-model-' + 'options="options" name="{{attrs.name}}" rows="10" aria-labelledby="vlbl1" id={{textareaId}}></textarea>' +
-            '<input ng-file-select="attachFiles({files: $files})" ng-click="$event.stopPropagation();loadFileLimits()"' + 'tabindex="-1" aria-hidden="true" multiple="" type="file" style="display: none;" aria-labelledby="vlbl1"></input>',
-        restrict: 'E',
-        replace: true,
-        scope: {
-            model: "=?ngModel",
-            options: "=?ngModelOptions",
-            snBlur: '&',
-            snDisabled: '=?',
-            editor: '=?',
-            table: '@',
-            attachmentSysId: '@',
-            maxFileSize: '@?',
-            label: '=?',
-            isRequired: '=?'
+        <script><![CDATA[function cfTinyMceCustom(snAttachmentHandler, spUtil, $rootScope, $sce, $upload, spAriaUtil) {
+  return {
+    template: '<div><div ng-if="::accessibilityEnabled" tabindex="0" role="note">' +
+      '${In the following editor, press Alt F10 to focus on the toolbar. Press Escape to return to the editor}</div>' +
+      '<span id="vlbl1" class="sr-only">${Options}</span><textarea ui-tinymce="tinyMCEOptions" ng-model="model" ng-model-' + 'options="options" name="{{attrs.name}}" rows="10" aria-labelledby="vlbl1" id={{textareaId}}></textarea>' +
+      '<input ng-file-select="attachFiles({files: $files})" ng-click="$event.stopPropagation();loadFileLimits()"' + 'tabindex="-1" aria-hidden="true" multiple="" type="file" style="display: none;" aria-labelledby="vlbl1"></input>',
+    restrict: 'E',
+    replace: true,
+    scope: {
+      model: "=?ngModel",
+      options: "=?ngModelOptions",
+      snBlur: '&',
+      snDisabled: '=?',
+      editor: '=?',
+      table: '@',
+      attachmentSysId: '@',
+      maxFileSize: '@?',
+      label: '=?',
+      isRequired: '=?'
+    },
+    controller: function ($scope, CFTinymceLocaleMapper) {
+      $scope.accessibilityEnabled = spAriaUtil.g_accessibility === "true";
+      var urlArray = [];
+      var imageArray = [];
+      $scope.options = $scope.options || {};
+
+      var getuserLanguage = function () {
+        var langs = 'cs,de,en,es,fi,fr,he,it,ja,ko,nl,pl,pt,ru,zh,zt,fq,th';
+        var userLanguage = g_lang;
+        if (!userLanguage || langs.indexOf(userLanguage) == -1)
+          userLanguage = g_system_lang;
+
+        if (!userLanguage || langs.indexOf(userLanguage) == -1)
+          userLanguage = 'en'; // if we don't have the language, fall back to english
+
+        return CFTinymceLocaleMapper.getTinyMCELocaleFromCurrentLocale(userLanguage);
+      };
+
+      var userLanguage = getuserLanguage();
+      var insertVideoButton;
+      var currentEditor = {};
+      var height = $scope.options.height;
+      var content_style = $scope.options.content_style;
+      var plugins = $scope.options.plugins;
+      var toolbar = $scope.options.toolbar;
+      var fontsizeFormats = $scope.options.fontsizeFormats;
+      var fontFormats = $scope.options.fontsizeFormats;
+
+      var removeScriptHost = true;
+      if (typeof g_tinymce_remove_script_host !== "undefined")
+        removeScriptHost = g_tinymce_remove_script_host;
+
+      var convertURLs = false;
+      if (typeof g_tinymce_convert_urls !== "undefined")
+        convertURLs = g_tinymce_convert_urls;
+
+      var relativeURLs = true;
+      if (typeof g_tinymce_relative_urls !== "undefined")
+        relativeURLs = g_tinymce_relative_urls;
+
+
+      var guID = new Date().valueOf();
+      $scope.textareaId = ($scope.textId ? $scope.textId.replace('.', '-') : 'ui-tinymce-') + guID;
+
+      var tinyMceSettings = tinyMCE && tinyMCE.DOM && tinyMCE.DOM.settings;
+      if (tinyMceSettings) {
+        tinyMceSettings.lastTinyMceId = $scope.textareaId; // holds id of last rendered tinymce instance
+        tinyMceSettings.onSetAttrib = function (args) {
+          var elem = $(args.attrElm);
+          if (args.attrName === 'src' && elem.is('iframe') && args.attrValue.indexOf('javascript') > -1)
+            elem.removeAttr('src');
+        }
+      }
+
+      $scope.tinyMCEOptions = {
+        cache_suffix: '?sysparm_substitute=false&v=' + $scope.builddate,
+        height: height,
+        content_style: content_style,
+        theme: 'silver',
+        menubar: false,
+        language: userLanguage,
+        remove_script_host: removeScriptHost,
+        convert_urls: convertURLs,
+        relative_urls: relativeURLs,
+        statusbar: false,
+        plugins: plugins || "image codesample code link fullscreen table autoresize",
+        toolbar: toolbar || 'undo redo | formatselect blocks | bold italic underline |fontselect fontsizeselect fontfamily fontsize table|  forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link unlink | image | codesample code | fullscreen',
+        toolbar_mode: 'wrap',
+        theme_advanced_font_sizes: fontsizeFormats || '7pt,7.5pt,8pt,10pt,12pt,14pt,18pt,24pt,36pt',
+        font_formats: fontFormats || 'Andale Mono=andale mono,times;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings,zapf dingbats;',
+        browser_spellcheck: true,
+        autoresize_bottom_margin: 30,
+        min_height: 300,
+        setup: function (ed) {
+
+          ed.on('init', function () {
+            if (tinyMceSettings && ed.id === tinyMceSettings.lastTinyMceId) {
+              delete tinyMceSettings.onSetAttrib;
+              delete tinyMceSettings.lastTinyMceId;
+            }
+            $scope.$emit('editorInitiated', ed);
+          });
+
+          currentEditor = ed;
+          $scope.editor = ed;
+          ed.addCommand('imageUpload', function (ui, v) {
+            $scope.clickAttachment();
+          });
+
+          ed.ui.registry.addButton('image', {
+            icon: 'image',
+            tooltip: 'Insert image',
+            onAction: function (e) {
+              ed.execCommand('imageUpload');
+            },
+            stateSelector: 'img:not([data-mce-object],[data-mce-placeholder])'
+          });
+
+          ed.on('blur', function () {
+            if (angular.isDefined($scope.snBlur))
+              $scope.snBlur();
+          });
+
+          $scope.registerPasteHandler();
+
+          // --- START: ADD THE MODAL FIX HERE ---
+          ed.on('OpenWindow', function () {
+            // This line disables the Bootstrap modal's focus trap
+            $(document).off('focusin.bs.modal');
+          });
+          ed.on('CloseWindow', function () {
+            // This line re-enables the focus trap after the editor's dialog closes
+            $(document).on('focusin.bs.modal');
+          });
+          // --- END: ADD THE MODAL FIX HERE ---
+
         },
-        controller: function($scope, CFTinymceLocaleMapper) {
-            $scope.accessibilityEnabled = spAriaUtil.g_accessibility === "true";
-            var urlArray = [];
-            var imageArray = [];
-            $scope.options = $scope.options || {};
+        images_upload_handler: function (blobInfo, _progress) {
+          return new Promise((resolve, reject) => {
+            $scope.loadFileLimits();
+            // get the extension from the blob (tinymce formats them like blob01.png)
+            var blobname = blobInfo.filename();
+            var extension = blobname.substring(blobname.indexOf('.'));
+            // over-writing tinymce internal method
 
-            var getuserLanguage = function() {
-                var langs = 'cs,de,en,es,fi,fr,he,it,ja,ko,nl,pl,pt,ru,zh,zt,fq,th';
-                var userLanguage = g_lang;
-                if (!userLanguage || langs.indexOf(userLanguage) == -1)
-                    userLanguage = g_system_lang;
+            var updatedBlobName = "CF-Pasted-Attachment-" + (new Date()).getTime() + extension;
+            var blob = blobInfo.blob();
+            //Since blob's name field is readonly creating a new blob with required name
+            var updatedBlob = new File([blob], updatedBlobName, {
+              type: blob.type
+            });
+            var data = {};
+            data.sysparm_table = $scope.table;
+            data.sysparm_sys_id = $scope.attachmentSysId;
+            data.files = [];
+            data.files.push(updatedBlob);
+            currentEditor.setProgressState(true);
+            $scope.attachFiles(data, function successCallback(imageUrl) {
+              currentEditor.setProgressState(false);
+              resolve(imageUrl);
+            });
+          });
+        }
+      };
 
-                if (!userLanguage || langs.indexOf(userLanguage) == -1)
-                    userLanguage = 'en'; // if we don't have the language, fall back to english
+      $rootScope.$on('clearContent', function () {
+        try {
+          currentEditor.setContent('');
+        } catch (e) { }
+      });
 
-                return CFTinymceLocaleMapper.getTinyMCELocaleFromCurrentLocale(userLanguage);
-            };
+      $scope.attachFiles = function (data, success) {
+        var uploadSuccess = function (resp) {
+          var args = tinymce.extend({}, {
+            src: encodeURI("/" + resp.sys_id + ".iix"),
+            style: "max-width: 100%; max-height: 480px;"
+          });
+          imageArray.push(resp.sys_id);
+          if (success)
+            success(args.src);
+          else
+            currentEditor.execCommand('mceInsertContent', false, currentEditor.dom.createHTML('img', args), {
+              skip_undo: 1
+            });
+          $scope.$emit('cf.editor.image_array', imageArray);
+        };
 
-            var userLanguage = getuserLanguage();
-            var insertVideoButton;
-            var currentEditor = {};
-            var height = $scope.options.height;
-            var content_style = $scope.options.content_style;
-            var plugins = $scope.options.plugins;
-            var toolbar = $scope.options.toolbar;
-            var fontsizeFormats = $scope.options.fontsizeFormats;
-            var fontFormats = $scope.options.fontsizeFormats;
+        var processError = function () {
 
-            var removeScriptHost = true;
-            if (typeof g_tinymce_remove_script_host !== "undefined")
-                removeScriptHost = g_tinymce_remove_script_host;
+          //Enable the following code to remove the image from the tinyMCE incase of failure.
+          //Otherwise, the blob image may cause performance issues.
+          if (success) {
+            success('');
+            return;
+          }
+          currentEditor.execCommand('mceInsertContent', false, '', {
+            skip_undo: 0
+          });
+        };
 
-            var convertURLs = false;
-            if (typeof g_tinymce_convert_urls !== "undefined")
-                convertURLs = g_tinymce_convert_urls;
+        var _upload = function (file) {
+          if (!file || !file.name)
+            return;
+          var currentFileExtension = file.name.substr((~-file.name.lastIndexOf(".") >>> 0) + 2);
+          //var url = 'ideaprocessor.do?sysparm_type=ngk_attachments&sys_id=-1&table=idea&action=add&doc_check=false';
+          // console.log($scope);
+          var url = 'angular.do?sysparm_type=ngk_attachments&sys_id=' + $scope.attachmentSysId + '&table=' + $scope.table + '&action=add';
 
-            var relativeURLs = true;
-            if (typeof g_tinymce_relative_urls !== "undefined")
-                relativeURLs = g_tinymce_relative_urls;
+          $upload.upload({
+            url: url,
+            fields: {
+              attachments_modified: 'true',
+              sysparm_table: $scope.table,
+              sysparm_sys_id: $scope.attachmentSysId,
+              sysparm_nostack: 'yes',
+              sysparm_encryption_context: '',
+              sysparm_ck: window.g_ck
+            },
+            headers: {
+              'X-File-Extension': currentFileExtension
+            },
+            fileFormDataName: 'attachFile',
+            file: file
+          }).success(function (data, status, headers, config) {
+            if (!data.error)
+              uploadSuccess(data, status, headers, config);
+            else {
+              $scope.$emit("cf.editor_attachments.upload_failed");
+              processError();
+            }
+            currentEditor.setProgressState(false);
+          })
+        };
+
+        var file = data.files[0];
+        if (file) {
+          if ($scope.maxFileSize) {
+            if (file.size > $scope.maxFileSize) {
+              $scope.$emit("cf.editor_attachments.file_exceeded");
+              processError();
+            } else {
+              _upload(file);
+            }
+          } else
+            _upload(file);
+        }
+      };
+
+      $scope.loadFileLimits = function () {
+        $scope.maxFileSize = $scope.maxFileSize || 1024 * 1024 * 1024;
+      };
 
 
-            var guID = new Date().valueOf();
-            $scope.textareaId = ($scope.textId ? $scope.textId.replace('.', '-') : 'ui-tinymce-') + guID;
+      $scope.$watch('snDisabled', function (newValue) {
+        if (angular.isDefined(newValue) && typeof currentEditor.setMode == "function") {
+          if (currentEditor.getContainer())
+            currentEditor.setMode(newValue ? 'readonly' : 'design');
+          else {
+            currentEditor.on('init', function () {
+              currentEditor.setMode(newValue ? 'readonly' : 'design');
+            });
+          }
+        }
+      });
 
-            var tinyMceSettings = tinyMCE && tinyMCE.DOM && tinyMCE.DOM.settings;
-            if (tinyMceSettings) {
-                tinyMceSettings.lastTinyMceId = $scope.textareaId; // holds id of last rendered tinymce instance
-                tinyMceSettings.onSetAttrib = function(args) {
-                    var elem = $(args.attrElm);
-                    if (args.attrName === 'src' && elem.is('iframe') && args.attrValue.indexOf('javascript') > -1)
-                        elem.removeAttr('src');
-                }
+
+    },
+    link: function (scope, element, attrs) {
+      scope.attrs = attrs;
+      scope.clickAttachment = function () {
+        element.find("input").click();
+      };
+
+      scope.registerPasteHandler = function () {
+        scope.$evalAsync(function () {
+          element.find('iframe').contents().find('body').bind('paste', function (e) {
+            e = e.originalEvent;
+            var files = [];
+            for (var i = 0; i < e.clipboardData.items.length; i++) {
+              var item = e.clipboardData.items[i];
+
+              if (item.kind && item.kind === "file") {
+                var file = item.getAsFile();
+                Object.defineProperty(file, "name", {
+                  value: "Pasted File - " + new Date()
+                });
+                files.push(file);
+              }
             }
 
-            $scope.tinyMCEOptions = {
-                cache_suffix: '?sysparm_substitute=false&v=' + $scope.builddate,
-                height: height,
-                content_style: content_style,
-                theme: 'silver',
-                menubar: false,
-                language: userLanguage,
-                remove_script_host: removeScriptHost,
-                convert_urls: convertURLs,
-                relative_urls: relativeURLs,
-                statusbar: false,
-                plugins: plugins || "image codesample code link fullscreen table autoresize",
-                toolbar: toolbar || 'undo redo | formatselect blocks | bold italic underline |fontselect fontsizeselect fontfamily fontsize table|  forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link unlink | image | codesample code | fullscreen',
-                toolbar_mode: 'wrap',
-                theme_advanced_font_sizes: fontsizeFormats || '7pt,7.5pt,8pt,10pt,12pt,14pt,18pt,24pt,36pt',
-                font_formats: fontFormats || 'Andale Mono=andale mono,times;Arial=arial,helvetica,sans-serif;Arial Black=arial black,avant garde;Book Antiqua=book antiqua,palatino;Comic Sans MS=comic sans ms,sans-serif;Courier New=courier new,courier;Georgia=georgia,palatino;Helvetica=helvetica;Impact=impact,chicago;Symbol=symbol;Tahoma=tahoma,arial,helvetica,sans-serif;Terminal=terminal,monaco;Times New Roman=times new roman,times;Trebuchet MS=trebuchet ms,geneva;Verdana=verdana,geneva;Webdings=webdings;Wingdings=wingdings,zapf dingbats;',
-                browser_spellcheck: true,
-                autoresize_bottom_margin: 30,
-                min_height: 300,
-                setup: function(ed) {
+            if (files.length > 0) {
+              e.stopPropagation();
+              e.preventDefault();
+              scope.attachFiles({
+                files: files
+              });
+            }
+          });
+        });
+      };
 
-                    ed.on('init', function() {
-                        if (tinyMceSettings && ed.id === tinyMceSettings.lastTinyMceId) {
-                            delete tinyMceSettings.onSetAttrib;
-                            delete tinyMceSettings.lastTinyMceId;
-                        }
-                        $scope.$emit('editorInitiated', ed);
-                    });
-
-                    currentEditor = ed;
-                    $scope.editor = ed;
-                    ed.addCommand('imageUpload', function(ui, v) {
-                        $scope.clickAttachment();
-                    });
-
-                    ed.ui.registry.addButton('image', {
-                        icon: 'image',
-                        tooltip: 'Insert image',
-                        onAction: function(e) {
-                            ed.execCommand('imageUpload');
-                        },
-                        stateSelector: 'img:not([data-mce-object],[data-mce-placeholder])'
-                    });
-
-                    ed.on('blur', function() {
-                        if (angular.isDefined($scope.snBlur))
-                            $scope.snBlur();
-                    });
-
-                    $scope.registerPasteHandler();
-
-                    // --- START: ADD THE MODAL FIX HERE ---
-                    ed.on('OpenWindow', function() {
-                        // This line disables the Bootstrap modal's focus trap
-                        $(document).off('focusin.bs.modal');
-                    });
-                    ed.on('CloseWindow', function() {
-                        // This line re-enables the focus trap after the editor's dialog closes
-                        $(document).on('focusin.bs.modal');
-                    });
-                    // --- END: ADD THE MODAL FIX HERE ---
-
-                },
-                images_upload_handler: function(blobInfo, _progress) {
-                    return new Promise((resolve, reject) => {
-                        $scope.loadFileLimits();
-                        // get the extension from the blob (tinymce formats them like blob01.png)
-                        var blobname = blobInfo.filename();
-                        var extension = blobname.substring(blobname.indexOf('.'));
-                        // over-writing tinymce internal method
-
-                        var updatedBlobName = "CF-Pasted-Attachment-" + (new Date()).getTime() + extension;
-                        var blob = blobInfo.blob();
-                        //Since blob's name field is readonly creating a new blob with required name
-                        var updatedBlob = new File([blob], updatedBlobName, {
-                            type: blob.type
-                        });
-                        var data = {};
-                        data.sysparm_table = $scope.table;
-                        data.sysparm_sys_id = $scope.attachmentSysId;
-                        data.files = [];
-                        data.files.push(updatedBlob);
-                        currentEditor.setProgressState(true);
-                        $scope.attachFiles(data, function successCallback(imageUrl) {
-                            currentEditor.setProgressState(false);
-                            resolve(imageUrl);
-                        });
-                    });
-                }
-            };
-
-            $rootScope.$on('clearContent', function() {
-                try {
-                    currentEditor.setContent('');
-                } catch (e) {}
-            });
-
-            $scope.attachFiles = function(data, success) {
-                var uploadSuccess = function(resp) {
-                    var args = tinymce.extend({}, {
-                        src: encodeURI("/" + resp.sys_id + ".iix"),
-                        style: "max-width: 100%; max-height: 480px;"
-                    });
-                    imageArray.push(resp.sys_id);
-                    if (success)
-                        success(args.src);
-                    else
-                        currentEditor.execCommand('mceInsertContent', false, currentEditor.dom.createHTML('img', args), {
-                            skip_undo: 1
-                        });
-                    $scope.$emit('cf.editor.image_array', imageArray);
-                };
-
-                var processError = function() {
-
-                    //Enable the following code to remove the image from the tinyMCE incase of failure.
-                    //Otherwise, the blob image may cause performance issues.
-                    if (success) {
-                        success('');
-                        return;
-                    }
-                    currentEditor.execCommand('mceInsertContent', false, '', {
-                        skip_undo: 0
-                    });
-                };
-
-                var _upload = function(file) {
-                    if (!file || !file.name)
-                        return;
-                    var currentFileExtension = file.name.substr((~-file.name.lastIndexOf(".") >>> 0) + 2);
-                    //var url = 'ideaprocessor.do?sysparm_type=ngk_attachments&sys_id=-1&table=idea&action=add&doc_check=false';
-					console.log($scope);
-                    var url = 'angular.do?sysparm_type=ngk_attachments&sys_id=' + $scope.attachmentSysId + '&table=' + $scope.table + '&action=add';
-
-                    $upload.upload({
-                        url: url,
-                        fields: {
-                            attachments_modified: 'true',
-                            sysparm_table: $scope.table,
-                            sysparm_sys_id: $scope.attachmentSysId,
-                            sysparm_nostack: 'yes',
-                            sysparm_encryption_context: '',
-                            sysparm_ck: window.g_ck
-                        },
-                        headers: {
-                            'X-File-Extension': currentFileExtension
-                        },
-                        fileFormDataName: 'attachFile',
-                        file: file
-                    }).success(function(data, status, headers, config) {
-                        if (!data.error)
-                            uploadSuccess(data, status, headers, config);
-                        else {
-                            $scope.$emit("cf.editor_attachments.upload_failed");
-                            processError();
-                        }
-                        currentEditor.setProgressState(false);
-                    })
-                };
-
-                var file = data.files[0];
-                if (file) {
-                    if ($scope.maxFileSize) {
-                        if (file.size > $scope.maxFileSize) {
-                            $scope.$emit("cf.editor_attachments.file_exceeded");
-                            processError();
-                        } else {
-                            _upload(file);
-                        }
-                    } else
-                        _upload(file);
-                }
-            };
-
-            $scope.loadFileLimits = function() {
-                $scope.maxFileSize = $scope.maxFileSize || 1024 * 1024 * 1024;
-            };
-
-
-            $scope.$watch('snDisabled', function(newValue) {
-                if (angular.isDefined(newValue) && typeof currentEditor.setMode == "function") {
-                    if (currentEditor.getContainer())
-                        currentEditor.setMode(newValue ? 'readonly' : 'design');
-                    else {
-                        currentEditor.on('init', function() {
-                            currentEditor.setMode(newValue ? 'readonly' : 'design');
-                        });
-                    }
-                }
-            });
-
-
-        },
-        link: function(scope, element, attrs) {
-            scope.attrs = attrs;
-            scope.clickAttachment = function() {
-                element.find("input").click();
-            };
-
-            scope.registerPasteHandler = function() {
-                scope.$evalAsync(function() {
-                    element.find('iframe').contents().find('body').bind('paste', function(e) {
-                        e = e.originalEvent;
-                        var files = [];
-                        for (var i = 0; i < e.clipboardData.items.length; i++) {
-                            var item = e.clipboardData.items[i];
-
-                            if (item.kind && item.kind === "file") {
-                                var file = item.getAsFile();
-                                Object.defineProperty(file, "name", {
-                                    value: "Pasted File - " + new Date()
-                                });
-                                files.push(file);
-                            }
-                        }
-
-                        if (files.length > 0) {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            scope.attachFiles({
-                                files: files
-                            });
-                        }
-                    });
-                });
-            };
-
-            scope.$on('editorInitiated', function(e, ed) {
-                // Uptaking PRB1237925: give whole input appropriate context menu options
-                var doc = ed.getDoc();
-                doc.documentElement.style.height = '80%';
-                doc.body.style.minHeight = '90%';
-                var body = doc.body;
-                body.setAttribute('aria-label', scope.label);
-                if (scope.isRequired)
-                    body.setAttribute('aria-required', 'true');
-            });
-        }
-    };
+      scope.$on('editorInitiated', function (e, ed) {
+        // Uptaking PRB1237925: give whole input appropriate context menu options
+        var doc = ed.getDoc();
+        doc.documentElement.style.height = '80%';
+        doc.body.style.minHeight = '90%';
+        var body = doc.body;
+        body.setAttribute('aria-label', scope.label);
+        if (scope.isRequired)
+          body.setAttribute('aria-required', 'true');
+      });
+    }
+  };
 }]]></script>
         <sys_class_name>sp_angular_provider</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 10:19:57</sys_created_on>
         <sys_id>2d34ab5dc3a3225075ea722ed4013189</sys_id>
-        <sys_mod_count>3</sys_mod_count>
+        <sys_mod_count>4</sys_mod_count>
         <sys_name>cfTinyMceCustom</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_angular_provider_2d34ab5dc3a3225075ea722ed4013189</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-08-23 10:36:04</sys_updated_on>
+        <sys_updated_on>2025-10-23 17:45:53</sys_updated_on>
         <type>directive</type>
     </sp_angular_provider>
 </record_update>

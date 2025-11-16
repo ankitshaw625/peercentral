@@ -4,11 +4,13 @@
         <client_script><![CDATA[api.controller = function ($scope, $rootScope) {
   var c = this;
 
-  c.recognizeUser = function (userId) {
-    if (!userId) return;
+  c.recognizeUser = function (recommendation) {
+    if (!recommendation || !recommendation.user_id) return;
 
-    $rootScope.$broadcast('x-peercentral-open-recognition-modal', {
-      user_id: userId
+    $rootScope.$broadcast('peercentral-open-recognition-modal', {
+      user_id: recommendation.user_id,
+      user_name: recommendation.user,
+      recommendation_id: recommendation.id
     });
   };
 
@@ -147,14 +149,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-21 17:53:04</sys_created_on>
         <sys_id>f0e10128c3b0761075ea722ed40131e3</sys_id>
-        <sys_mod_count>18</sys_mod_count>
+        <sys_mod_count>21</sys_mod_count>
         <sys_name>Unsung Hero Recommendations</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_f0e10128c3b0761075ea722ed40131e3</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-22 17:12:29</sys_updated_on>
+        <sys_updated_on>2025-10-23 18:00:25</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary unsung-heroes-widget">
   <div class="panel-heading" ng-if="c.data.show_title">
     <h3 class="panel-title"><i class="glyphicon glyphicon-gift"></i> Unsung Hero Recommendations</h3>
@@ -173,7 +175,7 @@
       </div>
 
       <div class="rec-actions-flex">
-        <button class="btn btn-primary btn-sm" ng-click="c.recognizeUser(rec.user_id)">Recognize</button>
+        <button class="btn btn-primary btn-sm" ng-click="c.recognizeUser(rec)">Recognize</button>
         <button class="btn btn-default btn-sm" ng-click="c.dismissRecommendation($index)">Dismiss</button>
       </div>
     </div>

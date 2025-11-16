@@ -1,66 +1,82 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function($scope, spUtil) {
-  var c = this;	
-	
-	c.initializeModels = function () {
-    c.recipients = {value: ''};
-    c.teams = {value: ''};
-    c.category = {value: ''};
-    c.notifyTo = {value: ''};
+        <client_script><![CDATA[api.controller = function ($scope, spUtil) {
+  var c = this;
+
+  c.initializeModels = function () {
+    c.recipients = { value: '' };
+    c.teams = { value: '' };
+    c.category = { value: '' };
+    c.notifyTo = { value: '' };
     c.visibility = { isPrivate: false };
     c.errors = {};
-    
-		c.recipientType = 'members';
+
+    c.recipientType = 'members';
     c.message = '';
+    c.sourceRecommendationId = null;
   };
-	
-	c.onRecipientTypeChange = function() {
+
+  c.onRecipientTypeChange = function () {
     c.errors = {};
   };
-	
-	c.submitRecognition = function() {
-		c.errors = {};
-		
+
+  c.submitRecognition = function () {
+    c.errors = {};
+
     var isTeam = c.recipientType === 'teams';
 
     if (!isTeam && !c.recipients.value) c.errors.recipients = true;
-		
-    if (isTeam && !c.teams.value)	c.errors.teams = true;
-		
+
+    if (isTeam && !c.teams.value) c.errors.teams = true;
+
     if (!c.category.value) c.errors.category = true;
-    
+
     if (Object.keys(c.errors).length > 0) return;
-		
-		
-		var recipients = isTeam ? c.teams.value : c.recipients.value;
-		
-		var newRecognition = {
+
+
+    var recipients = isTeam ? c.teams.value : c.recipients.value;
+
+    var newRecognition = {
       recipients: recipients,
-			category: c.category.value,
-			message: c.message,
-			isTeam: isTeam,
-			notifyTo: c.notifyTo.value,
-			isPrivate: c.visibility.isPrivate,
-			action: 'createRecognition'
-		};
-		
-		c.server.get(newRecognition).then(function(response) {
-			var status = response.data.output.status;
-			if (status == 'success') {
-				spUtil.addInfoMessage(c.data.successMessage);				
-			}
-			
-			$('#recognition-modal').modal('hide');
-			
-			// Clear form data
-			c.initializeModels();
-		});
-	};
-	
-	
-	c.initializeModels();
+      category: c.category.value,
+      message: c.message,
+      isTeam: isTeam,
+      notifyTo: c.notifyTo.value,
+      isPrivate: c.visibility.isPrivate,
+      sourceRecommendationId: c.sourceRecommendationId,
+      action: 'createRecognition'
+    };
+
+    c.server.get(newRecognition).then(function (response) {
+      var status = response.data.output.status;
+      if (status == 'success') {
+        spUtil.addInfoMessage(c.data.successMessage);
+      }
+
+      $('#recognition-modal').modal('hide');
+
+      // Clear form data
+      c.initializeModels();
+    });
+  };
+
+  $scope.$on('peercentral-open-recognition-modal', function (event, data) {
+    if (!data || !data.user_id || !data.user_name) return;
+
+    c.initializeModels();
+
+    c.recipients.value = data.user_id;
+    c.recipients.displayValue = data.user_name;
+
+    if (data.recommendation_id)
+      c.sourceRecommendationId = data.recommendation_id;
+
+    $('#recognition-modal').modal('show');
+  });
+
+
+  c.initializeModels();
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>.recognition-header {
@@ -126,18 +142,18 @@
         <option_schema/>
         <public>false</public>
         <roles/>
-        <script><![CDATA[(function() {
-	
-	var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
-	
-	if (input && input.action == 'createRecognition') {
-		var result = recognitionDAO.createRecognition(input);
-		data.output = result;
-	}
-	
-	data.successMessage = gs.getMessage('Thank you! Your recognition has been sent.');
-	
-	data.showTeams = gs.hasRole('x_1794402_peerce_0.manager') || gs.hasRole('x_1794402_peerce_0.hr_analyst');
+        <script><![CDATA[(function () {
+
+  var recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+
+  if (input && input.action == 'createRecognition') {
+    var result = recognitionDAO.createRecognition(input);
+    data.output = result;
+  }
+
+  data.successMessage = gs.getMessage('Thank you! Your recognition has been sent.');
+
+  data.showTeams = gs.hasRole('x_1794402_peerce_0.manager') || gs.hasRole('x_1794402_peerce_0.hr_analyst');
 
 })();]]></script>
         <servicenow>false</servicenow>
@@ -145,14 +161,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>188</sys_mod_count>
+        <sys_mod_count>192</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-10 09:32:44</sys_updated_on>
+        <sys_updated_on>2025-10-23 18:00:25</sys_updated_on>
         <template><![CDATA[<header class="recognition-header">
 <h1>Recognize your teams and peers</h1>
   <p>
