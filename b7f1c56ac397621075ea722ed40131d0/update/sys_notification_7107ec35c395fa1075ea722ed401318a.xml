@@ -1,28 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sys_notification">
     <sys_notification action="INSERT_OR_UPDATE">
         <action_delete>false</action_delete>
-        <action_insert>true</action_insert>
+        <action_insert>false</action_insert>
         <action_update>false</action_update>
         <active>true</active>
         <advanced_condition/>
         <advanced_event_condition>false</advanced_event_condition>
         <category display_value="Recognition" name="Recognition">26cf8279c32f621075ea722ed40131a0</category>
-        <condition table="x_1794402_peerce_0_recognition_recipient">recognition.is_team=false^recipient_userISNOTEMPTY^EQ<item endquery="false" field="recognition.is_team" goto="false" newquery="false" operator="=" or="false" value="false"/>
-            <item endquery="false" field="recipient_user" goto="false" newquery="false" operator="ISNOTEMPTY" or="false" value=""/>
+        <condition table="x_1794402_peerce_0_rec_interaction">parentISNOTEMPTY^userISNOTEMPTY^type=reaction^EQ<item endquery="false" field="parent" goto="false" newquery="false" operator="ISNOTEMPTY" or="false" value=""/>
+            <item endquery="false" field="user" goto="false" newquery="false" operator="ISNOTEMPTY" or="false" value=""/>
+            <item display_value="Reaction" endquery="false" field="type" goto="false" newquery="false" operator="=" or="false" value="reaction"/>
             <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
         </condition>
         <description/>
-        <event/>
-        <event_parm_1>false</event_parm_1>
+        <event display_value="x_1794402_peerce_0.comment_liked">d3d5a4b1c395fa1075ea722ed4013176</event>
+        <event_parm_1>true</event_parm_1>
         <event_parm_1_table>sys_user</event_parm_1_table>
         <event_parm_2>false</event_parm_2>
         <event_parm_2_table>sys_user</event_parm_2_table>
         <include_originator>false</include_originator>
         <mandatory>false</mandatory>
-        <name>Recognition received - Individual</name>
+        <name>Recognition Comment Liked - Individual</name>
         <notification_classifier/>
         <order>100</order>
-        <recipient_fields>recipient_user</recipient_fields>
+        <recipient_fields/>
         <recipient_users/>
         <script><![CDATA[(function runRecipientScript(/*String*/ parm1, /*String*/ parm2) {
       /*
@@ -40,20 +41,20 @@
       })(parm1,parm2);]]></script>
         <sys_class_name>sys_notification</sys_class_name>
         <sys_created_by>admin</sys_created_by>
-        <sys_created_on>2025-08-24 17:29:01</sys_created_on>
+        <sys_created_on>2025-11-19 09:39:31</sys_created_on>
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
-        <sys_id>ceafce39c32f621075ea722ed4013143</sys_id>
-        <sys_mod_count>2</sys_mod_count>
-        <sys_name>Recognition received - Individual</sys_name>
+        <sys_id>7107ec35c395fa1075ea722ed401318a</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>Recognition Comment Liked - Individual</sys_name>
         <sys_overrides/>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
-        <sys_update_name>sys_notification_ceafce39c32f621075ea722ed4013143</sys_update_name>
+        <sys_update_name>sys_notification_7107ec35c395fa1075ea722ed401318a</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-19 09:24:02</sys_updated_on>
-        <table>x_1794402_peerce_0_recognition_recipient</table>
-        <triggered_by>record_change</triggered_by>
+        <sys_updated_on>2025-11-19 09:53:08</sys_updated_on>
+        <table>x_1794402_peerce_0_rec_interaction</table>
+        <triggered_by>event</triggered_by>
     </sys_notification>
 </record_update>

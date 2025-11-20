@@ -4,7 +4,7 @@
         <active>true</active>
         <actor/>
         <advanced>false</advanced>
-        <content_params><![CDATA[${recognition.sender.name}]]></content_params>
+        <content_params><![CDATA[${user}]]></content_params>
         <content_script><![CDATA[(function(current, eventName, eventParm1, eventParm2, previousActors) {
      /**
      * Generates a notification object based on the provided parameters.
@@ -32,28 +32,28 @@
      };
  })(current, eventName, eventParm1, eventParm2, previousActors);
 ]]></content_script>
-        <content_template>{0} has recognized you for your contribution!</content_template>
+        <content_template>{0} liked your comment!</content_template>
         <custom_icon/>
-        <icon>trophy</icon>
+        <icon>thumbs-o-up</icon>
         <icon_background>#D3D6DC</icon_background>
         <invert_icon_color>false</invert_icon_color>
         <is_default>false</is_default>
-        <name>Recognition received - Individual</name>
-        <notification display_value="Recognition received - Individual">ceafce39c32f621075ea722ed4013143</notification>
+        <name>Recognition Comment Liked - Individual</name>
+        <notification display_value="Recognition Comment Liked - Individual">7107ec35c395fa1075ea722ed401318a</notification>
         <order>100</order>
         <portals>8ae319a2c31b621075ea722ed401313b</portals>
         <sys_class_name>sn_ex_sp_notifs_portal_notification_content_config</sys_class_name>
         <sys_created_by>admin</sys_created_by>
-        <sys_created_on>2025-08-24 17:31:18</sys_created_on>
-        <sys_id>6c505e79c32f621075ea722ed4013177</sys_id>
-        <sys_mod_count>6</sys_mod_count>
-        <sys_name>Recognition received - Individual</sys_name>
+        <sys_created_on>2025-11-19 09:41:59</sys_created_on>
+        <sys_id>dd7760b5c395fa1075ea722ed4013175</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>Recognition Comment Liked - Individual</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
-        <sys_update_name>sn_ex_sp_notifs_portal_notification_content_config_6c505e79c32f621075ea722ed4013177</sys_update_name>
+        <sys_update_name>sn_ex_sp_notifs_portal_notification_content_config_dd7760b5c395fa1075ea722ed4013175</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-19 09:25:24</sys_updated_on>
+        <sys_updated_on>2025-11-19 09:42:14</sys_updated_on>
         <use_custom_icon>false</use_custom_icon>
     </sn_ex_sp_notifs_portal_notification_content_config>
 </record_update>

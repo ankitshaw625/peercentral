@@ -1,17 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function ($scope, $rootScope, $window) {
+        <client_script><![CDATA[api.controller = function ($scope, $rootScope, $window, spUtil) {
   var c = this;
+
   c.showTray = false;
   c.isLoading = false;
+  c.currentUserId = $scope.user.sys_id;
+
 
   // Toggle the visibility of the notification tray
   c.toggleTray = function () {
     c.showTray = !c.showTray;
   };
 
-  // Function to open notification (and redirect if URL exists)
+  // Open the notification tray and mark notification as read
   c.openNotification = function (item) {
     c.markAsRead(item); // Mark as read on click
     if (item.url) {
@@ -21,44 +24,45 @@
 
   // Mark a single notification as read
   c.markAsRead = function (item, event) {
-    if (event) {
+    if (event)
       event.stopPropagation(); // Prevent link click
-    }
 
-    if (!item.is_read) {
-      c.server.get({
-        action: 'mark_as_read',
-        item_sys_id: item.sys_id
-      }).then(function (response) {
-        // Update UI optimistically
-        item.is_read = true;
-        c.data.unread_count = response.data.unread_count;
-      });
-    }
+    if (item.is_read) return;
+
+    c.server.get({
+      action: 'mark_as_read',
+      item_sys_id: item.sys_id
+    }).then(function (response) {
+      // Update UI instantly
+      item.is_read = true;
+      if (c.data.unread_count > 0) c.data.unread_count -= 1;
+    });
   };
 
-  // Clear/remove a notification
+  // Clear a single notification
   c.clearNotification = function (item, event) {
-    if (event) {
-      event.stopPropagation(); // Prevent link click
-    }
+    if (event)
+      event.stopPropagation();
 
     c.server.get({
       action: 'clear',
       item_sys_id: item.sys_id
     }).then(function (response) {
+      // const index = c.data.notifications.findIndex(function (n) {
+      //   return n.sys_id === item.sys_id;
+      // });
+
+      // if (index > -1) {
+      //   c.data.notifications.splice(index, 1);
+      // }
+
       // Update UI by removing the item
-      var index = c.data.notifications.findIndex(function (n) {
-        return n.sys_id === item.sys_id;
-      });
-      if (index > -1) {
-        c.data.notifications.splice(index, 1);
-      }
+      c.data.notifications = c.data.notifications.filter((n) => n.sys_id !== item.sys_id);
+
       c.data.unread_count = response.data.unread_count;
     });
   };
 
-  // (after the c.clearNotification function)
 
   // Mark all notifications as read
   c.markAllAsRead = function () {
@@ -98,17 +102,31 @@
     }
   });
 
-  // Listen for updates from other widgets
-  $rootScope.$on('simple-notifications.update', function () {
-    c.server.update();
-  });
+
+  const notificationWatchFilter = 'user=' + c.currentUserId;
+  spUtil.recordWatch($scope, 'sn_ex_sp_notifs_portal_notification_content', notificationWatchFilter, handleNewNotification);
+
+  function handleNewNotification(response) {
+    if (response.data.operation !== 'insert') return;
+
+    // Refetch all the notifications from the server
+    c.server.update().then(function () {
+
+      const latestNotification = c.data.notifications[0];
+
+      if (!latestNotification || latestNotification.is_read) return;
+
+      // Show a toast for the new notification
+      spUtil.addTrivialMessage(latestNotification.message);
+    });
+  }
 
   c.formatTimeAgo = function (dateTime) {
     if (!dateTime) return '';
     return moment(dateTime, "YYYY-MM-DD HH:mm:ss").fromNow();
   };
 
-  // ADD THIS MOMENT.JS CONFIGURATION AT THE END OF THE SCRIPT
+
   moment.updateLocale('en', {
     relativeTime: {
       future: "in %s",
@@ -360,13 +378,14 @@
         <public>false</public>
         <roles/>
         <script><![CDATA[(function () {
-  var userId = gs.getUserID();
-  var watchFilter = 'notification=ceafce39c32f621075ea722ed4013143^user=' + userId;
+  const userId = gs.getUserID();
+  const watchFilter = 'portalsLIKE8ae319a2c31b621075ea722ed401313b^user=' + userId;
+  
   data.notifications = [];
 
-  // --- Handle Client Actions ---
+  // Handle client side actions
   if (input && (input.action === 'mark_as_read' || input.action === 'clear')) {
-    var grNotification = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    const grNotification = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
     // Ensure the user can only modify their own notifications
     grNotification.addQuery('user', userId);
     grNotification.addQuery('sys_id', input.item_sys_id);
@@ -374,25 +393,27 @@
 
     if (grNotification.next()) {
 
-      // Action: Mark a single notification as read by setting status to 'viewed'
+      // Mark a single notification as read by setting status to viewed
       if (input.action === 'mark_as_read') {
         grNotification.setValue('status', 'viewed');
         grNotification.update();
       }
 
-      // Action: Clear a single notification by making it inactive
+      // Clear a single notification by making it inactive
       if (input.action === 'clear') {
         grNotification.setValue('active', false);
         grNotification.update();
       }
+
+      data.unread_count = getUnreadCount();
     }
 
     return;
   }
 
-  // ADD THIS NEW LOGIC FOR BULK ACTIONS
+  // Mark all the current notifications as read 
   if (input && input.action === 'mark_all_as_read') {
-    var grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
     grNotifications.addQuery('user', userId);
     grNotifications.addQuery('status', 'new');
     grNotifications.query();
@@ -400,12 +421,14 @@
     grNotifications.setValue('status', 'viewed');
     grNotifications.updateMultiple();
 
+    data.unread_count = 0;
 
     return;
   }
 
+  // Mark all the current notifications as cleared
   if (input && input.action === 'clear_all') {
-    var grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
     grNotifications.addQuery('user', userId);
     grNotifications.addQuery('active', true);
     grNotifications.query();
@@ -419,42 +442,52 @@
 
   }
 
+  getNotifications();
+  data.unread_count = getUnreadCount();
 
-  // --- Fetch Notifications for the User ---
-  var grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
-  grNotifications.addEncodedQuery(watchFilter);
-  grNotifications.addQuery('active', true);
-  grNotifications.orderByDesc('sys_created_on');
-  grNotifications.setLimit(30);
-  grNotifications.query();
+  function getNotifications() {
+    // Get all the notifications for the current user
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    grNotifications.addEncodedQuery(watchFilter);
+    grNotifications.addQuery('active', true);
+    grNotifications.orderByDesc('sys_created_on');
+    grNotifications.setLimit(30);
+    grNotifications.query();
 
-  while (grNotifications.next()) {
-    var template = grNotifications.content_template.toString();
-    var params = JSON.parse(grNotifications.content_params.toString() || '[]');
-    var message = gs.getMessage(template, params);
+    while (grNotifications.next()) {
+      const template = grNotifications.content_template.toString();
+      const params = JSON.parse(grNotifications.content_params.toString() || '[]');
+      const message = gs.getMessage(template, params);
 
-    var recordId = grNotifications.getValue('record');
+      const recordId = grNotifications.getValue('record');
 
-    data.notifications.push({
-      sys_id: grNotifications.getUniqueValue(),
-      message: message,
-      is_read: grNotifications.getValue('status') != 'new',
-      url: recordId ? '?id=recognition_home&scrollTo=' + recordId + '#you' : '',
-      created_on: grNotifications.getValue('sys_created_on')
-    });
+      data.notifications.push({
+        sys_id: grNotifications.getUniqueValue(),
+        message: message,
+        is_read: grNotifications.getValue('status') != 'new',
+        url: recordId ? '?id=recognition_home&scrollTo=' + recordId + '#you' : '',
+        created_on: grNotifications.getValue('sys_created_on')
+      });
+    }
   }
 
-  // --- Calculate Unread Count (status is 'new') ---
-  var unreadCount = new GlideAggregate('sn_ex_sp_notifs_portal_notification_content');
-  unreadCount.addEncodedQuery(watchFilter);
-  unreadCount.addQuery('active', true);
-  unreadCount.addQuery('status', 'new');
-  unreadCount.addAggregate('COUNT');
-  unreadCount.query();
 
-  data.unread_count = 0;
-  if (unreadCount.next())
-    data.unread_count = unreadCount.getAggregate('COUNT');
+  function getUnreadCount() {
+    // Get unread count
+    const grNotificationCount = new GlideAggregate('sn_ex_sp_notifs_portal_notification_content');
+    grNotificationCount.addEncodedQuery(watchFilter);
+    grNotificationCount.addQuery('active', true);
+    grNotificationCount.addQuery('status', 'new');
+    grNotificationCount.addAggregate('COUNT');
+    grNotificationCount.query();
+
+    let unreadCount = 0;
+    if (grNotificationCount.next())
+      unreadCount = grNotificationCount.getAggregate('COUNT');
+
+    return unreadCount;
+  }
+
 
 
 })();]]></script>
@@ -463,16 +496,15 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-08 22:25:41</sys_created_on>
         <sys_id>6b93c3d8c3e0725075ea722ed40131d8</sys_id>
-        <sys_mod_count>25</sys_mod_count>
+        <sys_mod_count>35</sys_mod_count>
         <sys_name>PC Notification Bell</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_6b93c3d8c3e0725075ea722ed40131d8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-23 17:45:04</sys_updated_on>
+        <sys_updated_on>2025-11-19 09:44:22</sys_updated_on>
         <template><![CDATA[<div class="simple-bell-widget header-menu-item">
-  <!-- Notification Bell Icon -->
   <!-- Notification Bell Icon -->
   <a href="javascript:void(0)" class="bell-button" ng-click="c.toggleTray()"
     aria-label="{{c.data.unread_count}} new notifications" role="button">
@@ -532,7 +564,8 @@
     </div>
 
     <div class="tray-footer" ng-if="c.data.notifications.length > 0">
-      <button class="btn btn-sm btn-link" ng-click="c.markAllAsRead()">Mark all as read</button>
+      <button ng-if="c.data.unread_count > 0" class="btn btn-sm btn-link" ng-click="c.markAllAsRead()">Mark all as
+        read</button>
       <button class="btn btn-sm btn-link" ng-click="c.clearAll()">Clear all</button>
     </div>
   </div>

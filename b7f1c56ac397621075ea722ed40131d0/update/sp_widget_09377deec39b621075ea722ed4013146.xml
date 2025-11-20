@@ -1,482 +1,480 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
     <sp_widget action="INSERT_OR_UPDATE">
         <category>custom</category>
-        <client_script><![CDATA[api.controller = function ($scope, $location, spUtil, $timeout, $anchorScroll) {
-  var c = this;
+        <client_script><![CDATA[api.controller = function($scope, $location, spUtil, $timeout, $anchorScroll) {
+    var c = this;
 
-  const MAX_RECIPIENTS_TO_SHOW = 2;
-  const FEED_TABS = ['you', 'team', 'all'];
+    const MAX_RECIPIENTS_TO_SHOW = 2;
+    const FEED_TABS = ['you', 'team', 'all'];
 
-  c.currentUserId = $scope.user.sys_id;
-  c.currentUserInitials = generateInitials($scope.user.name);
+    c.currentUserId = $scope.user.sys_id;
+    c.currentUserInitials = generateInitials($scope.user.name);
 
-  const userPhoto = $scope.user.photo;
-  c.userImage = userPhoto ? userPhoto.split('.')[0] : '';
+    const userPhoto = $scope.user.photo;
+    c.userImage = userPhoto ? userPhoto.split('.')[0] : '';
 
-  c.data.filteredRecognitions = [];
-  c.isLoading = false;
-  c.isLoadingMore = false;
-  c.canLoadMore = true;
-  c.showRefreshIndicator = false; // Flag to show the new recognition indicator
+    c.data.filteredRecognitions = [];
+    c.isLoading = false;
+    c.isLoadingMore = false;
+    c.canLoadMore = true;
+    c.showRefreshIndicator = false; // Flag to show the new recognition indicator
 
-  c.offset = 0;
-  c.limit = c.options.limit || 10;
+    c.offset = 0;
+    c.limit = c.options.limit || 10;
 
-  // Default filter state
-  c.filters = getDefaultFilters();
-
-  // This function now simply broadcasts a message and then re-fetches the data.
-  c.resetFilters = function () {
-    // Tell all listening child widgets to reset themselves
-    $scope.$broadcast('filters.reset');
-
-    c.showRefreshIndicator = false;
-
-    // Reset the parent's data model
+    // Default filter state
     c.filters = getDefaultFilters();
 
-    // Fetch the new, unfiltered data
-    // c.setTab(c.activeTab);
-    applyFiltersAndReload();
-  };
+    // This function now simply broadcasts a message and then re-fetches the data.
+    c.resetFilters = function() {
+        // Tell all listening child widgets to reset themselves
+        $scope.$broadcast('filters.reset');
 
-  // Check if any filter is active
-  c.hasActiveFilters = function () {
-    return c.filters.activity !== 'all' ||
-      c.filters.timeframe !== 'all' ||
-      c.filters.occasions.length > 0 ||
-      c.filters.team.length > 0 ||
-      c.filters.teamMember.length > 0;
-  };
+        c.showRefreshIndicator = false;
 
+        // Reset the parent's data model
+        c.filters = getDefaultFilters();
 
-  // c.setTab = function (tabName) {
-  //   if (!tabName) return;
+        // Fetch the new, unfiltered data
+        applyFiltersAndReload();
+    };
 
-  //   c.data.filteredRecognitions = [];
-
-  //   c.activeTab = tabName;
-  //   $location.hash(tabName);
-
-  //   c.offset = 0;
-  //   c.canLoadMore = true;
-  //   c.isLoading = true;
-  //   c.showRefreshIndicator = false;
-
-  //   loadFeed(tabName, 0, false);
-  // };
+    // Check if any filter is active
+    c.hasActiveFilters = function() {
+        return c.filters.activity !== 'all' ||
+            c.filters.timeframe !== 'all' ||
+            c.filters.occasions.length > 0 ||
+            c.filters.team.length > 0 ||
+            c.filters.teamMember.length > 0;
+    };
 
 
-  c.setTab = function (tabName) {
-    if (FEED_TABS.includes(tabName)) {
-      $location.hash(tabName);
-    }
-  };
+    c.setTab = function(tabName) {
+        if (FEED_TABS.includes(tabName)) {
+            $location.hash(tabName);
+        }
+    };
 
-  const initialHash = $location.hash();
-  const tabToLoad = FEED_TABS.includes(initialHash) ? initialHash : 'you';
-
-  c.activeTab = tabToLoad;
-  applyFiltersAndReload();
-
-  if (FEED_TABS.includes(initialHash) || !initialHash) {
-    $location.hash(tabToLoad);
-  }
-
-  $scope.$on('$locationChangeSuccess', function () {
-    console.log('Location changed: ', $location.hash());
-
-    const hash = $location.hash();
-    const tabToLoad = FEED_TABS.includes(hash) ? hash : 'you';
-
-    if (c.activeTab === tabToLoad) return;
+    const initialHash = $location.hash();
+    const tabToLoad = FEED_TABS.includes(initialHash) ? initialHash : 'you';
 
     c.activeTab = tabToLoad;
     applyFiltersAndReload();
-  });
 
-  // const initialTab = FEED_TABS.includes($location.hash()) ? $location.hash() : 'you';
-  // c.setTab(initialTab);
-
-
-  // $scope.$on('$locationChangeSuccess', function () {
-  //   var newTab = $location.hash();
-
-  //   if (newTab && newTab !== c.activeTab) {
-  //     c.setTab(newTab);
-  //   }
-  // });
-
-  c.loadMore = function () {
-    if (!c.canLoadMore || c.isLoadingMore) return;
-
-    c.isLoadingMore = true;
-
-    loadFeed(c.activeTab, c.offset, true);
-  };
-
-  // Hide refresh banner and do a feed refresh
-  c.refreshAndShow = function () {
-    c.showRefreshIndicator = false;
-    c.setTab(c.activeTab);
-  };
-
-  // Toggle like/unlike reaction
-  c.toggleReaction = function (recognition) {
-    const originalReactionState = recognition.currentUserHasReacted;
-    const originalReactions = [...recognition.reactions];
-
-    // Only allow reaction animation when like is being added, false by default to prevent animation on initial load
-    recognition._allowReactionAnimation = true;
-
-    // Instantly update the UI for responsiveness
-    recognition.currentUserHasReacted = !originalReactionState;
-
-    if (originalReactionState) {
-      // If this was previously liked, we are removing the like from list
-      recognition.reactions =
-        recognition.reactions.filter(r => r.userId !== c.currentUserId);
-    } else {
-      // Otherwise, we are adding a like to the list
-      recognition.reactions.push({
-        userId: c.currentUserId,
-        userName: $scope.user.name,
-        created: new Date().toISOString()
-      });
+    if (FEED_TABS.includes(initialHash) || !initialHash) {
+        $location.hash(tabToLoad);
     }
 
-    // console.log(recognition.reactions);
+    $scope.$on('$locationChangeSuccess', function() {
 
-    c.server.get({
-      action: 'toggle_recognition_reaction',
-      recognitionId: recognition.id
-    }).then(function (response) {
-      // console.log('Toggle reaction response: ', response);
+        const hash = $location.hash();
+        const tabToLoad = FEED_TABS.includes(hash) ? hash : 'you';
 
-      if (!response.data.toggleReactionSuccess) {
-        // In case of failure, revert the UI update
-        recognition.currentUserHasReacted = originalReactionState;
-        recognition.reactions = originalReactionState;
-        // Show feedback to user
-        spUtil.addErrorMessage('Your like could not be saved. Please try again.');
-      }
+        if (c.activeTab === tabToLoad) return;
+
+        c.activeTab = tabToLoad;
+        applyFiltersAndReload();
     });
-  };
 
-  c.toggleCommentReaction = function (comment) {
-    const originalReactedState = comment.currentUserHasReacted;
-    const originalLikeCount = comment.likeCount;
 
-    // Only allow reaction animation when like is being added, false by default to prevent animation on comment load
-    comment._allowReactionAnimation = true;
+    c.loadMore = function() {
+        if (!c.canLoadMore || c.isLoadingMore) return;
 
-    // Update the UI immediately for responsiveness
-    if (comment.currentUserHasReacted) {
-      comment.likeCount--;
-    } else {
-      comment.likeCount++;
-    }
+        c.isLoadingMore = true;
 
-    comment.currentUserHasReacted = !comment.currentUserHasReacted;
-
-    c.server.get({
-      action: 'toggle_comment_reaction',
-      commentId: comment.id
-    }).then(function (response) {
-      // Revert the UI update if the server call failed
-      if (!response.data.toggleCommentReactionSuccess) {
-        comment.currentUserHasReacted = originalReactedState;
-        comment.likeCount = originalLikeCount;
-        spUtil.addErrorMessage('Your like could not be saved. Please try again.');
-      }
-    });
-  };
-
-  c.toggleComments = function (recognition) {
-    recognition.showComments = !recognition.showComments;
-  };
-
-  // Submit comment (UI only)
-  c.submitComment = function (recognition) {
-    const text = (recognition.newCommentText || '').trim();
-    if (!text) return;
-
-    const tempId = 'temp-' + Date.now();
-    const newComment = {
-      id: tempId,
-      text: text,
-      authorName: $scope.user.name,
-      userInitials: c.currentUserInitials,
-      userId: c.currentUserSysId,
-      timeAgo: 'Just now',
-      isSaving: true,
+        loadFeed(c.activeTab, c.offset, true);
     };
 
-    recognition.comments.push(newComment);
-    recognition.newCommentText = '';
-
-    // Make the server call to save the comment
-    c.server.get({
-      action: 'add_comment',
-      recognitionId: recognition.id,
-      commentText: text
-    }).then(function (response) {
-      const newComment = response.data.newComment;
-      const commentIndex = recognition.comments.findIndex(c => c.id === tempId);
-
-      if (newComment && commentIndex > -1) {
-        // Replace the temporary comment with the real one from the server
-        const transformedComment = {
-          ...newComment,
-          timeAgo: formatTimeAgo(newComment.created),
-          authorInitials: generateInitials(newComment.authorName)
-        };
-
-        recognition.comments.splice(commentIndex, 1, transformedComment);
-        return;
-      }
-
-      // If the server fails, remove the temp comment and show an error
-      if (commentIndex > -1) recognition.comments.splice(commentIndex, 1);
-
-      spUtil.addErrorMessage('Your comment could not be posted. Please try again.');
-      recognition.newCommentText = text;
-    });
-  };
-
-
-  // Event listeners for filters
-  $scope.$on('activity.filter.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    if (c.filters.activity !== data.selected.value) {
-      c.filters.activity = data.selected.value;
-      // c.setTab(c.activeTab);
-      applyFiltersAndReload();
-    }
-  });
-
-  $scope.$on('teammember.filter.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    c.filters.teamMember = data.selected.map(item => item.value);
-    // c.setTab(c.activeTab);
-    applyFiltersAndReload();
-  });
-
-  $scope.$on('team.filter.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    c.filters.team = data.selected.map(item => item.value);
-    // c.setTab(c.activeTab);
-    applyFiltersAndReload();
-  });
-
-  $scope.$on('timeframe.filter.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    if (c.filters.timeframe !== data.selected.value) {
-      c.filters.timeframe = data.selected.value;
-      // c.setTab(c.activeTab);
-      applyFiltersAndReload();
-    }
-  });
-
-  $scope.$on('occasion.filter.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    // For multi-select, data.selected is an array of objects
-    c.filters.occasions = data.selected.map(item => item.value);
-    // c.setTab(c.activeTab);
-    applyFiltersAndReload();
-  });
-
-  $scope.$on('sort.order.updated', function (event, data) {
-    c.showRefreshIndicator = false;
-
-    if (c.filters.sortOrder !== data.selected.value) {
-      c.filters.sortOrder = data.selected.value;
-      // c.setTab(c.activeTab);
-      applyFiltersAndReload();
-    }
-  });
-
-  function applyFiltersAndReload() {
-    c.data.filteredRecognitions = [];
-    c.offset = 0;
-    c.canLoadMore = true;
-    c.isLoading = true;
-    c.showRefreshIndicator = false;
-
-    loadFeed(c.activeTab, 0, false);
-  }
-
-
-  let debounceTimer = null;
-  function handleRecognitionInsert(response) {
-
-    if (response.data.operation !== 'insert') return;
-
-    $timeout.cancel(debounceTimer);
-
-    debounceTimer = $timeout(function () {
-      const isRelevantView = c.filters.sortOrder === 'newest';
-      if (!isRelevantView || c.showRefreshIndicator) return;
-
-      const currentTopId = c.data.filteredRecognitions.length > 0 ? c.data.filteredRecognitions[0].id : null;
-
-      // Check if the new recognition is newer than the current top item
-      c.server.get({
-        action: 'get_latest_recognition_id',
-        feedType: c.activeTab,
-        filters: c.filters,
-        currentTopId: currentTopId
-      }).then(function (response) {
-        const payload = response.data.payload;
-
-        if (!payload || !payload.newRecognition) return;
-
-        // Show banner for new recognition sent by others
-        if (!payload.isSelf) {
-          c.showRefreshIndicator = true;
-          return
-        }
-
-        const transformedItem = transformRecognitions([payload.newRecognition])[0];
-
-        // Add a flag for the CSS highlight effect
-        transformedItem.isNew = true;
-        c.data.filteredRecognitions.unshift(transformedItem);
-        c.offset++;
-
-      });
-
-    }, 750); // 750ms debounce
-
-  }
-
-  spUtil.recordWatch($scope, 'x_1794402_peerce_0_peer_recognition', '', handleRecognitionInsert);
-
-
-  function getDefaultFilters() {
-    return {
-      activity: 'all',
-      timeframe: 'all',
-      occasions: [],
-      sortOrder: 'newest',
-      team: [],
-      teamMember: []
+    // Hide refresh banner and do a feed refresh
+    c.refreshAndShow = function() {
+        c.showRefreshIndicator = false;
+        c.setTab(c.activeTab);
     };
-  }
 
-  function loadFeed(feedType, offset, append) {
+    // Toggle like/unlike reaction
+    c.toggleReaction = function(recognition) {
+        const originalReactionState = recognition.currentUserHasReacted;
+        const originalReactions = [...recognition.reactions];
+        const originalToolTip = recognition.reactionTooltip;
 
-    c.server.get({ feedType, limit: c.limit, offset, filters: c.filters, action: 'getFeed' })
-      .then(function (response) {
-        const newRecognitions = transformRecognitions(response.data.recognitions || []);
 
-        if (append) {
-          c.data.filteredRecognitions = c.data.filteredRecognitions.concat(newRecognitions);
+        // Only allow reaction animation when like is being added, false by default to prevent animation on initial load
+        recognition._allowReactionAnimation = true;
+
+        // Instantly update the UI for responsiveness
+        recognition.currentUserHasReacted = !originalReactionState;
+
+        if (originalReactionState) {
+            // If this was previously liked, remove the like from the list on the UI
+            recognition.reactions =
+                recognition.reactions.filter(r => r.userId !== c.currentUserId);
         } else {
-          c.data.filteredRecognitions = newRecognitions;
+            // Otherwise, add a like to the list with the current user's details
+            recognition.reactions.push({
+                userId: c.currentUserId,
+                userName: $scope.user.name,
+                created: new Date().toISOString()
+            });
         }
 
-        // Update the offset
-        c.offset = offset + newRecognitions.length;
+        recognition.reactionTooltip = recognition.reactions.map(r => r.userName).join(', ');
 
-        // If we got fewer than the limit, no more records left to load
-        c.canLoadMore = newRecognitions.length >= c.limit;
+        c.server.get({
+            action: 'toggle_recognition_reaction',
+            recognitionId: recognition.id
+        }).then(function(response) {
+            // console.log('Toggle reaction response: ', response);
 
-      })
-      .catch(function (error) {
-        console.error('Failed to load feed:', error);
-        if (!append) c.data.filteredRecognitions = [];
+            if (!response.data.toggleReactionSuccess) {
+                // In case of failure, revert the UI update
+                recognition.currentUserHasReacted = originalReactionState;
+                recognition.reactions = originalReactions;
+                recognition.reactionTooltip = originalToolTip;
 
-      }).finally(function () {
-        c.isLoading = false;
-        c.isLoadingMore = false;
-      });
-  }
+                // Show feedback to user
+                spUtil.addErrorMessage('Your like could not be saved. Please try again.');
+            }
+        });
+    };
 
-  function transformRecognitions(recognitions) {
+    c.toggleCommentReaction = function(comment) {
+        const currentUserName = $scope.user.name;
+        const originalReactedState = comment.currentUserHasReacted;
+        const originalLikeCount = comment.likeCount;
+        const originalLikedByNames = [...comment.likedByNames];
+        const originalTooltip = comment.commentReactionTooltip;
 
-    return recognitions.map(function (rec) {
-      const transformedComments = (rec.comments || []).map(function (comment) {
-        return {
-          ...comment,
-          timeAgo: formatTimeAgo(comment.created),
-          authorInitials: generateInitials(comment.authorName),
-          _allowReactionAnimation: false
+        // Only allow reaction animation when like is being added, false by default to prevent animation on comment load
+        comment._allowReactionAnimation = true;
+
+        // Update the UI immediately for responsiveness
+        if (comment.currentUserHasReacted) {
+            comment.likeCount--;
+            comment.likedByNames = comment.likedByNames.filter(name => name !== currentUserName);
+        } else {
+            comment.likeCount++;
+            comment.likedByNames.push(currentUserName);
+        }
+
+        comment.currentUserHasReacted = !comment.currentUserHasReacted;
+        comment.commentReactionTooltip = comment.likedByNames.join(', ');
+
+        c.server.get({
+            action: 'toggle_comment_reaction',
+            commentId: comment.id,
+            recognitionId: comment.recognitionId
+        }).then(function(response) {
+            // Revert the UI update if the server call failed
+            if (!response.data.toggleCommentReactionSuccess) {
+                comment.currentUserHasReacted = originalReactedState;
+                comment.likeCount = originalLikeCount;
+                comment.likedByNames = originalLikedByNames;
+                comment.commentReactionTooltip = originalTooltip;
+
+                spUtil.addErrorMessage('Your like could not be saved. Please try again.');
+            }
+        });
+    };
+
+    c.toggleComments = function(recognition) {
+        recognition.showComments = !recognition.showComments;
+    };
+
+    // Submit comment (UI only)
+    c.submitComment = function(recognition) {
+        const text = (recognition.newCommentText || '').trim();
+        if (!text) return;
+
+        const tempId = 'temp-' + Date.now();
+        const newComment = {
+            id: tempId,
+            text: text,
+            authorName: $scope.user.name,
+            userInitials: c.currentUserInitials,
+            userId: c.currentUserSysId,
+            timeAgo: 'Just now',
+            isSaving: true,
         };
-      });
 
-      const finalRecipients = rec.recipients || [];
-      let visibleRecipients = [];
-      let remainingCount = 0;
-      let remainingRecipientsTooltip = '';
+        recognition.comments.push(newComment);
+        recognition.newCommentText = '';
 
-      if (finalRecipients.length > MAX_RECIPIENTS_TO_SHOW) {
-        visibleRecipients = finalRecipients.slice(0, MAX_RECIPIENTS_TO_SHOW);
-        remainingCount = finalRecipients.length - MAX_RECIPIENTS_TO_SHOW;
-        remainingRecipientsTooltip = finalRecipients.slice(MAX_RECIPIENTS_TO_SHOW).join('\n');
-      } else {
-        visibleRecipients = finalRecipients;
-      }
+        // Make the server call to save the comment
+        c.server.get({
+            action: 'add_comment',
+            recognitionId: recognition.id,
+            commentText: text
+        }).then(function(response) {
+            const newComment = response.data.newComment;
+            const commentIndex = recognition.comments.findIndex(c => c.id === tempId);
 
-      return {
-        ...rec,
-        senderInitials: generateInitials(rec.senderDisplay),
-        timeAgo: formatTimeAgo(rec.createdOn),
+            if (newComment && commentIndex > -1) {
+                // Replace the temporary comment with the real one from the server
+                const transformedComment = {
+                    ...newComment,
+                    timeAgo: formatTimeAgo(newComment.created),
+                    authorInitials: generateInitials(newComment.authorName)
+                };
 
-        comments: transformedComments,
-        showComments: false,
-        newCommentText: '',
-        _allowReactionAnimation: false,
+                recognition.comments.splice(commentIndex, 1, transformedComment);
+                return;
+            }
 
-        visibleRecipients: visibleRecipients,
-        remainingCount: remainingCount,
-        remainingRecipientsTooltip: remainingRecipientsTooltip
-      };
+            // If the server fails, remove the temp comment and show an error
+            if (commentIndex > -1) recognition.comments.splice(commentIndex, 1);
+
+            spUtil.addErrorMessage('Your comment could not be posted. Please try again.');
+            recognition.newCommentText = text;
+        });
+    };
+
+
+    // Event listeners for filters
+    $scope.$on('activity.filter.updated', function(event, data) {
+        c.showRefreshIndicator = false;
+
+        if (c.filters.activity !== data.selected.value) {
+            c.filters.activity = data.selected.value;
+            // c.setTab(c.activeTab);
+            applyFiltersAndReload();
+        }
     });
-  }
 
-  function generateInitials(name) {
-    if (!name) return '?';
+    $scope.$on('teammember.filter.updated', function(event, data) {
+        c.showRefreshIndicator = false;
 
-    return name.split(/\s+/)
-      .map(part => part[0] ? part[0].toUpperCase() : '')
-      .join('')
-      .substring(0, 2) || '?';
-  }
+        c.filters.teamMember = data.selected.map(item => item.value);
+        // c.setTab(c.activeTab);
+        applyFiltersAndReload();
+    });
 
+    $scope.$on('team.filter.updated', function(event, data) {
+        c.showRefreshIndicator = false;
 
-  function formatTimeAgo(dateTime) {
-    if (!dateTime) return '';
+        c.filters.team = data.selected.map(item => item.value);
+        // c.setTab(c.activeTab);
+        applyFiltersAndReload();
+    });
 
-    var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
+    $scope.$on('timeframe.filter.updated', function(event, data) {
+        c.showRefreshIndicator = false;
 
-    return m.fromNow();
-  }
+        if (c.filters.timeframe !== data.selected.value) {
+            c.filters.timeframe = data.selected.value;
+            // c.setTab(c.activeTab);
+            applyFiltersAndReload();
+        }
+    });
 
+    $scope.$on('occasion.filter.updated', function(event, data) {
+        c.showRefreshIndicator = false;
 
-  moment.updateLocale('en', {
-    relativeTime: {
-      future: "in %s",
-      past: "%s ago",
-      s: "a few seconds",
-      ss: "%d seconds",
-      m: "a minute",
-      mm: "%d minutes",
-      h: "an hour",
-      hh: "%d hours",
-      d: "a day",
-      dd: "%d days",
-      M: "a month",
-      MM: "%d months",
-      y: "a year",
-      yy: "%d years"
+        // For multi-select, data.selected is an array of objects
+        c.filters.occasions = data.selected.map(item => item.value);
+        // c.setTab(c.activeTab);
+        applyFiltersAndReload();
+    });
+
+    $scope.$on('sort.order.updated', function(event, data) {
+        c.showRefreshIndicator = false;
+
+        if (c.filters.sortOrder !== data.selected.value) {
+            c.filters.sortOrder = data.selected.value;
+            // c.setTab(c.activeTab);
+            applyFiltersAndReload();
+        }
+    });
+
+    function applyFiltersAndReload() {
+        c.data.filteredRecognitions = [];
+        c.offset = 0;
+        c.canLoadMore = true;
+        c.isLoading = true;
+        c.showRefreshIndicator = false;
+
+        loadFeed(c.activeTab, 0, false);
     }
-  });
+
+
+    let debounceTimer = null;
+
+    function handleRecognitionInsert(response) {
+
+        if (response.data.operation !== 'insert') return;
+
+        $timeout.cancel(debounceTimer);
+
+        debounceTimer = $timeout(function() {
+            const isRelevantView = c.filters.sortOrder === 'newest';
+            if (!isRelevantView || c.showRefreshIndicator) return;
+
+            const currentTopId = c.data.filteredRecognitions.length > 0 ? c.data.filteredRecognitions[0].id : null;
+
+            // Check if the new recognition is newer than the current top item
+            c.server.get({
+                action: 'get_latest_recognition_id',
+                feedType: c.activeTab,
+                filters: c.filters,
+                currentTopId: currentTopId
+            }).then(function(response) {
+                const payload = response.data.payload;
+
+                if (!payload || !payload.newRecognition) return;
+
+                // Show banner for new recognition sent by others
+                if (!payload.isSelf) {
+                    c.showRefreshIndicator = true;
+                    return
+                }
+
+                const transformedItem = transformRecognitions([payload.newRecognition])[0];
+
+                // Add a flag for the CSS highlight effect
+                transformedItem.isNew = true;
+                c.data.filteredRecognitions.unshift(transformedItem);
+                c.offset++;
+            });
+
+        }, 750); // 750ms debounce
+
+    }
+
+    spUtil.recordWatch($scope, 'x_1794402_peerce_0_peer_recognition', '', handleRecognitionInsert);
+
+
+    function getDefaultFilters() {
+        return {
+            activity: 'all',
+            timeframe: 'all',
+            occasions: [],
+            sortOrder: 'newest',
+            team: [],
+            teamMember: []
+        };
+    }
+
+    function loadFeed(feedType, offset, append) {
+
+        c.server.get({
+                feedType,
+                limit: c.limit,
+                offset,
+                filters: c.filters,
+                action: 'getFeed'
+            })
+            .then(function(response) {
+                const newRecognitions = transformRecognitions(response.data.recognitions || []);
+
+                if (append) {
+                    c.data.filteredRecognitions = c.data.filteredRecognitions.concat(newRecognitions);
+                } else {
+                    c.data.filteredRecognitions = newRecognitions;
+                }
+
+                // Update the offset
+                c.offset = offset + newRecognitions.length;
+
+                // If we got fewer than the limit, no more records left to load
+                c.canLoadMore = newRecognitions.length >= c.limit;
+
+            })
+            .catch(function(error) {
+                console.error('Failed to load feed:', error);
+                if (!append) c.data.filteredRecognitions = [];
+
+            }).finally(function() {
+                c.isLoading = false;
+                c.isLoadingMore = false;
+            });
+    }
+
+    function transformRecognitions(recognitions) {
+
+        return recognitions.map(function(rec) {
+            const transformedComments = (rec.comments || []).map(function(comment) {
+
+                const reactionUsernames = comment.likedByNames.join(', ');
+
+                return {
+                    ...comment,
+                    timeAgo: formatTimeAgo(comment.created),
+                    authorInitials: generateInitials(comment.authorName),
+                    _allowReactionAnimation: false,
+                    commentReactionTooltip: reactionUsernames
+                };
+            });
+
+            const finalRecipients = rec.recipients || [];
+            let visibleRecipients = [];
+            let remainingCount = 0;
+            let remainingRecipientsTooltip = '';
+
+            if (finalRecipients.length > MAX_RECIPIENTS_TO_SHOW) {
+                visibleRecipients = finalRecipients.slice(0, MAX_RECIPIENTS_TO_SHOW);
+                remainingCount = finalRecipients.length - MAX_RECIPIENTS_TO_SHOW;
+                remainingRecipientsTooltip = finalRecipients.slice(MAX_RECIPIENTS_TO_SHOW).join(', ');
+            } else {
+                visibleRecipients = finalRecipients;
+            }
+
+            const reactionUsernames = (rec.reactions || []).map(r => r.userName);
+
+            return {
+                ...rec,
+                senderInitials: generateInitials(rec.senderDisplay),
+                timeAgo: formatTimeAgo(rec.createdOn),
+
+                reactionTooltip: reactionUsernames.join(', '),
+
+                comments: transformedComments,
+                showComments: false,
+                newCommentText: '',
+                _allowReactionAnimation: false,
+
+                visibleRecipients: visibleRecipients,
+                remainingCount: remainingCount,
+                remainingRecipientsTooltip: remainingRecipientsTooltip
+            };
+        });
+    }
+
+    function generateInitials(name) {
+        if (!name) return '?';
+
+        return name.split(/\s+/)
+            .map(part => part[0] ? part[0].toUpperCase() : '')
+            .join('')
+            .substring(0, 2) || '?';
+    }
+
+
+    function formatTimeAgo(dateTime) {
+        if (!dateTime) return '';
+
+        var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
+
+        return m.fromNow();
+    }
+
+
+    moment.updateLocale('en', {
+        relativeTime: {
+            future: "in %s",
+            past: "%s ago",
+            s: "a few seconds",
+            ss: "%d seconds",
+            m: "a minute",
+            mm: "%d minutes",
+            h: "an hour",
+            hh: "%d hours",
+            d: "a day",
+            dd: "%d days",
+            M: "a month",
+            MM: "%d months",
+            y: "a year",
+            yy: "%d years"
+        }
+    });
 };]]></client_script>
         <controller_as>c</controller_as>
         <css>li {
@@ -804,6 +802,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    cursor: pointer;
 }
 
 .reply-link {
@@ -990,14 +989,13 @@
     var recognitionId = button.data('toggle-comments-for');
     if (!recognitionId) return;
 
-    var commentsSection = element.find('.comments-section[data-comment-input-for-parent="' + recognitionId + '"]');
-    // We'll add a data attr to the comments-section for easier targeting (see note below)
+    // var commentsSection = element.find('.comments-section[data-comment-input-for-parent="' + recognitionId + '"]');
 
     // If comments are being hidden, don't scroll
     var recognition = scope.c.data.filteredRecognitions.find(r => r.id === recognitionId);
     if (!recognition || !recognition.showComments) return;
 
-    // Wait until *after* the slide animation completes (400ms as defined in CSS)
+    // Wait until after the slide animation is complete (400ms)
     setTimeout(function () {
       var input = element.find('[data-comment-input-for="' + recognitionId + '"]');
       if (input.length && input.is(':visible')) {
@@ -1016,7 +1014,7 @@
           });
         }
 
-        // Focus after scroll for accessibility
+        // Focus on comment after scroll for accessibility
         input.focus();
       }
     }, 400);
@@ -1026,206 +1024,219 @@
         <option_schema>[{"hint":"Number of records displayed in a page.","name":"limit","section":"Data","default_value":"15","label":"Record Limit","type":"integer"}]</option_schema>
         <public>false</public>
         <roles/>
-        <script><![CDATA[(function () {
-  initializeFilters();
+        <script><![CDATA[(function() {
+    initializeFilters();
 
-  if (input && input.action == 'getFeed') {
-    let currentFeed = input.feedType || 'you';
-    let limit = parseInt(input.limit, 10) || 15;
-    let offset = parseInt(input.offset, 10) || 0;
-    let filters = input.filters || {};
+    if (input && input.action == 'getFeed') {
+        let currentFeed = input.feedType || 'you';
+        let limit = parseInt(input.limit, 10) || 15;
+        let offset = parseInt(input.offset, 10) || 0;
+        let filters = input.filters || {};
 
-    let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+        let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
-    const recognitions =
-      recognitionDAO.getRecognitionsForFeed(
-        currentFeed,
-        limit,
-        offset,
-        filters
-      ) || [];
+        const recognitions =
+            recognitionDAO.getRecognitionsForFeed(
+                currentFeed,
+                limit,
+                offset,
+                filters
+            ) || [];
 
-    const currentUserId = gs.getUserID();
+        const currentUserId = gs.getUserID();
 
-    recognitions.forEach((rec) => {
-      // Display 'You' instead of the current user's name in the feed
-      if (rec.senderId === currentUserId) rec.senderDisplay = 'You';
+        recognitions.forEach((rec) => {
+            // Display 'You' instead of the current user's name in the feed
+            if (rec.senderId === currentUserId) rec.senderDisplay = 'You';
 
-      // If current user is among the recipients, replace their name with 'You' and move to the front of the list
-      if (rec.recipientIds && rec.recipients) {
-        const currentUserIndex = rec.recipientIds.indexOf(currentUserId);
-        if (currentUserIndex > -1) {
-          rec.recipients.splice(currentUserIndex, 1);
-          rec.recipients.unshift('You');
-        }
-      }
-    });
+            // If current user is among the recipients, replace their name with 'You' and move to the front of the list
+            if (rec.recipientIds && rec.recipients) {
+                const currentUserIndex = rec.recipientIds.indexOf(currentUserId);
+                if (currentUserIndex > -1) {
+                    rec.recipients.splice(currentUserIndex, 1);
+                    rec.recipients.unshift('You');
+                }
+            }
+        });
 
-    data.recognitions = recognitions;
-  }
-
-  if (input && input.action == 'get_latest_recognition_id') {
-    data.payload = null;
-
-    let currentFeed = input.feedType || 'you';
-    let limit = 1;
-    let offset = 0;
-    let filters = input.filters || {};
-
-    // Skip the check if not sorting by newest, as we don't need to show indicator or prepend it
-    if (filters.sortOrder !== 'newest') return;
-
-    let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
-
-    const latestRecognitions =
-      recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset, filters) || [];
-
-    // If no recognitions found, exit early
-    if (latestRecognitions.length === 0) return;
-
-    const latestRecognition = latestRecognitions[0];
-
-    if (latestRecognition.id !== input.currentTopId) {
-      data.payload = {
-        newRecognition: latestRecognition,
-        isSelf: latestRecognition.senderId === gs.getUserID()
-      };
+        data.recognitions = recognitions;
     }
 
-    // data.latestRecognitionId = latestRecognition.length > 0 ? latestRecognition[0].id : null;
-  }
+    if (input && input.action == 'get_latest_recognition_id') {
+        data.payload = null;
+
+        let currentFeed = input.feedType || 'you';
+        let limit = 1;
+        let offset = 0;
+        let filters = input.filters || {};
+
+        // Skip the check if not sorting by newest, as we don't need to show indicator or prepend it
+        if (filters.sortOrder !== 'newest') return;
+
+        let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+
+        const latestRecognitions =
+            recognitionDAO.getRecognitionsForFeed(currentFeed, limit, offset, filters) || [];
+
+        // If no recognitions found, exit early
+        if (latestRecognitions.length === 0) return;
+
+        const latestRecognition = latestRecognitions[0];
+
+        if (latestRecognition.id !== input.currentTopId) {
+            data.payload = {
+                newRecognition: latestRecognition,
+                isSelf: latestRecognition.senderId === gs.getUserID()
+            };
+        }
+
+        // data.latestRecognitionId = latestRecognition.length > 0 ? latestRecognition[0].id : null;
+    }
 
 
-  if (input && input.action == 'toggle_recognition_reaction') {
-    const recognitionId = input.recognitionId;
+    if (input && input.action == 'toggle_recognition_reaction') {
+        const recognitionId = input.recognitionId;
 
-    data.toggleReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleRecognitionReaction(recognitionId, gs.getUserID());
-  }
+        data.toggleReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleRecognitionReaction(recognitionId, gs.getUserID());
+    }
 
-  if (input && input.action === 'toggle_comment_reaction') {
-    const commentId = input.commentId;
+    if (input && input.action === 'toggle_comment_reaction') {
+        const commentId = input.commentId;
+        const recognitionId = input.recognitionId;
 
-    data.toggleCommentReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleCommentReaction(commentId, gs.getUserID());
-  }
+        data.toggleCommentReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleCommentReaction(commentId, gs.getUserID(), recognitionId);
+    }
 
-  if (input && input.action == 'add_comment') {
-    const recognitionId = input.recognitionId;
-    const commentText = input.commentText;
-    const currentUserId = gs.getUserID();
-
-
-    data.newComment = new x_1794402_peerce_0.RecognitionDAO().addRecognitionComment(recognitionId, commentText, currentUserId);
-  }
-
-  function initializeFilters() {
-    data.activityFilterWidget = $sp.getWidget('single-select-filter', {
-      title: 'Activity',
-      eventName: 'activity.filter.updated',
-      choices: [
-        { display: 'All', value: 'all' },
-        { display: 'Sent', value: 'sent' },
-        { display: 'Received', value: 'received' },
-      ],
-      initialSelection: 'all',
-    });
-
-    data.timeframeFilterWidget = $sp.getWidget(
-      'single-select-filter',
-      {
-        title: 'Timeframe',
-        eventName: 'timeframe.filter.updated',
-        choices: [
-          { display: 'All Time', value: 'all' },
-          { display: 'Last 7 days', value: '7' },
-          { display: 'Last 30 days', value: '30' },
-          { display: 'Last 90 days', value: '90' },
-        ],
-        initialSelection: 'all',
-      }
-    );
-
-    data.teamMemberFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Team member',
-        eventName: 'teammember.filter.updated',
-        type: 'dynamic',
-        dataConfig: {
-          tableName: 'sys_user',
-          displayField: 'name',
-          valueField: 'sys_id',
-          encodedQuery: 'active=true',
-        },
-
-        initialSelection: '',
-      }
-    );
-
-    data.teamFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Team',
-        eventName: 'team.filter.updated',
-        type: 'dynamic',
-        dataConfig: {
-          tableName: 'sys_user_group',
-          displayField: 'name',
-          valueField: 'sys_id',
-          encodedQuery: 'active=true',
-        },
-
-        initialSelection: '',
-      }
-    );
+    if (input && input.action == 'add_comment') {
+        const recognitionId = input.recognitionId;
+        const commentText = input.commentText;
+        const currentUserId = gs.getUserID();
 
 
-    var recognitionOccasions =
-      new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
+        data.newComment = new x_1794402_peerce_0.RecognitionDAO().addRecognitionComment(recognitionId, commentText, currentUserId);
+    }
 
-    data.occasionFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Value',
-        eventName: 'occasion.filter.updated',
-        choices: recognitionOccasions,
-        initialSelection: '',
-      }
-    );
+    function initializeFilters() {
+        data.activityFilterWidget = $sp.getWidget('single-select-filter', {
+            title: 'Activity',
+            eventName: 'activity.filter.updated',
+            choices: [{
+                    display: 'All',
+                    value: 'all'
+                },
+                {
+                    display: 'Sent',
+                    value: 'sent'
+                },
+                {
+                    display: 'Received',
+                    value: 'received'
+                },
+            ],
+            initialSelection: 'all',
+        });
 
-    data.sortOrderWidget = $sp.getWidget('single-select-filter', {
-      title: '',
-      eventName: 'sort.order.updated',
-      choices: [
-        {
-          display: '<i class="fa fa-sort-amount-desc"></i>',
-          value: 'newest',
-        },
-        {
-          display: '<i class="fa fa-sort-amount-asc"></i>',
-          value: 'oldest',
-        },
-      ],
-      initialSelection: 'newest',
-    });
-  }
-})();
-]]></script>
+        data.timeframeFilterWidget = $sp.getWidget(
+            'single-select-filter', {
+                title: 'Timeframe',
+                eventName: 'timeframe.filter.updated',
+                choices: [{
+                        display: 'All Time',
+                        value: 'all'
+                    },
+                    {
+                        display: 'Last 7 days',
+                        value: '7'
+                    },
+                    {
+                        display: 'Last 30 days',
+                        value: '30'
+                    },
+                    {
+                        display: 'Last 90 days',
+                        value: '90'
+                    },
+                ],
+                initialSelection: 'all',
+            }
+        );
+
+        data.teamMemberFilterWidget = $sp.getWidget(
+            'multi-select-slushbucket-filter', {
+                title: 'Team member',
+                eventName: 'teammember.filter.updated',
+                type: 'dynamic',
+                dataConfig: {
+                    tableName: 'sys_user',
+                    displayField: 'name',
+                    valueField: 'sys_id',
+                    encodedQuery: 'active=true',
+                },
+
+                initialSelection: '',
+            }
+        );
+
+        data.teamFilterWidget = $sp.getWidget(
+            'multi-select-slushbucket-filter', {
+                title: 'Team',
+                eventName: 'team.filter.updated',
+                type: 'dynamic',
+                dataConfig: {
+                    tableName: 'sys_user_group',
+                    displayField: 'name',
+                    valueField: 'sys_id',
+                    encodedQuery: 'active=true',
+                },
+
+                initialSelection: '',
+            }
+        );
+
+
+        var recognitionOccasions =
+            new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
+
+        data.occasionFilterWidget = $sp.getWidget(
+            'multi-select-slushbucket-filter', {
+                title: 'Value',
+                eventName: 'occasion.filter.updated',
+                choices: recognitionOccasions,
+                initialSelection: '',
+            }
+        );
+
+        data.sortOrderWidget = $sp.getWidget('single-select-filter', {
+            title: '',
+            eventName: 'sort.order.updated',
+            choices: [{
+                    display: '<i class="fa fa-sort-amount-desc"></i>',
+                    value: 'newest',
+                },
+                {
+                    display: '<i class="fa fa-sort-amount-asc"></i>',
+                    value: 'oldest',
+                },
+            ],
+            initialSelection: 'newest',
+        });
+    }
+})();]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>719</sys_mod_count>
+        <sys_mod_count>733</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-21 17:53:21</sys_updated_on>
+        <sys_updated_on>2025-11-19 10:17:06</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
-    <!-- Default panel contents -->
     <section class="panel-heading">
       <h3 class="panel-title">
         <strong>Recognition activity feed</strong>
@@ -1247,7 +1258,7 @@
         </li>
 
         <li class="pull-right">
-          <a href="" ng-click="!c.isLoading && c.setTab(c.activeTab)" title="Refresh feed"
+          <a href="" ng-click="!c.isLoading && applyFiltersAndReload()" title="Refresh feed"
             class="btn btn-default btn-sm refresh-btn" ng-class="{'is-loading': c.isLoading}">
             <i class="fa fa-refresh" ng-class="{'fa-spin': c.isLoading}" aria-hidden="true"></i>
             <span class="sr-only">Refresh</span>
@@ -1324,7 +1335,20 @@
               <h4 class="media-heading">
                 <a href>{{recognition.senderDisplay}}</a> gave
                 applause to
-                <a href>{{recognition.recipients.join(', ')}}</a>
+
+                <a href>{{ recognition.visibleRecipients.join(', ') }}</a>
+
+                <span ng-if="recognition.remainingCount == 1">
+                  and <a href>{{ recognition.remainingRecipientsTooltip }}</a>
+                </span>
+
+                <span ng-if="recognition.remainingCount > 1">
+                  and
+                  <a href="javascript:void(0)" uib-tooltip="{{recognition.remainingRecipientsTooltip}}"
+                    tooltip-placement="top" class="remaining-recipients-link">
+                    {{recognition.remainingCount}} others
+                  </a>
+                </span>
 
                 <small class="text-muted pull-right">
                   <span ng-if="recognition.isNew" class="label label-default new-badge">New</span>
@@ -1375,7 +1399,8 @@
 
 
                 <div class="meta-info">
-                  <span class="reaction-count" ng-if="recognition.reactions.length > 0">
+                  <span class="reaction-count" ng-if="recognition.reactions.length > 0"
+                    uib-tooltip="{{recognition.reactionTooltip}}" tooltip-placement="top">
                     {{ recognition.reactions.length }} <i class="fa fa-thumbs-o-up icon-small"></i>
                   </span>
 
@@ -1413,11 +1438,11 @@
 
                         <!-- Right: Total reactions-->
                         <div class="meta-info">
-                          <span class="reaction-count" ng-if="comment.likeCount > 0">
+                          <span class="reaction-count" ng-if="comment.likeCount > 0"
+                            uib-tooltip="{{comment.commentReactionTooltip}}" tooltip-placement="top">
                             {{ comment.likeCount }} <i class="fa fa-thumbs-o-up icon-small"></i>
                           </span>
                         </div>
-
                       </div>
                     </div>
                   </article>

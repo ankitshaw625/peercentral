@@ -235,7 +235,7 @@ RecognitionRecommender.prototype = {
     const managerGroups = {};
 
     for (const user of users) {
-      const managerId = user.manager || 'no_manager';
+      const managerId = user.manager || 'N/A';
       if (!managerGroups[managerId]) managerGroups[managerId] = [];
       managerGroups[managerId].push(user);
     }
@@ -243,7 +243,7 @@ RecognitionRecommender.prototype = {
     const finalRecommendations = [];
 
     for (const managerId in managerGroups) {
-      if (managerId === 'no_manager') continue;
+      if (managerId === 'N/A') continue;
 
       const team = managerGroups[managerId];
 
@@ -289,28 +289,28 @@ RecognitionRecommender.prototype = {
   },
 
 
-  getNewRecommendationsForManager: function (userId) {
-    if (!userId) {
-      return [];
-    }
+  getNewRecommendationsForManager: function (userId, count) {
+    if (!userId) return [];
+
+    count = count || this.MANAGER_REC_LIMIT;
 
     const recommendations = [];
-    const grRec = new GlideRecord('x_1794402_peerce_0_recomendations');
-    grRec.addQuery('manager', userId);
-    grRec.addQuery('status', 'new');
-    grRec.orderByDesc('score');
-    grRec.setLimit(this.MANAGER_REC_LIMIT);
-    grRec.query();
+    const grRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecommendations.addQuery('manager', userId);
+    grRecommendations.addQuery('status', 'new');
+    grRecommendations.orderByDesc('score');
+    grRecommendations.setLimit(count);
+    grRecommendations.query();
 
-    while (grRec.next()) {
+    while (grRecommendations.next()) {
       recommendations.push({
-        user_id: grRec.getValue('recommended_user'),
-        user: grRec.getDisplayValue('recommended_user'),
-        score: grRec.getValue('score'),
-        reason: grRec.getValue('reason'),
-        details: grRec.getValue('details'),
-        details_list: grRec.getValue('details').split(';'),
-        id: grRec.getValue('sys_id')
+        user_id: grRecommendations.getValue('recommended_user'),
+        user: grRecommendations.getDisplayValue('recommended_user'),
+        score: grRecommendations.getValue('score'),
+        reason: grRecommendations.getValue('reason'),
+        details: grRecommendations.getValue('details'),
+        details_list: grRecommendations.getValue('details').split(';'),
+        id: grRecommendations.getValue('sys_id')
       });
     }
 
@@ -323,13 +323,13 @@ RecognitionRecommender.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-20 19:58:43</sys_created_on>
         <sys_id>d2b3d894c3bcb21075ea722ed40131fc</sys_id>
-        <sys_mod_count>26</sys_mod_count>
+        <sys_mod_count>28</sys_mod_count>
         <sys_name>RecognitionRecommender</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_d2b3d894c3bcb21075ea722ed40131fc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-16 08:50:52</sys_updated_on>
+        <sys_updated_on>2025-11-18 11:37:53</sys_updated_on>
     </sys_script_include>
 </record_update>

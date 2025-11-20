@@ -679,7 +679,7 @@ RecognitionDAO.prototype = {
   },
 
   // Toggles a 'like' interaction for a given comment.
-  toggleCommentReaction: function (parentCommentId, userId) {
+  toggleCommentReaction: function (parentCommentId, userId, recognitionId) {
     if (!parentCommentId || !userId) {
       return false;
     }
@@ -704,6 +704,7 @@ RecognitionDAO.prototype = {
     grCommentReaction.setValue('user', userId);
     grCommentReaction.setValue('type', 'reaction');
     grCommentReaction.setValue('reaction', 'like');
+	grCommentReaction.setValue('recognition', recognitionId);
 
     var interactionSysId = grCommentReaction.insert();
 
@@ -730,10 +731,12 @@ RecognitionDAO.prototype = {
         userId: grInteractionComments.getValue('user'),
         authorImage: grInteractionComments.getElement('user.photo').getValue(),
         created: grInteractionComments.getValue('sys_created_on'),
-        currentUserHasReacted: false,
-        likeCount: 0
-      });
+		recognitionId: grInteractionComments.getValue('recognition'),
 
+        currentUserHasReacted: false,
+        likeCount: 0,
+        likedByNames: []
+      });
     }
 
     // If there're no comments, return early
@@ -741,44 +744,31 @@ RecognitionDAO.prototype = {
       return [];
     }
 
-
-    // Do a single aggregate query to get like counts for all the comments
+    // Get all reactions for the fetched comments
     const commentIds = Array.from(commentsMap.keys());
-    const gaCommentReactions = new GlideAggregate('x_1794402_peerce_0_rec_interaction');
-    gaCommentReactions.addQuery('parent', 'IN', commentIds);
-    gaCommentReactions.addQuery('type', 'reaction');
-    gaCommentReactions.groupBy('parent');
-    gaCommentReactions.addAggregate('COUNT');
-    gaCommentReactions.query();
+    const grCommentReactions = new GlideRecord('x_1794402_peerce_0_rec_interaction');
+    grCommentReactions.addQuery('parent', 'IN', commentIds);
+    grCommentReactions.addQuery('type', 'reaction');
+    grCommentReactions.query();
 
-    while (gaCommentReactions.next()) {
-      const parentId = gaCommentReactions.getValue('parent');
-      const count = gaCommentReactions.getAggregate('COUNT');
+    while (grCommentReactions.next()) {
+      const parentId = grCommentReactions.getValue('parent');
 
-      // Retrieve the comment from the map and update its likeCount
-      if (commentsMap.has(parentId)) {
-        const comment = commentsMap.get(parentId);
-        comment.likeCount = parseInt(count, 10);
-      }
+      const comment = commentsMap.get(parentId);
+      if (!comment) continue;
+
+      // Increase the like count for this comment
+      comment.likeCount++;
+
+      // Get this user's display name
+      const userName = grCommentReactions.getDisplayValue('user');
+      if (userName)
+        comment.likedByNames.push(userName);
+
+      // Check if this is the current user's reaction
+      if (grCommentReactions.getValue('user') == this.currentUserId)
+        comment.currentUserHasReacted = true;
     }
-
-    // Get the current user's liked comments
-    const userLikedComments = new Set();
-    const grUserReactions = new GlideRecord('x_1794402_peerce_0_rec_interaction');
-    grUserReactions.addQuery('parent', 'IN', commentIds);
-    grUserReactions.addQuery('type', 'reaction');
-    grUserReactions.addQuery('user', this.currentUserId);
-    grUserReactions.query();
-
-    while (grUserReactions.next()) {
-      userLikedComments.add(grUserReactions.getValue('parent'));
-    }
-
-    commentIds.forEach(commentId => {
-      if (userLikedComments.has(commentId))
-        commentsMap.get(commentId).currentUserHasReacted = true;
-
-    });
 
     return Array.from(commentsMap.values());
   },
@@ -790,13 +780,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>144</sys_mod_count>
+        <sys_mod_count>149</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-16 08:50:37</sys_updated_on>
+        <sys_updated_on>2025-11-19 10:06:10</sys_updated_on>
     </sys_script_include>
 </record_update>

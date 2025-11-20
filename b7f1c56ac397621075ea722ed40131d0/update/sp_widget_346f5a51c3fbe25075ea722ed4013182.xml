@@ -37,6 +37,7 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     position: relative;
+  	border: 0.1rem solid #eee;
 }
 
 .recognition-highlights-title {
@@ -44,19 +45,19 @@
     padding: 1rem 1.25rem;
     margin: 0;
     font-weight: 600;
-    border-bottom: 1px solid #eee;
     background: #fafafa;
     color: #333;
 }
 
 .custom-tabs {
     margin: 0;
+  	margin-bottom: 1rem;
     border-bottom: 1px solid #eee;
     background: #f9f9f9;
 }
 
 .custom-tabs &gt; li &gt; a {
-    padding: 0.5rem 1rem;
+    padding: 1rem 0.5rem;
     font-weight: 500;
     color: #555;
     border: none;
@@ -81,7 +82,6 @@
 
 /* Panels */
 .recognition-highlights .panel {
-    border: 1px solid #eee;
     border-radius: 6px;
     box-shadow: none;
 }
@@ -89,7 +89,7 @@
 .recognition-highlights .panel-heading {
     background: #fdfdfd;
     border-bottom: 1px solid #eee;
-    padding: 0.75rem 1rem;
+    padding: 1.25rem;
 }
 
 .recognition-highlights .panel-title a {
@@ -146,7 +146,10 @@
 }
 
 .filter-wrapper {
-    padding: 1.5rem;
+    padding: 1rem;
+  	padding-top: 0;
+  	background: #fafafa;
+    border-bottom: .1rem solid #ccc;
 }
 
 .recognition-highlights .panel-title a::after {
@@ -164,8 +167,13 @@
 }
 
 .recommendations-pane .panel-heading {
-    padding: 1.5rem;
+    padding: 1rem;
 }
+
+#reportsAccordion {
+	margin-bottom: 0;
+}
+
 </css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -240,16 +248,16 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 15:34:14</sys_created_on>
         <sys_id>346f5a51c3fbe25075ea722ed4013182</sys_id>
-        <sys_mod_count>149</sys_mod_count>
+        <sys_mod_count>175</sys_mod_count>
         <sys_name>Recognition Highlights</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_346f5a51c3fbe25075ea722ed4013182</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-22 18:59:45</sys_updated_on>
+        <sys_updated_on>2025-11-19 14:56:49</sys_updated_on>
         <template><![CDATA[<div class="recognition-highlights">
-  <h3 class="recognition-highlights-title"><strong>Recognition highlights</strong></h3>
+  <h3 class="recognition-highlights-title" ng-if="!c.data.hasRecommendations"><strong>Recognition highlights</strong></h3>
 
   <!-- Loading Overlay -->
   <div ng-if="c.isLoading" class="loading-overlay">
@@ -258,12 +266,12 @@
     </div>
   </div>
 
-  <ul class="nav nav-tabs custom-tabs">
-    <li ng-if="c.data.hasRecommendations" ng-class="{'active': c.activeTab === 'actions'}">
+  <ul class="nav nav-tabs custom-tabs" ng-if="c.data.hasRecommendations">
+    <li ng-class="{'active': c.activeTab === 'actions'}">
       <a ng-click="c.setTab('actions')">Recognition Opportunities</a>
     </li>
     <li ng-class="{'active': c.activeTab === 'reports'}">
-      <a ng-click="c.setTab('reports')">Recognition Metrics</a>
+      <a ng-click="c.setTab('reports')">Recognition Highlights</a>
     </li>
   </ul>
 
