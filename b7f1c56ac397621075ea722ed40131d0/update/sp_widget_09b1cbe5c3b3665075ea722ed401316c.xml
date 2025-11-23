@@ -608,7 +608,7 @@
 
       stabilization: {
         enabled: true,
-        iterations: 200, // Previous value - 1000
+        iterations: 250, // Previous value - 1000
         fit: true
       }
     },
@@ -1306,14 +1306,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>527</sys_mod_count>
+        <sys_mod_count>529</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-22 14:12:43</sys_updated_on>
+        <sys_updated_on>2025-11-23 19:22:49</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">

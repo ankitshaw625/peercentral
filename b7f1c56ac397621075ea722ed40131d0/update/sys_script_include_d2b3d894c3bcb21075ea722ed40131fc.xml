@@ -21,47 +21,50 @@ RecognitionRecommender.prototype = {
   },
 
   generateRecommendations: function () {
-    gs.info("RecognitionRecommender: Starting recommendation generation.\n");
+    gs.info("RecognitionRecommender: Starting recommendation generation. Start Date/Time: " + new GlideDateTime().getDisplayValue());
 
     try {
-      this._clearOldRecommendations();
-
 
       const recommendationRules = this._getRecommendationRules();
       if (recommendationRules.length === 0) {
-        gs.info("RecognitionRecommender: No active recommendation rules found. Exiting.\n");
+        gs.info("RecognitionRecommender: No active recommendation rules found. Exiting. End Date/Time: " + new GlideDateTime().getDisplayValue());
         return;
       }
+
 
       const userDataMap = this._getDirectReportData();
       const directReportIds = Object.keys(userDataMap);
 
       if (directReportIds.length === 0) {
-        gs.info("RecognitionRecommender: No direct reports found for managers with the specified role. Exiting.\n");
+        gs.info("RecognitionRecommender: No direct reports found for managers with the specified role. Exiting. End Date/Time: " + new GlideDateTime().getDisplayValue());
         return;
       }
 
-      gs.info("RecognitionRecommender: Found " + directReportIds.length + " total direct reports to analyze.\n");
-
       const detailedContributions = this._getDetailedContributions(directReportIds, userDataMap, recommendationRules);
 
+      gs.info("RecognitionRecommender: Compiled detailed contributions for " + detailedContributions.length + " users. Contribution Data: " + JSON.stringify(detailedContributions, null, 2));
+
       const eligibleContributors = this._filterByEligibility(detailedContributions, recommendationRules);
-      gs.info("RecognitionRecommender: Found " + eligibleContributors.length + " contributors meeting per-rule eligibility.\n");
+      // gs.info("RecognitionRecommender: Found " + eligibleContributors.length + " contributors meeting per-rule eligibility.\n");
 
       const unsungContributors = this._filterRecentlyIncludedUsers(eligibleContributors);
-      gs.info("RecognitionRecommender: " + unsungContributors.length + " contributors remain after filtering for 'unsung' status.\n");
+
+      gs.info('RecognitionRecommender: After eligibility and cooldown filtering, ' + JSON.stringify(unsungContributors, null, 2));
+
 
       const finalRecommendations = this._getFinalRecommendations(unsungContributors);
-      gs.info('RecognitionRecommender: Curated ' + finalRecommendations.length + ' final recommendations.\n');
+
+      gs.info('RecognitionRecommender: Curated ' + finalRecommendations.length + ' final recommendations.Final Recommendations: ' + JSON.stringify(finalRecommendations, null, 2));
+
 
       for (const recommendation of finalRecommendations) {
         this._createRecommendationRecord(recommendation);
       }
 
-      gs.info("RecognitionRecommender: Finished. Created " + finalRecommendations.length + " new recommendations.\n");
+      gs.info("RecognitionRecommender: Finished. Created " + finalRecommendations.length + " new recommendations. End Date/Time: " + new GlideDateTime().getDisplayValue());
 
     } catch (e) {
-      gs.error("RecognitionRecommender: An error occurred during recommendation generation. " + e);
+      gs.error("RecognitionRecommender: An error occurred during recommendation generation. " + e + "\n.End Date/Time: " + new GlideDateTime().getDisplayValue());
     }
   },
 
@@ -73,9 +76,10 @@ RecognitionRecommender.prototype = {
 
     while (grRecommendationRules.next()) {
       rules.push({
+        name: grRecommendationRules.getValue('name'),
         sys_id: grRecommendationRules.getValue('sys_id'),
-        user_field: grRecommendationRules.getValue('user_field'),
-        date_field: grRecommendationRules.getValue('date_field') || 'sys_updated_on',
+        user_field: grRecommendationRules.getDisplayValue('user_field.element'),
+        date_field: grRecommendationRules.getDisplayValue('date_field.element') || 'sys_updated_on',
         table: grRecommendationRules.getValue('table'),
         record_conditions: grRecommendationRules.getValue('record_conditions'),
         rule_weight: parseInt(grRecommendationRules.getValue('rule_weight'), 10),
@@ -113,7 +117,8 @@ RecognitionRecommender.prototype = {
 
     while (grUser.next()) {
       userDataMap[grUser.getValue('sys_id')] = {
-        manager: grUser.getValue('manager')
+        manager: grUser.getValue('manager'),
+        managerDisplay: grUser.getDisplayValue('manager')
       };
     }
 
@@ -148,13 +153,15 @@ RecognitionRecommender.prototype = {
         if (!userProfiles[userId]) {
           userProfiles[userId] = {
             sys_id: userId,
+            userDisplay: ga.getDisplayValue(userField),
             manager: userDataMap[userId].manager,
+            managerDisplay: userDataMap[userId].managerDisplay,
             total_score: 0,
             contributions: {}
           };
         }
 
-        const count = ga.getAggregate('COUNT');
+        const count = parseInt(ga.getAggregate('COUNT'), 10);
 
         const points = count * rule.rule_weight;
         const reason = rule.reason_template
@@ -163,6 +170,7 @@ RecognitionRecommender.prototype = {
 
         userProfiles[userId].total_score += points;
         userProfiles[userId].contributions[ruleId] = {
+          ruleName: rule.name,
           count: count,
           points: points,
           reason: reason
@@ -199,6 +207,7 @@ RecognitionRecommender.prototype = {
   },
 
   _filterRecentlyIncludedUsers: function (users) {
+
     if (users.length === 0) return [];
 
     const userIDs = users.map((u) => u.sys_id);
@@ -245,15 +254,20 @@ RecognitionRecommender.prototype = {
     for (const managerId in managerGroups) {
       if (managerId === 'N/A') continue;
 
+      // Cleanup older recommendations for this manager
+      this._clearOldRecommendations(managerId);
+
       const team = managerGroups[managerId];
 
       team.sort((a, b) => b.total_score - a.total_score);
 
       const percentileCount = Math.ceil(team.length * (this.PERCENTILE_THRESHOLD / 100));
 
-      // Take the top percentile as defined, but ensure a minimum of 3 recommendations if there are enough users
-      let countToTake = (percentileCount < 3 && team.length >= 3) ? 3 : percentileCount;
-      countToTake = Math.min(countToTake, this.MANAGER_REC_LIMIT);
+      // If the team is small, the 10% math might result in just 1 person.
+      // This forces us to take at least the manager limit (3) so we don't leave people out.
+      const targetCount = Math.max(percentileCount, this.MANAGER_REC_LIMIT);
+      // If we want 3 people but the team only has 2, just take the 2 we have.
+      const countToTake = Math.min(team.length, targetCount);
 
       const topPerformersInTeam = team.slice(0, countToTake);
       finalRecommendations.push(...topPerformersInTeam);
@@ -264,25 +278,50 @@ RecognitionRecommender.prototype = {
 
 
   _createRecommendationRecord: function (heroData) {
-    const reasons = Object.values(heroData.contributions).map(c => c.reason);
+    const details = [];
+    const reasons = [];
+
+    for (const ruleId in heroData.contributions) {
+      const contribution = heroData.contributions[ruleId];
+      const originalWeight = contribution.points / contribution.count;
+
+      // Remove trailing period for summary
+      const summary = contribution.reason.replace(/\.$/, '');
+
+      const auditLine = summary +
+        ' (' + contribution.count + ') x Rule Weight (' + originalWeight + ') = ' + contribution.points;
+
+      details.push(auditLine);
+      reasons.push(summary);
+    }
+
+    details.push('Total Score = ' + heroData.total_score);
 
     const grRecognitionRecommendation = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecognitionRecommendation.addQuery('recommended_user', heroData.sys_id);
+    grRecognitionRecommendation.addQuery('status', 'new');
+    grRecognitionRecommendation.query();
 
-    grRecognitionRecommendation.newRecord();
+    if (!grRecognitionRecommendation.next()) {
+      grRecognitionRecommendation.newRecord();
+    }
+
     grRecognitionRecommendation.setValue('recommended_user', heroData.sys_id);
     grRecognitionRecommendation.setValue('manager', heroData.manager);
     grRecognitionRecommendation.setValue('score', heroData.total_score);
 
-    grRecognitionRecommendation.setValue('reason', 'High score of ' + heroData.total_score + ' based on recent contributions.');
-    grRecognitionRecommendation.setValue('details', reasons.join('; '));
+    grRecognitionRecommendation.setValue('reason', reasons.join('; '));
+
+    grRecognitionRecommendation.setValue('details', details.join('\n\n'));
+
     grRecognitionRecommendation.setValue('status', 'new');
-    grRecognitionRecommendation.insert();
+    grRecognitionRecommendation.update();
   },
 
-  _clearOldRecommendations: function () {
-    var grRecognitionRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
+  _clearOldRecommendations: function (managerId) {
+    const grRecognitionRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
     grRecognitionRecommendations.addQuery('status', 'new');
-    // grRecognitionRecommendations.query();
+    grRecognitionRecommendations.addQuery('manager', managerId);
 
     grRecognitionRecommendations.setValue('status', 'dismissed');
     grRecognitionRecommendations.updateMultiple();
@@ -307,9 +346,9 @@ RecognitionRecommender.prototype = {
         user_id: grRecommendations.getValue('recommended_user'),
         user: grRecommendations.getDisplayValue('recommended_user'),
         score: grRecommendations.getValue('score'),
-        reason: grRecommendations.getValue('reason'),
-        details: grRecommendations.getValue('details'),
-        details_list: grRecommendations.getValue('details').split(';'),
+        detailTrail: grRecommendations.getValue('details'),
+        details: grRecommendations.getValue('reason'),
+        details_list: grRecommendations.getValue('reason').split(';'),
         id: grRecommendations.getValue('sys_id')
       });
     }
@@ -323,13 +362,13 @@ RecognitionRecommender.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-20 19:58:43</sys_created_on>
         <sys_id>d2b3d894c3bcb21075ea722ed40131fc</sys_id>
-        <sys_mod_count>28</sys_mod_count>
+        <sys_mod_count>54</sys_mod_count>
         <sys_name>RecognitionRecommender</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_d2b3d894c3bcb21075ea722ed40131fc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-18 11:37:53</sys_updated_on>
+        <sys_updated_on>2025-11-23 20:55:33</sys_updated_on>
     </sys_script_include>
 </record_update>
