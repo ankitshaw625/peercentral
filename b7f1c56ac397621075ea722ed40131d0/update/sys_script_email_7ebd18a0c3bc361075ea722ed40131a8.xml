@@ -22,7 +22,7 @@
     for (var i = 0; i < recommendations.length; i++) {
         var item = recommendations[i];
         var detailsList = item.details_list || [];
-        var recognitionUrl = '/pc?sysparm_stack=no#recognize&user_id=' + item.user_id;
+        var recognitionUrl = '/pc?id=recognition_home&recommendation_id=' + item.id;
 
 
         template.print('<td style="padding: 15px 10px; border-bottom: 1px solid #e0e0e0;">');
@@ -56,13 +56,13 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-21 15:18:26</sys_created_on>
         <sys_id>7ebd18a0c3bc361075ea722ed40131a8</sys_id>
-        <sys_mod_count>9</sys_mod_count>
+        <sys_mod_count>10</sys_mod_count>
         <sys_name>render_recognition_recommendations</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_email_7ebd18a0c3bc361075ea722ed40131a8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-21 19:11:54</sys_updated_on>
+        <sys_updated_on>2025-11-23 13:46:19</sys_updated_on>
     </sys_script_email>
 </record_update>

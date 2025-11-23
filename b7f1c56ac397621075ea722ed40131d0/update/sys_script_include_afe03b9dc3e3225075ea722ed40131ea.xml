@@ -156,55 +156,74 @@ RecognitionDAO.prototype = {
 
 
     while (grRecognitions.next()) {
-      const recognitionSysId = grRecognitions.getUniqueValue();
-      const recognitionSender = grRecognitions.getValue('sender');
-      const isTeam = grRecognitions.getValue('is_team') == '1';
-      const isPrivate = grRecognitions.getValue('is_private') == '1';
 
-      const recognition = {
-        senderId: recognitionSender,
-        senderDisplay: grRecognitions.getDisplayValue('sender'),
-        isPrivate: isPrivate,
-        isTeam: isTeam,
-        message: grRecognitions.getValue('message'),
-        createdOn: grRecognitions.getValue('sys_created_on'),
-        recipients: [],
-        recipientIds: [],
-        occasions: [],
-        feed: feedType,
-        id: recognitionSysId,
-        senderImageId: grRecognitions.getElement('sender.photo').getValue(),
-        reactions: [],
-        comments: [],
-        currentUserHasReacted: false
-      };
-
-      const recognitionData = this.getRecognitionRecipients(
-        recognitionSysId,
-        recognition.isTeam
-      );
-
-      recognition.recipients = recognitionData.displayNames;
-      recognition.recipientIds = recognitionData.userIds;
-
-
-      // Get recognition occasions
-      recognition.occasions =
-        this.getRecognitionOccasions(recognitionSysId);
-
-      // Get recognition reactions
-      const reactionData = this.getRecognitionReactions(recognitionSysId);
-      recognition.reactions = reactionData.reactions;
-      recognition.currentUserHasReacted = reactionData.currentUserHasReacted;
-
-      recognition.comments = this.getRecognitionComments(recognitionSysId);
-
+      const recognition = this._getRecognitionObject(grRecognitions, feedType);
       // Add recognitions to list
       recognitions.push(recognition);
     }
 
     return recognitions;
   },
+
+  getRecognitionById: function (recognitionId) {
+    let recognition = {};
+
+    const grRecognition = new GlideRecord('x_1794402_peerce_0_peer_recognition');
+    if (grRecognition.get(recognitionId)) {
+      recognition = this._getRecognitionObject(grRecognition, '');
+    }
+
+    return recognition;
+  },
+
+
+  _getRecognitionObject: function (grRecognition, feedType) {
+    const recognitionSysId = grRecognition.getUniqueValue();
+    const recognitionSender = grRecognition.getValue('sender');
+    const isTeam = grRecognition.getValue('is_team') == '1';
+    const isPrivate = grRecognition.getValue('is_private') == '1';
+
+    const recognition = {
+      senderId: recognitionSender,
+      senderDisplay: grRecognition.getDisplayValue('sender'),
+      isPrivate: isPrivate,
+      isTeam: isTeam,
+      message: grRecognition.getValue('message'),
+      createdOn: grRecognition.getValue('sys_created_on'),
+      recipients: [],
+      recipientIds: [],
+      occasions: [],
+      feed: feedType,
+      id: recognitionSysId,
+      senderImageId: grRecognition.getElement('sender.photo').getValue(),
+      reactions: [],
+      comments: [],
+      currentUserHasReacted: false
+    };
+
+    const recognitionData = this.getRecognitionRecipients(
+      recognitionSysId,
+      recognition.isTeam
+    );
+
+    recognition.recipients = recognitionData.displayNames;
+    recognition.recipientIds = recognitionData.userIds;
+
+
+    // Get recognition occasions
+    recognition.occasions =
+      this.getRecognitionOccasions(recognitionSysId);
+
+    // Get recognition reactions
+    const reactionData = this.getRecognitionReactions(recognitionSysId);
+    recognition.reactions = reactionData.reactions;
+    recognition.currentUserHasReacted = reactionData.currentUserHasReacted;
+
+    recognition.comments = this.getRecognitionComments(recognitionSysId);
+
+    return recognition;
+  },
+
 
   getRecognitionDetails: function (userId) {
     // Store the original user ID to prevent side effects
@@ -704,7 +723,7 @@ RecognitionDAO.prototype = {
     grCommentReaction.setValue('user', userId);
     grCommentReaction.setValue('type', 'reaction');
     grCommentReaction.setValue('reaction', 'like');
-	grCommentReaction.setValue('recognition', recognitionId);
+    grCommentReaction.setValue('recognition', recognitionId);
 
     var interactionSysId = grCommentReaction.insert();
 
@@ -731,7 +750,7 @@ RecognitionDAO.prototype = {
         userId: grInteractionComments.getValue('user'),
         authorImage: grInteractionComments.getElement('user.photo').getValue(),
         created: grInteractionComments.getValue('sys_created_on'),
-		recognitionId: grInteractionComments.getValue('recognition'),
+        recognitionId: grInteractionComments.getValue('recognition'),
 
         currentUserHasReacted: false,
         likeCount: 0,
@@ -780,13 +799,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>149</sys_mod_count>
+        <sys_mod_count>152</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-19 10:06:10</sys_updated_on>
+        <sys_updated_on>2025-11-22 07:55:34</sys_updated_on>
     </sys_script_include>
 </record_update>

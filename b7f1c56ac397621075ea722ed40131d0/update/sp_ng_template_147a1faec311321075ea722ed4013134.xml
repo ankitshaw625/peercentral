@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_ng_template">
+    <sp_ng_template action="INSERT_OR_UPDATE">
+        <id>recognition-card</id>
+        <sp_widget display_value="Recognition Feed">09377deec39b621075ea722ed4013146</sp_widget>
+        <sys_class_name>sp_ng_template</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-22 06:39:40</sys_created_on>
+        <sys_id>147a1faec311321075ea722ed4013134</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>recognition-card</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_ng_template_147a1faec311321075ea722ed4013134</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-22 06:39:40</sys_updated_on>
+        <template><![CDATA[<article class="media recognition-container">
+
+  <div class="media-left">
+    <user-avatar image-id="recognition.senderImageId" initials="recognition.senderInitials"
+                 user-name="recognition.senderDisplay">
+    </user-avatar>
+  </div>
+
+  <div class="media-body p-5">
+    <h4 class="media-heading">
+      <a href>{{recognition.senderDisplay}}</a> gave
+      applause to
+
+      <a href>{{ recognition.visibleRecipients.join(', ') }}</a>
+
+      <span ng-if="recognition.remainingCount == 1">
+        and <a href>{{ recognition.remainingRecipientsTooltip }}</a>
+      </span>
+
+      <span ng-if="recognition.remainingCount > 1">
+        and
+        <a href="javascript:void(0)" uib-tooltip="{{recognition.remainingRecipientsTooltip}}"
+           tooltip-placement="top" class="remaining-recipients-link">
+          {{recognition.remainingCount}} others
+        </a>
+      </span>
+
+      <small class="text-muted pull-right">
+        <span ng-if="recognition.isNew" class="label label-default new-badge">New</span>
+        {{recognition.timeAgo}}
+      </small>
+    </h4>
+
+    <span class="recognition-indicators mb-5 pull-right">
+      <abbr title="Private Recognition" class="private-indicator initialism ml-10"
+            ng-if="recognition.isPrivate">
+        <i class="fa fa-lock" aria-hidden="true"></i>
+      </abbr>
+
+      <abbr title="Team Recognition" class="team-indicator initialism ml-10" ng-if="recognition.isTeam">
+        <i class="fa fa-users" aria-hidden="true"></i>
+      </abbr>
+    </span>
+
+    <p ng-if="recognition.message" ng-bind-html="recognition.message"></p>
+
+    <span ng-repeat="occasion in recognition.occasions">
+      <small class="label label-default occasion-tag" title="{{occasion}}">
+        <strong>{{occasion}}</strong> </small>&nbsp;
+    </span>
+
+    <div class="interaction-row">
+      <!-- Left: Like & Comment buttons -->
+      <div class="action-group">
+        <button class="action-btn" ng-click="c.toggleReaction(recognition)"
+                ng-class="{active: recognition.currentUserHasReacted, 'can-animate': recognition._allowReactionAnimation}"
+                aria-label="{{ recognition.currentUserHasReacted ? 'Unlike' : 'Like' }}">
+          <i class="fa"
+             ng-class="{'fa-thumbs-up': recognition.currentUserHasReacted,'fa-thumbs-o-up': !recognition.currentUserHasReacted}"></i>
+          <span>Like</span>
+        </button>
+
+        <button class="action-btn" ng-click="c.toggleComments(recognition)"
+                ng-class="{active: recognition.showComments}" data-toggle-comments-for="{{::recognition.id}}">
+          <i class=" fa"
+             ng-class="{'fa-comment': recognition.showComments, 'fa-comment-o': !recognition.showComments}"></i>
+          <span>
+            {{ recognition.comments.length > 0 ? recognition.comments.length + ' Comment' +
+            (recognition.comments.length > 1 ?'s' : '') : 'Comment' }}
+          </span>
+        </button>
+
+      </div>
+
+
+      <div class="meta-info">
+        <span class="reaction-count" ng-if="recognition.reactions.length > 0"
+              uib-tooltip="{{recognition.reactionTooltip}}" tooltip-placement="top">
+          {{ recognition.reactions.length }} <i class="fa fa-thumbs-o-up icon-small"></i>
+        </span>
+
+      </div>
+
+    </div>
+
+    <div class="comments-section slide-animation" ng-show="recognition.showComments"
+         data-comment-input-for-parent="{{::recognition.id}}">
+      <div ng-if="recognition.comments.length > 0" class="comments-list mt-20">
+        <article ng-repeat="comment in recognition.comments" class="comment-item media"
+                 ng-class="{'is-saving': comment.isSaving}">
+          <div class="media-left">
+            <user-avatar image-id="comment.authorImage" initials="comment.authorInitials"
+                         user-name="comment.authorName" class="avatar-sm"></user-avatar>
+          </div>
+
+          <div class="media-body comment-body">
+            <h4 class="media-heading"><a href="" class="ng-binding">{{comment.authorName}}</a></h4>
+            <span class="text-muted pull-right">{{comment.timeAgo}}</span>
+            <p class="comment-text">{{comment.text}}</p>
+
+
+            <div class="interaction-row">
+              <!-- Left: Like & Comment buttons -->
+              <div class="action-group">
+                <button class="action-btn" ng-click="c.toggleCommentReaction(comment)"
+                        ng-class="{active: comment.currentUserHasReacted, 'can-animate': comment._allowReactionAnimation}"
+                        aria-label="{{ comment.currentUserHasReacted ? 'Unlike' : 'Like' }}">
+                  <i class="fa"
+                     ng-class="{'fa-thumbs-up': comment.currentUserHasReacted,'fa-thumbs-o-up': !comment.currentUserHasReacted}"></i>
+                  <span>Like</span>
+                </button>
+              </div>
+
+              <!-- Right: Total reactions-->
+              <div class="meta-info">
+                <span class="reaction-count" ng-if="comment.likeCount > 0"
+                      uib-tooltip="{{comment.commentReactionTooltip}}" tooltip-placement="top">
+                  {{ comment.likeCount }} <i class="fa fa-thumbs-o-up icon-small"></i>
+                </span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="comment-input-container mt-10">
+        <user-avatar initials="c.currentUserInitials" user-name="c.currentUser.name" image-id="c.userImage"
+                     class="avatar-sm"></user-avatar>
+        <div class="comment-input-wrapper">
+          <input type="text" class="form-control" placeholder="Write a comment..."
+                 ng-model="recognition.newCommentText"
+                 ng-keyup="$event.keyCode === 13 && c.submitComment(recognition)"
+                 data-comment-input-for="{{::recognition.id}}">
+
+          <button class="btn-send" ng-if="recognition.newCommentText.trim()"
+                  ng-click="c.submitComment(recognition)" aria-label="Post comment">
+            <i class="fa fa-paper-plane" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+
+</article>]]></template>
+    </sp_ng_template>
+</record_update>

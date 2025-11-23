@@ -379,11 +379,10 @@
         <roles/>
         <script><![CDATA[(function () {
   const userId = gs.getUserID();
-  const watchFilter = 'portalsLIKE8ae319a2c31b621075ea722ed401313b^user=' + userId;
-  
+  const watchFilter = 'notification=ceafce39c32f621075ea722ed4013143^user=' + userId;
   data.notifications = [];
 
-  // Handle client side actions
+  // --- Handle Client Actions ---
   if (input && (input.action === 'mark_as_read' || input.action === 'clear')) {
     const grNotification = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
     // Ensure the user can only modify their own notifications
@@ -465,7 +464,7 @@
         sys_id: grNotifications.getUniqueValue(),
         message: message,
         is_read: grNotifications.getValue('status') != 'new',
-        url: recordId ? '?id=recognition_home&scrollTo=' + recordId + '#you' : '',
+        url: recordId ? '?id=recognition_home&recognition_id=' + recordId + '#all' : '',
         created_on: grNotifications.getValue('sys_created_on')
       });
     }
@@ -496,14 +495,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-10-08 22:25:41</sys_created_on>
         <sys_id>6b93c3d8c3e0725075ea722ed40131d8</sys_id>
-        <sys_mod_count>35</sys_mod_count>
+        <sys_mod_count>37</sys_mod_count>
         <sys_name>PC Notification Bell</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_6b93c3d8c3e0725075ea722ed40131d8</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-19 09:44:22</sys_updated_on>
+        <sys_updated_on>2025-11-23 10:07:36</sys_updated_on>
         <template><![CDATA[<div class="simple-bell-widget header-menu-item">
   <!-- Notification Bell Icon -->
   <a href="javascript:void(0)" class="bell-button" ng-click="c.toggleTray()"
