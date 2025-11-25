@@ -78,16 +78,16 @@
   };
 
   c.applySelection = function () {
-    // 1. Update the widget's display with the new selections
+    // Update the widget's display with the new selections
     c.selectedOptions = c.modal.selected;
 
-    // 2. Broadcast an event with the event name from widget options
+    // Broadcast an event with the event name from widget options
     // Any other widget on the page can listen for this event
     $rootScope.$broadcast(c.data.eventName, {
       selected: c.selectedOptions
     });
 
-    // 3. Close the dropdown
+    // Close the dropdown
     c.closeDropdown();
   };
 
@@ -367,14 +367,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-20 18:10:13</sys_created_on>
         <sys_id>bd8c55a2c38c361075ea722ed40131dc</sys_id>
-        <sys_mod_count>119</sys_mod_count>
+        <sys_mod_count>120</sys_mod_count>
         <sys_name>Multi Select Dropdown Filter</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_bd8c55a2c38c361075ea722ed40131dc</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-25 10:16:39</sys_updated_on>
+        <sys_updated_on>2025-11-23 13:31:05</sys_updated_on>
         <template><![CDATA[<div class="slush-filter-widget">
   <div class="filter-display" ng-click="c.toggleDropdown()" title="Click to edit filter">
 

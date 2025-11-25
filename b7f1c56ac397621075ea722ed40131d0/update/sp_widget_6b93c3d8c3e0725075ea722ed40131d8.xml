@@ -1,0 +1,588 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sp_widget">
+    <sp_widget action="INSERT_OR_UPDATE">
+        <category>custom</category>
+        <client_script><![CDATA[api.controller = function ($scope, $rootScope, $window, spUtil) {
+  var c = this;
+
+  c.showTray = false;
+  c.isLoading = false;
+  c.currentUserId = $scope.user.sys_id;
+
+
+  // Toggle the visibility of the notification tray
+  c.toggleTray = function () {
+    c.showTray = !c.showTray;
+  };
+
+  // Open the notification tray and mark notification as read
+  c.openNotification = function (item) {
+    c.markAsRead(item); // Mark as read on click
+    if (item.url) {
+      $window.location.href = item.url;
+    }
+  };
+
+  // Mark a single notification as read
+  c.markAsRead = function (item, event) {
+    if (event)
+      event.stopPropagation(); // Prevent link click
+
+    if (item.is_read) return;
+
+    c.server.get({
+      action: 'mark_as_read',
+      item_sys_id: item.sys_id
+    }).then(function (response) {
+      // Update UI instantly
+      item.is_read = true;
+      if (c.data.unread_count > 0) c.data.unread_count -= 1;
+    });
+  };
+
+  // Clear a single notification
+  c.clearNotification = function (item, event) {
+    if (event)
+      event.stopPropagation();
+
+    c.server.get({
+      action: 'clear',
+      item_sys_id: item.sys_id
+    }).then(function (response) {
+      // const index = c.data.notifications.findIndex(function (n) {
+      //   return n.sys_id === item.sys_id;
+      // });
+
+      // if (index > -1) {
+      //   c.data.notifications.splice(index, 1);
+      // }
+
+      // Update UI by removing the item
+      c.data.notifications = c.data.notifications.filter((n) => n.sys_id !== item.sys_id);
+
+      c.data.unread_count = response.data.unread_count;
+    });
+  };
+
+
+  // Mark all notifications as read
+  c.markAllAsRead = function () {
+    c.server.get({
+      action: 'mark_all_as_read'
+    }).then(function (response) {
+      // Optimistically update the UI
+      c.data.notifications.forEach(function (item) {
+        item.is_read = true;
+      });
+
+      c.data.unread_count = 0;
+    });
+  };
+
+
+
+  c.clearAll = function () {
+    c.isLoading = true;
+    c.server.get({
+      action: 'clear_all'
+    }).then(function (response) {
+      c.data.notifications = response.data.notifications;
+      c.data.unread_count = response.data.unread_count;
+      c.isLoading = false;
+    });
+  };
+
+  // Close tray when clicking outside
+  angular.element($window).on('click', function (e) {
+    if (angular.element(e.target).closest('.simple-bell-widget').length === 0) {
+      if (c.showTray) {
+        $scope.$apply(function () {
+          c.showTray = false;
+        });
+      }
+    }
+  });
+
+
+  const notificationWatchFilter = 'user=' + c.currentUserId;
+  spUtil.recordWatch($scope, 'sn_ex_sp_notifs_portal_notification_content', notificationWatchFilter, handleNewNotification);
+
+  function handleNewNotification(response) {
+    if (response.data.operation !== 'insert') return;
+
+    // Refetch all the notifications from the server
+    c.server.update().then(function () {
+
+      const latestNotification = c.data.notifications[0];
+
+      if (!latestNotification || latestNotification.is_read) return;
+
+      // Show a toast for the new notification
+      spUtil.addTrivialMessage(latestNotification.message);
+    });
+  }
+
+  c.formatTimeAgo = function (dateTime) {
+
+    if (!dateTime) return '';
+
+    var m = moment.utc(dateTime, "YYYY-MM-DD HH:mm:ss");
+
+    return m.local().fromNow();
+  };
+
+
+  moment.updateLocale('en', {
+    relativeTime: {
+      future: "in %s",
+      past: "%s ago",
+      s: "a few seconds",
+      ss: "%ds",
+      m: "1m",
+      mm: "%dm",
+      h: "1h",
+      hh: "%dh",
+      d: "1d",
+      dd: "%dd",
+      M: "1mo",
+      MM: "%dmo",
+      y: "1y",
+      yy: "%dy"
+    }
+  });
+}]]></client_script>
+        <controller_as>c</controller_as>
+        <css>/* Main Widget Container */&#13;
+.simple-bell-widget {&#13;
+    position: relative;&#13;
+    display: inline-block;&#13;
+}&#13;
+&#13;
+/* Bell Button Styling */&#13;
+.bell-button {&#13;
+    display: flex; /* Use Flexbox for alignment */&#13;
+    align-items: center; /* Vertically center the bell icon inside the link */&#13;
+    height: 60px; /* Set height to match the header */&#13;
+    padding: 0 20px; /* Maintain horizontal spacing */&#13;
+    background-color: transparent;&#13;
+    border: none;&#13;
+    color: inherit;&#13;
+    font-size: 20px;&#13;
+    position: relative;&#13;
+    cursor: pointer;&#13;
+    text-decoration: none; /* Ensure no underline appears */&#13;
+}&#13;
+&#13;
+.bell-button:focus,&#13;
+.bell-button:hover {&#13;
+    background-color: rgba(&#13;
+        0,&#13;
+        0,&#13;
+        0,&#13;
+        0.1&#13;
+    ); /* Provide visual feedback on interaction */&#13;
+    outline: none; /* Explicitly remove the focus outline */&#13;
+    border-radius: 4px;&#13;
+    text-decoration: none;&#13;
+    color: inherit;&#13;
+}&#13;
+&#13;
+/* Badge for unread count */&#13;
+.bell-button .badge {&#13;
+    position: absolute;&#13;
+    top: 5px;&#13;
+    right: 5px;&#13;
+    background-color: #d9534f;&#13;
+    color: white;&#13;
+    font-size: 10px;&#13;
+    padding: 2px 5px;&#13;
+    border-radius: 10px;&#13;
+    font-weight: bold;&#13;
+}&#13;
+&#13;
+/* Notification Tray Dropdown */&#13;
+.notification-tray {&#13;
+    position: absolute;&#13;
+    top: 100%;&#13;
+    right: 0;&#13;
+    width: 380px;&#13;
+    max-width: 90vw;&#13;
+    background-color: #fff;&#13;
+    border: 1px solid #e7e7e7;&#13;
+    border-radius: 4px;&#13;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);&#13;
+    z-index: 10000;&#13;
+    display: flex;&#13;
+    flex-direction: column;&#13;
+}&#13;
+&#13;
+.tray-header {&#13;
+    padding: 15px;&#13;
+    border-bottom: 1px solid #e7e7e7;&#13;
+}&#13;
+&#13;
+.tray-header h4 {&#13;
+    margin: 0;&#13;
+    font-size: 16px;&#13;
+    font-weight: 600;&#13;
+}&#13;
+&#13;
+.tray-body {&#13;
+    max-height: 450px;&#13;
+    overflow-y: auto;&#13;
+}&#13;
+&#13;
+/* Notification List */&#13;
+.notification-list {&#13;
+    list-style: none;&#13;
+    padding: 0;&#13;
+    margin: 0;&#13;
+}&#13;
+&#13;
+.notification-item {&#13;
+    border-bottom: 1px solid #f0f0f0;&#13;
+    transition: background-color 0.2s ease;&#13;
+}&#13;
+&#13;
+.notification-item:hover {&#13;
+    background-color: #f9f9f9;&#13;
+}&#13;
+&#13;
+.notification-link {&#13;
+    display: block;&#13;
+    padding: 15px;&#13;
+    text-decoration: none;&#13;
+    color: #333;&#13;
+}&#13;
+&#13;
+.notification-content {&#13;
+    display: flex;&#13;
+    align-items: center;&#13;
+}&#13;
+&#13;
+.notification-link {&#13;
+    display: flex;&#13;
+    justify-content: space-between;&#13;
+    align-items: flex-start;&#13;
+    gap: 15px;&#13;
+}&#13;
+&#13;
+.notification-body {&#13;
+    flex-grow: 1;&#13;
+    display: flex;&#13;
+    align-items: flex-start;&#13;
+    gap: 15px;&#13;
+    min-width: 0;&#13;
+}&#13;
+&#13;
+.notification-content {&#13;
+    display: contents;&#13;
+}&#13;
+&#13;
+.notification-time {&#13;
+    flex-shrink: 0;&#13;
+    white-space: nowrap;&#13;
+    color: #999;&#13;
+    padding-top: 2px;&#13;
+    font-size: 12px;&#13;
+}&#13;
+&#13;
+.unread-dot {&#13;
+    min-width: 8px;&#13;
+    height: 8px;&#13;
+    background-color: #3498db;&#13;
+    border-radius: 50%;&#13;
+    margin-right: 15px;&#13;
+}&#13;
+&#13;
+.notification-item.unread .message {&#13;
+    font-weight: bold;&#13;
+}&#13;
+&#13;
+.message {&#13;
+    margin: 0;&#13;
+    font-size: 14px;&#13;
+    line-height: 1.4;&#13;
+}&#13;
+&#13;
+/* Actions below notification text */&#13;
+.notification-actions {&#13;
+    padding: 0 15px 10px 38px;&#13;
+    margin-top: -5px;&#13;
+    text-align: right;&#13;
+}&#13;
+&#13;
+.notification-actions .btn-link {&#13;
+    font-size: 12px;&#13;
+    padding: 2px 5px;&#13;
+    color: #777;&#13;
+}&#13;
+&#13;
+.notification-actions .btn-link:hover {&#13;
+    color: #333;&#13;
+    text-decoration: underline;&#13;
+}&#13;
+&#13;
+/* Empty state for no notifications */&#13;
+.empty-state {&#13;
+    text-align: center;&#13;
+    padding: 40px 20px;&#13;
+    color: #999;&#13;
+}&#13;
+&#13;
+.empty-state .fa {&#13;
+    font-size: 40px;&#13;
+    margin-bottom: 10px;&#13;
+    color: #ccc;&#13;
+}&#13;
+&#13;
+/* Tray Footer Styling */&#13;
+.tray-footer {&#13;
+    padding: 10px;&#13;
+    border-top: 1px solid #e7e7e7;&#13;
+    text-align: right;&#13;
+    background-color: #f9f9f9;&#13;
+}&#13;
+&#13;
+.tray-footer .btn-link {&#13;
+    font-size: 12px;&#13;
+    padding: 2px 5px;&#13;
+    color: #777;&#13;
+    margin-left: 10px;&#13;
+}&#13;
+&#13;
+.tray-footer .btn-link:hover {&#13;
+    color: #333;&#13;
+    text-decoration: underline;&#13;
+}&#13;
+&#13;
+/* Loading Spinner Styling */&#13;
+.loading-container {&#13;
+    display: flex;&#13;
+    justify-content: center;&#13;
+    align-items: center;&#13;
+    min-height: 100px; /* Give it some space */&#13;
+    color: #999;&#13;
+}&#13;
+&#13;
+.loading-container .fa-spinner {&#13;
+    font-size: 30px;&#13;
+}&#13;
+</css>
+        <data_table>sp_instance</data_table>
+        <demo_data/>
+        <description/>
+        <docs/>
+        <field_list/>
+        <has_preview>false</has_preview>
+        <id>pc-notification-bell</id>
+        <internal>false</internal>
+        <link><![CDATA[function link(scope, element, attrs, controller) {  }]]></link>
+        <name>PC Notification Bell</name>
+        <option_schema/>
+        <public>false</public>
+        <roles/>
+        <script><![CDATA[(function () {
+  const userId = gs.getUserID();
+  const watchFilter = 'tableSTARTSWITHx_1794402_peerce^user=' + userId;
+  data.notifications = [];
+
+  // --- Handle Client Actions ---
+  if (input && (input.action === 'mark_as_read' || input.action === 'clear')) {
+    const grNotification = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    // Ensure the user can only modify their own notifications
+    grNotification.addQuery('user', userId);
+    grNotification.addQuery('sys_id', input.item_sys_id);
+    grNotification.query();
+
+    if (grNotification.next()) {
+
+      // Mark a single notification as read by setting status to viewed
+      if (input.action === 'mark_as_read') {
+        grNotification.setValue('status', 'viewed');
+        grNotification.update();
+      }
+
+      // Clear a single notification by making it inactive
+      if (input.action === 'clear') {
+        grNotification.setValue('active', false);
+        grNotification.update();
+      }
+
+      data.unread_count = getUnreadCount();
+    }
+
+    return;
+  }
+
+  // Mark all the current notifications as read 
+  if (input && input.action === 'mark_all_as_read') {
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    grNotifications.addQuery('user', userId);
+    grNotifications.addQuery('status', 'new');
+    grNotifications.query();
+
+    grNotifications.setValue('status', 'viewed');
+    grNotifications.updateMultiple();
+
+    data.unread_count = 0;
+
+    return;
+  }
+
+  // Mark all the current notifications as cleared
+  if (input && input.action === 'clear_all') {
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    grNotifications.addQuery('user', userId);
+    grNotifications.addQuery('active', true);
+    grNotifications.query();
+
+    grNotifications.setValue('active', false);
+    grNotifications.updateMultiple();
+
+    data.notifications = [];
+    data.unread_count = 0;
+    return;
+
+  }
+
+  getNotifications();
+  data.unread_count = getUnreadCount();
+
+  function getNotifications() {
+    // Get all the notifications for the current user
+    const grNotifications = new GlideRecord('sn_ex_sp_notifs_portal_notification_content');
+    grNotifications.addEncodedQuery(watchFilter);
+    grNotifications.addQuery('active', true);
+    grNotifications.orderByDesc('sys_created_on');
+    grNotifications.setLimit(30);
+    grNotifications.query();
+
+    while (grNotifications.next()) {
+      const template = grNotifications.content_template.toString();
+      const params = JSON.parse(grNotifications.content_params.toString() || '[]');
+      const message = gs.getMessage(template, params);
+
+      // const recordId = grNotifications.getValue('record');
+
+      data.notifications.push({
+        sys_id: grNotifications.getUniqueValue(),
+        message: message,
+        is_read: grNotifications.getValue('status') != 'new',
+        url: grNotifications.getValue('action_url'),
+        created_on: grNotifications.getValue('sys_created_on')
+      });
+    }
+  }
+
+
+  function getUnreadCount() {
+    // Get unread count
+    const grNotificationCount = new GlideAggregate('sn_ex_sp_notifs_portal_notification_content');
+    grNotificationCount.addEncodedQuery(watchFilter);
+    grNotificationCount.addQuery('active', true);
+    grNotificationCount.addQuery('status', 'new');
+    grNotificationCount.addAggregate('COUNT');
+    grNotificationCount.query();
+
+    let unreadCount = 0;
+    if (grNotificationCount.next())
+      unreadCount = grNotificationCount.getAggregate('COUNT');
+
+    return unreadCount;
+  }
+
+
+
+})();]]></script>
+        <servicenow>false</servicenow>
+        <sys_class_name>sp_widget</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-08 22:25:41</sys_created_on>
+        <sys_id>6b93c3d8c3e0725075ea722ed40131d8</sys_id>
+        <sys_mod_count>40</sys_mod_count>
+        <sys_name>PC Notification Bell</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sp_widget_6b93c3d8c3e0725075ea722ed40131d8</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-25 03:52:36</sys_updated_on>
+        <template><![CDATA[<div class="simple-bell-widget header-menu-item">
+  <!-- Notification Bell Icon -->
+  <a href="javascript:void(0)" class="bell-button" ng-click="c.toggleTray()"
+    aria-label="{{c.data.unread_count}} new notifications" role="button">
+    <i class="fa fa-bell" aria-hidden="true"></i>
+    <!-- Unread Count Badge -->
+    <span ng-if="c.data.unread_count > 0" class="badge">
+      {{ c.data.unread_count > 9 ? '9+' : c.data.unread_count }}
+    </span>
+  </a>
+
+  <!-- Notification Tray -->
+  <div ng-if="c.showTray" class="notification-tray">
+    <div class="tray-header">
+      <h4>Notifications</h4>
+    </div>
+
+    <!-- Notification List -->
+    <div class="tray-body">
+      <div ng-if="c.isLoading" class="loading-container">
+        <i class="fa fa-spinner fa-spin"></i>
+      </div>
+
+      <div ng-if="!c.isLoading">
+
+        <!-- Empty State -->
+        <div ng-if="!c.data.notifications.length" class="empty-state">
+          <i class="fa fa-check-circle"></i>
+          <p>You're all caught up!</p>
+        </div>
+
+        <!-- Notification Items -->
+        <ul class="notification-list">
+          <li ng-repeat="item in c.data.notifications track by item.sys_id" class="notification-item"
+            ng-class="{'unread': !item.is_read}">
+
+            <a href="javascript:void(0)" ng-click="c.openNotification(item)" class="notification-link">
+              <div class="notification-body">
+                <div class="unread-dot" ng-if="!item.is_read" title="Unread"></div>
+                <p class="message">{{ item.message }}</p>
+              </div>
+
+              <small class="notification-time">{{ c.formatTimeAgo(item.created_on) }}</small>
+            </a>
+
+            <div class="notification-actions">
+              <button ng-if="!item.is_read" class="btn btn-sm btn-link" ng-click="c.markAsRead(item, $event)"
+                title="Mark as Read">
+                Mark as Read
+              </button>
+              <button class="btn btn-sm btn-link" ng-click="c.clearNotification(item, $event)" title="Clear">
+                Clear
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tray-footer" ng-if="c.data.notifications.length > 0">
+      <button ng-if="c.data.unread_count > 0" class="btn btn-sm btn-link" ng-click="c.markAllAsRead()">Mark all as
+        read</button>
+      <button class="btn btn-sm btn-link" ng-click="c.clearAll()">Clear all</button>
+    </div>
+  </div>
+</div>]]></template>
+    </sp_widget>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>6b93c3d8c3e0725075ea722ed40131d8</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-08 22:25:41</sys_created_on>
+        <sys_id>27934f5cc3e0725075ea722ed4013102</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-08 22:25:41</sys_updated_on>
+        <table>sp_widget</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

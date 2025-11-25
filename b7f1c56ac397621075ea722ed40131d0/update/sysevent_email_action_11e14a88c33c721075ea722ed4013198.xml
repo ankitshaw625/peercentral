@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sysevent_email_action">
+    <sysevent_email_action action="INSERT_OR_UPDATE">
+        <action_insert>false</action_insert>
+        <action_update>false</action_update>
+        <active>true</active>
+        <advanced_condition/>
+        <affected_field_on_event/>
+        <category display_value="Recognition" name="Recognition">26cf8279c32f621075ea722ed40131a0</category>
+        <collection/>
+        <condition/>
+        <content_type>text/html</content_type>
+        <default_digest>false</default_digest>
+        <default_interval/>
+        <description>Sends a weekly summary to users with the peercentral manager role</description>
+        <digest_from/>
+        <digest_html/>
+        <digest_reply_to/>
+        <digest_separator_html><![CDATA[<p>&nbsp;</p>
+<hr>
+<p>&nbsp;</p>]]></digest_separator_html>
+        <digest_separator_text><![CDATA[\n--------------------------------------------------------------------------------\n]]></digest_separator_text>
+        <digest_subject/>
+        <digest_template/>
+        <digest_text/>
+        <digest_type>single</digest_type>
+        <digestable>false</digestable>
+        <enable_dynamic_translation>false</enable_dynamic_translation>
+        <event_name>x_1794402_peerce_0.manager.digest</event_name>
+        <event_parm_1>true</event_parm_1>
+        <event_parm_2>false</event_parm_2>
+        <exclude_delegates>false</exclude_delegates>
+        <force_delivery>false</force_delivery>
+        <from/>
+        <generation_type>event</generation_type>
+        <importance/>
+        <include_attachments>false</include_attachments>
+        <item>event.parm1</item>
+        <item_table/>
+        <mandatory>false</mandatory>
+        <message/>
+        <message_html><![CDATA[<div style="background-color: #f7f7f7; font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.5; padding: 20px;">
+<div style="max-width: 600px; margin: auto; background-color: #ffffff; border: 1px solid #dddddd; border-radius: 8px; overflow: hidden;">
+<table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="padding: 20px;">
+<table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="padding: 20px; text-align: center;">
+<table style="margin: 0 auto;" role="presentation" border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="middle"><img style="display: block; margin-right: 10px;" src="x_1794402_peerce_0.peercentral-logo.png" alt="PeerCentral Logo" width="40" height="40"></td>
+<td valign="middle">
+<p style="font-size: 20px; font-weight: bold; margin: 0; color: #0e515b;">PeerCentral</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="font-size: 16px; margin: 5px 0 0 0; color: #666666;">Weekly Digest</p>
+</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Main Content -->
+<div style="padding: 0 20px 20px 20px;">
+<p style="font-size: 16px; margin: 0 0 20px 0;">Hi ${mail_script:get_user_first_name},</p>
+<p style="margin: 0 0 20px 0;">Here is the summary of recognition activity from your team over the last week.</p>
+<hr style="border: 0; border-top: 1px solid #eeeeee; margin: 20px 0;">${mail_script:render_manager_digest} <br><br>${mail_script:render_recognition_recommendations}
+<table role="presentation" border="0" width="100%" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td style="padding: 10px 0;" align="center"><a style="background-color: #278efc; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block;" href="/pc?sysparm_stack=no#team" target="_blank" rel="noopener">View in PeerCentral</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Footer -->
+<div style="background-color: #f7f7f7; padding: 20px; text-align: center;">
+<p style="color: #999999; font-size: 12px; margin: 0;">This is an automated notification from the PeerCentral application.</p>
+</div>
+</div>
+</div>]]></message_html>
+        <message_list/>
+        <message_text/>
+        <name>PeerCentral: Weekly Manager Digest</name>
+        <omit_watermark>true</omit_watermark>
+        <order>100</order>
+        <push_message_only>false</push_message_only>
+        <recipient_fields/>
+        <recipient_groups/>
+        <recipient_users/>
+        <reply_to/>
+        <send_self>true</send_self>
+        <sms_alternate/>
+        <style/>
+        <subject>Your Team's Weekly Recognition Summary</subject>
+        <subscribable>false</subscribable>
+        <sys_class_name>sysevent_email_action</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-20 09:16:30</sys_created_on>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>11e14a88c33c721075ea722ed4013198</sys_id>
+        <sys_mod_count>14</sys_mod_count>
+        <sys_name>PeerCentral: Weekly Manager Digest</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sysevent_email_action_11e14a88c33c721075ea722ed4013198</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-21 15:22:21</sys_updated_on>
+        <sys_version>2</sys_version>
+        <template/>
+        <type>email</type>
+        <weight>0</weight>
+    </sysevent_email_action>
+    <sys_es_latest_script action="INSERT_OR_UPDATE">
+        <id>11e14a88c33c721075ea722ed4013198</id>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-20 09:18:12</sys_created_on>
+        <sys_id>117206c8c33c721075ea722ed4013198</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-20 09:18:12</sys_updated_on>
+        <table>sysevent_email_action</table>
+        <use_es_latest>true</use_es_latest>
+    </sys_es_latest_script>
+</record_update>

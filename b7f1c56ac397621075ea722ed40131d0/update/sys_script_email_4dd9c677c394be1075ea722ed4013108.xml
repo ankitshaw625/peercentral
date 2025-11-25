@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_email">
+    <sys_script_email action="INSERT_OR_UPDATE">
+        <name>printRecognitionValues</name>
+        <new_lines_to_html>false</new_lines_to_html>
+        <script><![CDATA[(function runMailScript( /* GlideRecord */ current, /* TemplatePrinter */ template,
+    /* Optional EmailOutbound */
+    email, /* Optional GlideRecord */ email_action,
+    /* Optional GlideRecord */
+    event) {
+
+    var occasions = [];
+    var grRecognitionOccasions = new GlideRecord('x_1794402_peerce_0_applied_recognition_occasion');
+    grRecognitionOccasions.addQuery('recognition', current.getValue('recognition'));
+    grRecognitionOccasions.query();
+
+    while (grRecognitionOccasions.next()) {
+        occasions.push(grRecognitionOccasions.getValue('occasion_text'));
+    }
+
+    var label = 'Company Value:';
+    var occasionDisplay = occasions.toString();
+    if (occasions.length > 1) {
+        label = 'Company Values:';
+        occasionDisplay = occasions.slice(0, occasions.length - 1).join(', ') + ', and ' + occasions[occasions.length - 1];
+    }
+
+    var valuesTemplate = '<p style="font-family: Arial, sans-serif; font-size: 14px; color: #555555; margin: 0 0 30px 0;"><strong>' + label + '</strong> <span style="background-color: #e0e0e0; color: #333333; padding: 4px 10px; border-radius: 12px; font-size: 12px; margin-left: 5px; white-space: nowrap;"><em>' + occasionDisplay + '</em></span></p>';
+
+    template.print(valuesTemplate);
+
+})(current, template, email, email_action, event);]]></script>
+        <sys_class_name>sys_script_email</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-07 05:00:25</sys_created_on>
+        <sys_id>4dd9c677c394be1075ea722ed4013108</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>printRecognitionValues</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_email_4dd9c677c394be1075ea722ed4013108</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-11 18:27:17</sys_updated_on>
+    </sys_script_email>
+</record_update>

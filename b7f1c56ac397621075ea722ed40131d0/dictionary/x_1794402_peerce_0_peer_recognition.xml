@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?><database>
     <element db_object_id="a8e889a2c3d7621075ea722ed40131b1" label="Recognition" max_length="40" name="x_1794402_peerce_0_peer_recognition" type="collection">
+        <element label="Source Recommendation" max_length="32" name="source_recommendation" read_only="true" reference="x_1794402_peerce_0_recomendations" type="reference"/>
+        <element label="Values" max_length="4000" name="values" reference="x_1794402_peerce_0_recognition_category" reference_qual="active=true^EQ" reference_qual_condition="active=true^EQ" type="glide_list"/>
         <element label="Is private" max_length="40" name="is_private" type="boolean"/>
         <element label="Is team" max_length="255" name="is_team" type="boolean"/>
         <element label="Sender" mandatory="true" max_length="32" name="sender" reference="sys_user" type="reference"/>
@@ -8,6 +10,9 @@
         <element default="javascript:getNextObjNumberPadded();" display="true" dynamic_default_value="fdcb83a85f220100a9ad2572f2b4773c" label="Number" max_length="40" name="u_number" type="string" use_dynamic_default="true"/>
         <index name="index">
             <element name="sender"/>
+        </index>
+        <index name="index2">
+            <element name="source_recommendation"/>
         </index>
     </element>
 </database>

@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_1794402_peerce_0.RecognitionRecommender</api_name>
+        <caller_access>1</caller_access>
+        <client_callable>false</client_callable>
+        <description/>
+        <mobile_callable>false</mobile_callable>
+        <name>RecognitionRecommender</name>
+        <sandbox_callable>false</sandbox_callable>
+        <script><![CDATA[var RecognitionRecommender = Class.create();
+RecognitionRecommender.prototype = {
+  initialize: function () {
+    this.LOOKBACK_DAYS = parseInt(gs.getProperty('x_1794402_peerce_0.recommendations.lookback_days', 30), 10);
+    this.COOLDOWN_DAYS = parseInt(gs.getProperty('x_1794402_peerce_0.recommendations.cooldown_days', 30), 10);
+    this.PERCENTILE_THRESHOLD = parseInt(gs.getProperty('x_1794402_peerce_0.recommendations.top_percentile', 10), 10);
+    this.MANAGER_REC_LIMIT = parseInt(gs.getProperty('x_1794402_peerce_0.recommendations.manager_rec_limit', 3), 10);
+
+    this.MANAGER_ROLE = 'x_1794402_peerce_0.manager';
+  },
+
+  generateRecommendations: function () {
+    gs.info("RecognitionRecommender: Starting recommendation generation. Start Date/Time: " + new GlideDateTime().getDisplayValue());
+
+    try {
+
+      const recommendationRules = this._getRecommendationRules();
+      if (recommendationRules.length === 0) {
+        gs.info("RecognitionRecommender: No active recommendation rules found. Exiting. End Date/Time: " + new GlideDateTime().getDisplayValue());
+        return;
+      }
+
+
+      const userDataMap = this._getDirectReportData();
+      const directReportIds = Object.keys(userDataMap);
+
+      if (directReportIds.length === 0) {
+        gs.info("RecognitionRecommender: No direct reports found for managers with the specified role. Exiting. End Date/Time: " + new GlideDateTime().getDisplayValue());
+        return;
+      }
+
+      const detailedContributions = this._getDetailedContributions(directReportIds, userDataMap, recommendationRules);
+
+      gs.info("RecognitionRecommender: Compiled detailed contributions for " + detailedContributions.length + " users. Contribution Data: " + JSON.stringify(detailedContributions, null, 2));
+
+      const eligibleContributors = this._filterByEligibility(detailedContributions, recommendationRules);
+      // gs.info("RecognitionRecommender: Found " + eligibleContributors.length + " contributors meeting per-rule eligibility.\n");
+
+      const unsungContributors = this._filterRecentlyIncludedUsers(eligibleContributors);
+
+      gs.info('RecognitionRecommender: After eligibility and cooldown filtering, ' + JSON.stringify(unsungContributors, null, 2));
+
+
+      const finalRecommendations = this._getFinalRecommendations(unsungContributors);
+
+      gs.info('RecognitionRecommender: Curated ' + finalRecommendations.length + ' final recommendations.Final Recommendations: ' + JSON.stringify(finalRecommendations, null, 2));
+
+
+      for (const recommendation of finalRecommendations) {
+        this._createRecommendationRecord(recommendation);
+      }
+
+      gs.info("RecognitionRecommender: Finished. Created " + finalRecommendations.length + " new recommendations. End Date/Time: " + new GlideDateTime().getDisplayValue());
+
+    } catch (e) {
+      gs.error("RecognitionRecommender: An error occurred during recommendation generation. " + e + "\n.End Date/Time: " + new GlideDateTime().getDisplayValue());
+    }
+  },
+
+  _getRecommendationRules: function () {
+    const rules = [];
+    const grRecommendationRules = new GlideRecord('x_1794402_peerce_0_recog_recomm_rule');
+    grRecommendationRules.addActiveQuery();
+    grRecommendationRules.query();
+
+    while (grRecommendationRules.next()) {
+      rules.push({
+        name: grRecommendationRules.getValue('name'),
+        sys_id: grRecommendationRules.getValue('sys_id'),
+        user_field: grRecommendationRules.getDisplayValue('user_field.element'),
+        date_field: grRecommendationRules.getDisplayValue('date_field.element') || 'sys_updated_on',
+        table: grRecommendationRules.getValue('table'),
+        record_conditions: grRecommendationRules.getValue('record_conditions'),
+        rule_weight: parseInt(grRecommendationRules.getValue('rule_weight'), 10),
+        reason_template: grRecommendationRules.getValue('reason_template'),
+        minimum_count: parseInt(grRecommendationRules.getValue('minimum_count'), 10) || 0
+      });
+    }
+
+    gs.info("RecognitionRecommender: Loaded " + rules.length + " active recommendation rules.");
+
+    return rules;
+  },
+
+  _getDirectReportData: function () {
+    const managerIds = [];
+
+    const grUserRole = new GlideRecord('sys_user_has_role');
+    grUserRole.addQuery('role.name', this.MANAGER_ROLE);
+    grUserRole.addQuery('user.active', true);
+    grUserRole.query();
+
+    while (grUserRole.next()) {
+      managerIds.push(grUserRole.getValue('user'));
+    }
+
+    const userDataMap = {};
+    if (managerIds.length === 0) {
+      return userDataMap;
+    }
+
+    const grUser = new GlideRecord('sys_user');
+    grUser.addQuery('manager', 'IN', managerIds);
+    grUser.addActiveQuery();
+    grUser.query();
+
+    while (grUser.next()) {
+      userDataMap[grUser.getValue('sys_id')] = {
+        manager: grUser.getValue('manager'),
+        managerDisplay: grUser.getDisplayValue('manager')
+      };
+    }
+
+    return userDataMap;
+  },
+
+  _getDetailedContributions: function (userIds, userDataMap, recommendationRules) {
+    const userProfiles = {};
+
+    for (const rule of recommendationRules) {
+      const ruleId = rule.sys_id;
+      const userField = rule.user_field;
+      const dateField = rule.date_field;
+
+      var ga = new GlideAggregate(rule.table);
+      ga.addEncodedQuery(rule.record_conditions);
+      ga.addNotNullQuery(userField);
+
+      ga.addQuery(userField, 'IN', userIds);
+      ga.addQuery(dateField, '>=', gs.daysAgo(this.LOOKBACK_DAYS));
+
+      ga.groupBy(userField);
+      ga.addAggregate('COUNT');
+      ga.query();
+
+      while (ga.next()) {
+        const userId = ga.getValue(userField);
+
+        if (!userDataMap[userId])
+          continue;
+
+        if (!userProfiles[userId]) {
+          userProfiles[userId] = {
+            sys_id: userId,
+            userDisplay: ga.getDisplayValue(userField),
+            manager: userDataMap[userId].manager,
+            managerDisplay: userDataMap[userId].managerDisplay,
+            total_score: 0,
+            contributions: {}
+          };
+        }
+
+        const count = parseInt(ga.getAggregate('COUNT'), 10);
+
+        const points = count * rule.rule_weight;
+        const reason = rule.reason_template
+          .replace('{count}', count)
+          .replace('{days}', this.LOOKBACK_DAYS);
+
+        userProfiles[userId].total_score += points;
+        userProfiles[userId].contributions[ruleId] = {
+          ruleName: rule.name,
+          count: count,
+          points: points,
+          reason: reason
+        };
+      }
+    }
+
+    return Object.values(userProfiles);
+  },
+
+  _filterByEligibility: function (contributors, recommendationRules) {
+    const eligible = [];
+    const ruleMinimums = {};
+
+    for (const rule of recommendationRules) {
+      ruleMinimums[rule.sys_id] = rule.minimum_count;
+    }
+
+    for (const user of contributors) {
+      let isEligible = false;
+
+      for (const ruleId in user.contributions) {
+        if (user.contributions[ruleId].count >= ruleMinimums[ruleId]) {
+          isEligible = true;
+          break;
+        }
+      }
+
+      if (isEligible)
+        eligible.push(user);
+    }
+
+    return eligible;
+  },
+
+  _filterRecentlyIncludedUsers: function (users) {
+
+    if (users.length === 0) return [];
+
+    const userIDs = users.map((u) => u.sys_id);
+
+    const excludedUserSet = new Set();
+
+    const since = new GlideDateTime();
+    since.addDaysUTC(-1 * this.COOLDOWN_DAYS);
+
+    const grRecognitionRecipient = new GlideRecord('x_1794402_peerce_0_recognition_recipient');
+    grRecognitionRecipient.addQuery('recipient_user', 'IN', userIDs);
+    grRecognitionRecipient.addQuery('sys_created_on', '>=', since);
+    grRecognitionRecipient.query();
+
+    while (grRecognitionRecipient.next()) {
+      excludedUserSet.add(grRecognitionRecipient.getValue('recipient_user'));
+    }
+
+    const grRecognitionRecommendation = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecognitionRecommendation.addQuery('recommended_user', 'IN', userIDs);
+    grRecognitionRecommendation.addQuery('sys_created_on', '>=', since);
+    grRecognitionRecommendation.query();
+
+    while (grRecognitionRecommendation.next()) {
+      excludedUserSet.add(grRecognitionRecommendation.getValue('recommended_user'));
+    }
+
+    return users.filter((user) => !excludedUserSet.has(user.sys_id));
+  },
+
+  _getFinalRecommendations: function (users) {
+    if (users.length === 0) return [];
+
+    const managerGroups = {};
+
+    for (const user of users) {
+      const managerId = user.manager || 'N/A';
+      if (!managerGroups[managerId]) managerGroups[managerId] = [];
+      managerGroups[managerId].push(user);
+    }
+
+    const finalRecommendations = [];
+
+    for (const managerId in managerGroups) {
+      if (managerId === 'N/A') continue;
+
+      // Cleanup older recommendations for this manager
+      this._clearOldRecommendations(managerId);
+
+      const team = managerGroups[managerId];
+
+      team.sort((a, b) => b.total_score - a.total_score);
+
+      const percentileCount = Math.ceil(team.length * (this.PERCENTILE_THRESHOLD / 100));
+
+      // If the team is small, the 10% math might result in just 1 person.
+      // This forces us to take at least the manager limit (3) so we don't leave people out.
+      const targetCount = Math.max(percentileCount, this.MANAGER_REC_LIMIT);
+      // If we want 3 people but the team only has 2, just take the 2 we have.
+      const countToTake = Math.min(team.length, targetCount);
+
+      const topPerformersInTeam = team.slice(0, countToTake);
+      finalRecommendations.push(...topPerformersInTeam);
+    }
+
+    return finalRecommendations;
+  },
+
+
+  _createRecommendationRecord: function (heroData) {
+    const details = [];
+    const reasons = [];
+
+    for (const ruleId in heroData.contributions) {
+      const contribution = heroData.contributions[ruleId];
+      const originalWeight = contribution.points / contribution.count;
+
+      // Remove trailing period for summary
+      const summary = contribution.reason.replace(/\.$/, '');
+
+      const auditLine = summary +
+        ' (' + contribution.count + ') x Rule Weight (' + originalWeight + ') = ' + contribution.points;
+
+      details.push(auditLine);
+      reasons.push(summary);
+    }
+
+    details.push('Total Score = ' + heroData.total_score);
+
+    const grRecognitionRecommendation = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecognitionRecommendation.addQuery('recommended_user', heroData.sys_id);
+    grRecognitionRecommendation.addQuery('status', 'new');
+    grRecognitionRecommendation.query();
+
+    if (!grRecognitionRecommendation.next()) {
+      grRecognitionRecommendation.newRecord();
+    }
+
+    grRecognitionRecommendation.setValue('recommended_user', heroData.sys_id);
+    grRecognitionRecommendation.setValue('manager', heroData.manager);
+    grRecognitionRecommendation.setValue('score', heroData.total_score);
+
+    grRecognitionRecommendation.setValue('reason', reasons.join('; '));
+
+    grRecognitionRecommendation.setValue('details', details.join('\n\n'));
+
+    grRecognitionRecommendation.setValue('status', 'new');
+    grRecognitionRecommendation.update();
+  },
+
+  _clearOldRecommendations: function (managerId) {
+    const grRecognitionRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecognitionRecommendations.addQuery('status', 'new');
+    grRecognitionRecommendations.addQuery('manager', managerId);
+
+    grRecognitionRecommendations.setValue('status', 'dismissed');
+    grRecognitionRecommendations.updateMultiple();
+  },
+
+
+  getNewRecommendationsForManager: function (userId, count) {
+    if (!userId) return [];
+
+    count = count || this.MANAGER_REC_LIMIT;
+
+    const recommendations = [];
+    const grRecommendations = new GlideRecord('x_1794402_peerce_0_recomendations');
+    grRecommendations.addQuery('manager', userId);
+    grRecommendations.addQuery('status', 'new');
+    grRecommendations.orderByDesc('score');
+    grRecommendations.setLimit(count);
+    grRecommendations.query();
+
+    while (grRecommendations.next()) {
+      recommendations.push({
+        user_id: grRecommendations.getValue('recommended_user'),
+        user: grRecommendations.getDisplayValue('recommended_user'),
+        score: grRecommendations.getValue('score'),
+        detailTrail: grRecommendations.getValue('details'),
+        details: grRecommendations.getValue('reason'),
+        details_list: grRecommendations.getValue('reason').split(';'),
+        id: grRecommendations.getValue('sys_id')
+      });
+    }
+
+    return recommendations;
+  },
+
+  type: 'RecognitionRecommender'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-20 19:58:43</sys_created_on>
+        <sys_id>d2b3d894c3bcb21075ea722ed40131fc</sys_id>
+        <sys_mod_count>54</sys_mod_count>
+        <sys_name>RecognitionRecommender</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_include_d2b3d894c3bcb21075ea722ed40131fc</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-23 20:55:33</sys_updated_on>
+    </sys_script_include>
+</record_update>

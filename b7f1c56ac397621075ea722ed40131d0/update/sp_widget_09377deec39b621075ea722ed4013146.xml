@@ -4,6 +4,8 @@
         <client_script><![CDATA[api.controller = function ($scope, $location, spUtil, $timeout, $anchorScroll) {
   var c = this;
 
+  const MAX_RECIPIENTS_TO_SHOW = 2;
+  const FEED_TABS = ['you', 'team', 'all'];
 
   c.currentUserId = $scope.user.sys_id;
   c.currentUserInitials = generateInitials($scope.user.name);
@@ -23,6 +25,11 @@
   // Default filter state
   c.filters = getDefaultFilters();
 
+  // Controller variables for displaying single recognition
+  c.singleRecognitionMode = false;
+  c.singleRecognition = null;
+  c.loadingSingle = false;
+
   // This function now simply broadcasts a message and then re-fetches the data.
   c.resetFilters = function () {
     // Tell all listening child widgets to reset themselves
@@ -34,7 +41,7 @@
     c.filters = getDefaultFilters();
 
     // Fetch the new, unfiltered data
-    c.setTab(c.activeTab);
+    applyFiltersAndReload();
   };
 
   // Check if any filter is active
@@ -48,24 +55,44 @@
 
 
   c.setTab = function (tabName) {
-    if (!tabName) return;
+    if (c.singleRecognitionMode) {
+      c.goBackToFeed();
+    }
 
-    c.data.filteredRecognitions = [];
-
-    c.activeTab = tabName;
-    $location.hash(tabName);
-
-    c.offset = 0;
-    c.canLoadMore = true;
-    c.isLoading = true;
-    c.showRefreshIndicator = false;
-
-    loadFeed(tabName, 0, false);
+    if (FEED_TABS.includes(tabName)) {
+      $location.hash(tabName);
+    }
   };
+
+  const initialHash = $location.hash();
+  const tabToLoad = FEED_TABS.includes(initialHash) ? initialHash : 'you';
+
+  c.activeTab = tabToLoad;
+
+  const urlParams = $location.search();
+  if (urlParams.recognition_id) {
+    loadSingleView(urlParams.recognition_id);
+  } else {
+    applyFiltersAndReload();
+  }
+
+  if (FEED_TABS.includes(initialHash) || !initialHash) {
+    $location.hash(tabToLoad);
+  }
+
+  $scope.$on('$locationChangeSuccess', function () {
+    const hash = $location.hash();
+    const tabToLoad = FEED_TABS.includes(hash) ? hash : 'you';
+
+    if (c.activeTab === tabToLoad) return;
+
+    c.activeTab = tabToLoad;
+    applyFiltersAndReload();
+  });
+
 
   c.loadMore = function () {
     if (!c.canLoadMore || c.isLoadingMore) return;
-
 
     c.isLoadingMore = true;
 
@@ -82,6 +109,8 @@
   c.toggleReaction = function (recognition) {
     const originalReactionState = recognition.currentUserHasReacted;
     const originalReactions = [...recognition.reactions];
+    const originalToolTip = recognition.reactionTooltip;
+
 
     // Only allow reaction animation when like is being added, false by default to prevent animation on initial load
     recognition._allowReactionAnimation = true;
@@ -90,11 +119,11 @@
     recognition.currentUserHasReacted = !originalReactionState;
 
     if (originalReactionState) {
-      // If this was previously liked, we are removing the like from list
+      // If this was previously liked, remove the like from the list on the UI
       recognition.reactions =
         recognition.reactions.filter(r => r.userId !== c.currentUserId);
     } else {
-      // Otherwise, we are adding a like to the list
+      // Otherwise, add a like to the list with the current user's details
       recognition.reactions.push({
         userId: c.currentUserId,
         userName: $scope.user.name,
@@ -102,7 +131,7 @@
       });
     }
 
-    // console.log(recognition.reactions);
+    recognition.reactionTooltip = recognition.reactions.map(r => r.userName).join(', ');
 
     c.server.get({
       action: 'toggle_recognition_reaction',
@@ -113,7 +142,9 @@
       if (!response.data.toggleReactionSuccess) {
         // In case of failure, revert the UI update
         recognition.currentUserHasReacted = originalReactionState;
-        recognition.reactions = originalReactionState;
+        recognition.reactions = originalReactions;
+        recognition.reactionTooltip = originalToolTip;
+
         // Show feedback to user
         spUtil.addErrorMessage('Your like could not be saved. Please try again.');
       }
@@ -121,8 +152,11 @@
   };
 
   c.toggleCommentReaction = function (comment) {
+    const currentUserName = $scope.user.name;
     const originalReactedState = comment.currentUserHasReacted;
     const originalLikeCount = comment.likeCount;
+    const originalLikedByNames = [...comment.likedByNames];
+    const originalTooltip = comment.commentReactionTooltip;
 
     // Only allow reaction animation when like is being added, false by default to prevent animation on comment load
     comment._allowReactionAnimation = true;
@@ -130,20 +164,27 @@
     // Update the UI immediately for responsiveness
     if (comment.currentUserHasReacted) {
       comment.likeCount--;
+      comment.likedByNames = comment.likedByNames.filter(name => name !== currentUserName);
     } else {
       comment.likeCount++;
+      comment.likedByNames.push(currentUserName);
     }
 
     comment.currentUserHasReacted = !comment.currentUserHasReacted;
+    comment.commentReactionTooltip = comment.likedByNames.join(', ');
 
     c.server.get({
       action: 'toggle_comment_reaction',
-      commentId: comment.id
+      commentId: comment.id,
+      recognitionId: comment.recognitionId
     }).then(function (response) {
       // Revert the UI update if the server call failed
       if (!response.data.toggleCommentReactionSuccess) {
         comment.currentUserHasReacted = originalReactedState;
         comment.likeCount = originalLikeCount;
+        comment.likedByNames = originalLikedByNames;
+        comment.commentReactionTooltip = originalTooltip;
+
         spUtil.addErrorMessage('Your like could not be saved. Please try again.');
       }
     });
@@ -151,7 +192,6 @@
 
   c.toggleComments = function (recognition) {
     recognition.showComments = !recognition.showComments;
-
   };
 
   // Submit comment (UI only)
@@ -164,6 +204,7 @@
       id: tempId,
       text: text,
       authorName: $scope.user.name,
+      authorImage: c.userImage,
       userInitials: c.currentUserInitials,
       userId: c.currentUserSysId,
       timeAgo: 'Just now',
@@ -203,24 +244,14 @@
   };
 
 
-  var initialTab = $location.hash() || 'you';
-  c.setTab(initialTab);
-
-  $scope.$on('$locationChangeSuccess', function () {
-    var newTab = $location.hash();
-
-    if (newTab && newTab !== c.activeTab) {
-      c.setTab(newTab);
-    }
-  });
-
   // Event listeners for filters
   $scope.$on('activity.filter.updated', function (event, data) {
     c.showRefreshIndicator = false;
 
     if (c.filters.activity !== data.selected.value) {
       c.filters.activity = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
 
@@ -228,14 +259,16 @@
     c.showRefreshIndicator = false;
 
     c.filters.teamMember = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('team.filter.updated', function (event, data) {
     c.showRefreshIndicator = false;
 
     c.filters.team = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('timeframe.filter.updated', function (event, data) {
@@ -243,7 +276,8 @@
 
     if (c.filters.timeframe !== data.selected.value) {
       c.filters.timeframe = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
 
@@ -252,7 +286,8 @@
 
     // For multi-select, data.selected is an array of objects
     c.filters.occasions = data.selected.map(item => item.value);
-    c.setTab(c.activeTab);
+    // c.setTab(c.activeTab);
+    applyFiltersAndReload();
   });
 
   $scope.$on('sort.order.updated', function (event, data) {
@@ -260,12 +295,61 @@
 
     if (c.filters.sortOrder !== data.selected.value) {
       c.filters.sortOrder = data.selected.value;
-      c.setTab(c.activeTab);
+      // c.setTab(c.activeTab);
+      applyFiltersAndReload();
     }
   });
 
+  c.goBackToFeed = function () {
+    c.isLoading = true;
+
+    $location.search('recognition_id', null);
+
+    c.singleRecognitionMode = false;
+    c.singleRecognition = null;
+  };
+
+  function loadSingleView(recognitionId) {
+    c.singleRecognitionMode = true;
+    c.loadingSingle = true;
+
+    c.server.get({
+      action: 'get_single_recognition',
+      recognitionId: recognitionId
+    }).then(function (response) {
+      c.loadingSingle = false;
+
+      const singleRecognition = response.data.singleRecognition;
+
+      if (!singleRecognition) {
+        spUtil.addTrivialMessage('The requested recognition could not be found.');
+        c.singleRecognitionMode = false;
+        applyFiltersAndReload();
+        return;
+      }
+
+      const transformed = transformRecognitions([response.data.singleRecognition]);
+
+      c.singleRecognition = transformed[0];
+
+      // Expand comments and input by default
+      c.singleRecognition.showComments = true;
+    });
+  }
+
+  function applyFiltersAndReload() {
+    c.data.filteredRecognitions = [];
+    c.offset = 0;
+    c.canLoadMore = true;
+    c.isLoading = true;
+    c.showRefreshIndicator = false;
+
+    loadFeed(c.activeTab, 0, false);
+  }
+
 
   let debounceTimer = null;
+
   function handleRecognitionInsert(response) {
 
     if (response.data.operation !== 'insert') return;
@@ -301,7 +385,6 @@
         transformedItem.isNew = true;
         c.data.filteredRecognitions.unshift(transformedItem);
         c.offset++;
-
       });
 
     }, 750); // 750ms debounce
@@ -324,7 +407,13 @@
 
   function loadFeed(feedType, offset, append) {
 
-    c.server.get({ feedType, limit: c.limit, offset, filters: c.filters, action: 'getFeed' })
+    c.server.get({
+      feedType,
+      limit: c.limit,
+      offset,
+      filters: c.filters,
+      action: 'getFeed'
+    })
       .then(function (response) {
         const newRecognitions = transformRecognitions(response.data.recognitions || []);
 
@@ -355,23 +444,60 @@
 
     return recognitions.map(function (rec) {
       const transformedComments = (rec.comments || []).map(function (comment) {
+
+        const reactionUsernames = comment.likedByNames.join(', ');
+
         return {
           ...comment,
           timeAgo: formatTimeAgo(comment.created),
           authorInitials: generateInitials(comment.authorName),
-          _allowReactionAnimation: false
+          _allowReactionAnimation: false,
+          commentReactionTooltip: reactionUsernames
         };
       });
+
+
+      // If current user is among the recipients, replace their name with 'You' and move to the front of the list
+      const finalRecipients = (rec.recipients || []).slice();
+      const currentUserIndex = rec.recipientIds.indexOf(c.currentUserId);
+      if (currentUserIndex > -1) {
+        finalRecipients.splice(currentUserIndex, 1);
+        finalRecipients.unshift('You');
+      }
+
+      let visibleRecipients = [];
+      let remainingCount = 0;
+      let remainingRecipientsTooltip = '';
+
+      if (finalRecipients.length > MAX_RECIPIENTS_TO_SHOW) {
+        visibleRecipients = finalRecipients.slice(0, MAX_RECIPIENTS_TO_SHOW);
+        remainingCount = finalRecipients.length - MAX_RECIPIENTS_TO_SHOW;
+        remainingRecipientsTooltip = finalRecipients.slice(MAX_RECIPIENTS_TO_SHOW).join(', ');
+      } else {
+        visibleRecipients = finalRecipients;
+      }
+
+      const reactionUsernames = (rec.reactions || []).map(r => r.userName);
+
 
       return {
         ...rec,
         senderInitials: generateInitials(rec.senderDisplay),
         timeAgo: formatTimeAgo(rec.createdOn),
 
+        reactionTooltip: reactionUsernames.join(', '),
+
         comments: transformedComments,
         showComments: false,
         newCommentText: '',
         _allowReactionAnimation: false,
+
+        visibleRecipients: visibleRecipients,
+        remainingCount: remainingCount,
+        remainingRecipientsTooltip: remainingRecipientsTooltip,
+
+        senderDisplay: rec.senderId === c.currentUserId ? 'You' : rec.senderDisplay,
+        recipients: finalRecipients
       };
     });
   }
@@ -389,9 +515,9 @@
   function formatTimeAgo(dateTime) {
     if (!dateTime) return '';
 
-    var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
+    var m = moment.utc(dateTime, "YYYY-MM-DD HH:mm:ss");
 
-    return m.fromNow();
+    return m.local().fromNow();
   }
 
 
@@ -740,6 +866,7 @@
     display: flex;
     align-items: center;
     gap: 4px;
+    cursor: pointer;
 }
 
 .reply-link {
@@ -908,7 +1035,54 @@
     max-height: 500px; /* Use a value larger than any possible content height */
 }
 
-/* --- END: NEW NG-ANIMATE STYLES --- */
+.sub-nav-header {
+    padding: 12px 15px; /* Matches panel padding */
+    border-bottom: 1px solid #eee; /* Subtle separator */
+    background-color: #fff;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #444; /* Softer gray than pure black */
+    font-weight: 600;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+/* Circle wrapper for the icon */
+.icon-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #f5f5f5; /* Light gray background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.icon-circle .fa {
+    font-size: 14px;
+    color: #555;
+}
+
+/* Hover Effects */
+.back-link:hover {
+    text-decoration: none;
+    color: #2d7524; /* Your Active Tab Green */
+}
+
+.back-link:hover .icon-circle {
+    background-color: #e8f5e9; /* Very light green tint */
+    color: #2d7524;
+}
+
+.back-link:hover .icon-circle .fa {
+    color: #2d7524;
+}
 </css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -926,14 +1100,13 @@
     var recognitionId = button.data('toggle-comments-for');
     if (!recognitionId) return;
 
-    var commentsSection = element.find('.comments-section[data-comment-input-for-parent="' + recognitionId + '"]');
-    // We'll add a data attr to the comments-section for easier targeting (see note below)
+    // var commentsSection = element.find('.comments-section[data-comment-input-for-parent="' + recognitionId + '"]');
 
     // If comments are being hidden, don't scroll
     var recognition = scope.c.data.filteredRecognitions.find(r => r.id === recognitionId);
     if (!recognition || !recognition.showComments) return;
 
-    // Wait until *after* the slide animation completes (400ms as defined in CSS)
+    // Wait until after the slide animation is complete (400ms)
     setTimeout(function () {
       var input = element.find('[data-comment-input-for="' + recognitionId + '"]');
       if (input.length && input.is(':visible')) {
@@ -952,7 +1125,7 @@
           });
         }
 
-        // Focus after scroll for accessibility
+        // Focus on comment after scroll for accessibility
         input.focus();
       }
     }, 400);
@@ -971,7 +1144,7 @@
     let offset = parseInt(input.offset, 10) || 0;
     let filters = input.filters || {};
 
-    let recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
+    const recognitionDAO = new x_1794402_peerce_0.RecognitionDAO();
 
     data.recognitions =
       recognitionDAO.getRecognitionsForFeed(
@@ -980,6 +1153,13 @@
         offset,
         filters
       ) || [];
+
+    return;
+  }
+
+  if (input && input.action == 'get_single_recognition') {
+    data.singleRecognition = new x_1794402_peerce_0.RecognitionDAO().getRecognitionById(input.recognitionId);
+    return;
   }
 
   if (input && input.action == 'get_latest_recognition_id') {
@@ -1010,7 +1190,7 @@
       };
     }
 
-    // data.latestRecognitionId = latestRecognition.length > 0 ? latestRecognition[0].id : null;
+    return;
   }
 
 
@@ -1018,12 +1198,15 @@
     const recognitionId = input.recognitionId;
 
     data.toggleReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleRecognitionReaction(recognitionId, gs.getUserID());
+    return;
   }
 
   if (input && input.action === 'toggle_comment_reaction') {
     const commentId = input.commentId;
+    const recognitionId = input.recognitionId;
 
-    data.toggleCommentReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleCommentReaction(commentId, gs.getUserID());
+    data.toggleCommentReactionSuccess = new x_1794402_peerce_0.RecognitionDAO().toggleCommentReaction(commentId, gs.getUserID(), recognitionId);
+    return;
   }
 
   if (input && input.action == 'add_comment') {
@@ -1033,67 +1216,84 @@
 
 
     data.newComment = new x_1794402_peerce_0.RecognitionDAO().addRecognitionComment(recognitionId, commentText, currentUserId);
+    return;
   }
 
   function initializeFilters() {
     data.activityFilterWidget = $sp.getWidget('single-select-filter', {
       title: 'Activity',
       eventName: 'activity.filter.updated',
-      choices: [
-        { display: 'All', value: 'all' },
-        { display: 'Sent', value: 'sent' },
-        { display: 'Received', value: 'received' },
+      choices: [{
+        display: 'All',
+        value: 'all'
+      },
+      {
+        display: 'Sent',
+        value: 'sent'
+      },
+      {
+        display: 'Received',
+        value: 'received'
+      },
       ],
       initialSelection: 'all',
     });
 
     data.timeframeFilterWidget = $sp.getWidget(
-      'single-select-filter',
+      'single-select-filter', {
+      title: 'Timeframe',
+      eventName: 'timeframe.filter.updated',
+      choices: [{
+        display: 'All Time',
+        value: 'all'
+      },
       {
-        title: 'Timeframe',
-        eventName: 'timeframe.filter.updated',
-        choices: [
-          { display: 'All Time', value: 'all' },
-          { display: 'Last 7 days', value: '7' },
-          { display: 'Last 30 days', value: '30' },
-          { display: 'Last 90 days', value: '90' },
-        ],
-        initialSelection: 'all',
-      }
+        display: 'Last 7 days',
+        value: '7'
+      },
+      {
+        display: 'Last 30 days',
+        value: '30'
+      },
+      {
+        display: 'Last 90 days',
+        value: '90'
+      },
+      ],
+      initialSelection: 'all',
+    }
     );
 
     data.teamMemberFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Team member',
-        eventName: 'teammember.filter.updated',
-        type: 'dynamic',
-        dataConfig: {
-          tableName: 'sys_user',
-          displayField: 'name',
-          valueField: 'sys_id',
-          encodedQuery: 'active=true',
-        },
+      'multi-select-slushbucket-filter', {
+      title: 'Team member',
+      eventName: 'teammember.filter.updated',
+      type: 'dynamic',
+      dataConfig: {
+        tableName: 'sys_user',
+        displayField: 'name',
+        valueField: 'sys_id',
+        encodedQuery: 'active=true',
+      },
 
-        initialSelection: '',
-      }
+      initialSelection: '',
+    }
     );
 
     data.teamFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Team',
-        eventName: 'team.filter.updated',
-        type: 'dynamic',
-        dataConfig: {
-          tableName: 'sys_user_group',
-          displayField: 'name',
-          valueField: 'sys_id',
-          encodedQuery: 'active=true',
-        },
+      'multi-select-slushbucket-filter', {
+      title: 'Team',
+      eventName: 'team.filter.updated',
+      type: 'dynamic',
+      dataConfig: {
+        tableName: 'sys_user_group',
+        displayField: 'name',
+        valueField: 'sys_id',
+        encodedQuery: 'active=true',
+      },
 
-        initialSelection: '',
-      }
+      initialSelection: '',
+    }
     );
 
 
@@ -1101,49 +1301,45 @@
       new x_1794402_peerce_0.RecognitionUtils().getRecognitionOccasions();
 
     data.occasionFilterWidget = $sp.getWidget(
-      'multi-select-slushbucket-filter',
-      {
-        title: 'Occasions',
-        eventName: 'occasion.filter.updated',
-        choices: recognitionOccasions,
-        initialSelection: '',
-      }
+      'multi-select-slushbucket-filter', {
+      title: 'Value',
+      eventName: 'occasion.filter.updated',
+      choices: recognitionOccasions,
+      initialSelection: '',
+    }
     );
 
     data.sortOrderWidget = $sp.getWidget('single-select-filter', {
       title: '',
       eventName: 'sort.order.updated',
-      choices: [
-        {
-          display: '<i class="fa fa-sort-amount-desc"></i>',
-          value: 'newest',
-        },
-        {
-          display: '<i class="fa fa-sort-amount-asc"></i>',
-          value: 'oldest',
-        },
+      choices: [{
+        display: '<i class="fa fa-sort-amount-desc"></i>',
+        value: 'newest',
+      },
+      {
+        display: '<i class="fa fa-sort-amount-asc"></i>',
+        value: 'oldest',
+      },
       ],
       initialSelection: 'newest',
     });
   }
-})();
-]]></script>
+})();]]></script>
         <servicenow>false</servicenow>
         <sys_class_name>sp_widget</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>701</sys_mod_count>
+        <sys_mod_count>754</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-05 18:08:54</sys_updated_on>
+        <sys_updated_on>2025-11-25 03:52:36</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
-    <!-- Default panel contents -->
     <section class="panel-heading">
       <h3 class="panel-title">
         <strong>Recognition activity feed</strong>
@@ -1165,7 +1361,7 @@
         </li>
 
         <li class="pull-right">
-          <a href="" ng-click="!c.isLoading && c.setTab(c.activeTab)" title="Refresh feed"
+          <a href="" ng-click="!c.isLoading && applyFiltersAndReload()" title="Refresh feed"
             class="btn btn-default btn-sm refresh-btn" ng-class="{'is-loading': c.isLoading}">
             <i class="fa fa-refresh" ng-class="{'fa-spin': c.isLoading}" aria-hidden="true"></i>
             <span class="sr-only">Refresh</span>
@@ -1174,235 +1370,133 @@
       </ul>
     </nav>
 
-    <div class="controls-bar">
-      <div class="filters">
-        <span>Filter by: </span>
+    <div ng-if="!c.singleRecognitionMode">
+      <div class="controls-bar">
+        <div class="filters">
+          <span>Filter by: </span>
 
-        <div class="filter-wrapper" ng-show="c.activeTab=='you'">
-          <sp-widget widget="c.data.activityFilterWidget"></sp-widget>
-        </div>
+          <div class="filter-wrapper" ng-show="c.activeTab=='you'">
+            <sp-widget widget="c.data.activityFilterWidget"></sp-widget>
+          </div>
 
-        <div class="filter-wrapper" ng-show="c.activeTab!='you'">
-          <sp-widget widget="c.data.teamMemberFilterWidget"></sp-widget>
-        </div>
-        <div class="filter-wrapper" ng-show="c.activeTab!='you'">
-          <sp-widget widget="c.data.teamFilterWidget"></sp-widget>
+          <div class="filter-wrapper" ng-show="c.activeTab!='you'">
+            <sp-widget widget="c.data.teamMemberFilterWidget"></sp-widget>
+          </div>
+          <div class="filter-wrapper" ng-show="c.activeTab!='you'">
+            <sp-widget widget="c.data.teamFilterWidget"></sp-widget>
+          </div>
+
+          <div class="filter-wrapper">
+            <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+          </div>
+
+          <div class="filter-wrapper">
+            <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
+          </div>
+
+          <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link"
+            title="Reset filters">↺</a>
         </div>
 
         <div class="filter-wrapper">
-          <sp-widget widget="c.data.timeframeFilterWidget"></sp-widget>
+          <sp-widget widget="c.data.sortOrderWidget"></sp-widget>
+        </div>
+      </div>
+
+      <div class="alert refresh-indicator is-sticky" ng-if="c.showRefreshIndicator" aria-live="polite">
+        <div class="refresh-indicator-content">
+          <i class="fa fa-bell-o refresh-icon" aria-hidden="true"></i>
+          New recognition available!
+        </div>
+        <div class="refresh-indicator-actions">
+          <button class="btn btn-xs btn-primary" ng-click="c.refreshAndShow()">Refresh</button>
+          <button type="button" class="close" ng-click="c.showRefreshIndicator = false"
+            aria-label="Dismiss">&times;</button>
+        </div>
+      </div>
+
+      <!-- List group -->
+      <section class="feed-container">
+
+        <div ng-if="c.isLoading" class="feed-loading-overlay">
+          <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
         </div>
 
-        <div class="filter-wrapper">
-          <sp-widget widget="c.data.occasionFilterWidget"></sp-widget>
-        </div>
+        <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
+          <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id"
+            class="list-group-item feed-content-item">
 
-        <a href ng-click="c.resetFilters()" ng-show="c.hasActiveFilters()" class="reset-link"
-          title="Reset filters">↺</a>
-      </div>
+            <div ng-include="'recognition-card'"></div>
 
-      <div class="filter-wrapper">
-        <sp-widget widget="c.data.sortOrderWidget"></sp-widget>
-      </div>
+          </li>
+
+          <li class="text-center" ng-if="c.data.filteredRecognitions.length > 0">
+            <div class="well well-sm text-center mb-0 feed-footer">
+              <p class="text-muted small">
+                Showing
+                <strong>{{c.data.filteredRecognitions.length}}</strong>
+                {{c.data.filteredRecognitions.length === 1 ?
+                'recognition' : 'recognitions'}}
+              </p>
+
+              <div ng-if="c.canLoadMore">
+                <button class="btn btn-primary btn-sm" ng-click="c.loadMore()" ng-disabled="c.isLoadingMore">
+                  <i class="fa"
+                    ng-class="{'fa-spin fa-spinner': c.isLoadingMore, 'fa-arrow-down': !c.isLoadingMore}"></i>
+                  {{c.isLoadingMore ? 'Loading...' : 'Load More'}}
+                </button>
+              </div>
+
+              <p ng-if="!c.canLoadMore && c.data.filteredRecognitions.length > 0"
+                class="text-center text-muted small m-0">
+                <em>— You've reached the end of the list —</em>
+              </p>
+            </div>
+          </li>
+
+          <li ng-if="!c.data.filteredRecognitions.length" class="list-group-item text-center pt-20 pb-20">
+            <div class="p-20">
+              <p class="text-muted">
+                <i class="fa fa-trophy fa-3x" aria-hidden="true"></i>
+              </p>
+              <h4 class="text-muted">No Recognitions Found</h4>
+              <p class="small text-muted">
+                Try adjusting your filters or check back later.
+              </p>
+            </div>
+          </li>
+        </ul>
+      </section>
     </div>
 
+    <div ng-if="c.singleRecognitionMode" class="single-view-container">
 
-
-    <div class="alert refresh-indicator is-sticky" ng-if="c.showRefreshIndicator" aria-live="polite">
-      <div class="refresh-indicator-content">
-        <i class="fa fa-bell-o refresh-icon" aria-hidden="true"></i>
-        New recognition available!
+      <div class="sub-nav-header">
+        <a href="javascript:void(0)" class="back-link" ng-click="c.goBackToFeed()">
+          <div class="icon-circle">
+            <i class="fa fa-arrow-left"></i>
+          </div>
+          <span class="back-text">Back to feed</span>
+        </a>
       </div>
-      <div class="refresh-indicator-actions">
-        <button class="btn btn-xs btn-primary" ng-click="c.refreshAndShow()">Refresh</button>
-        <button type="button" class="close" ng-click="c.showRefreshIndicator = false"
-          aria-label="Dismiss">&times;</button>
-      </div>
-    </div>
 
-    <!-- List group -->
-    <section class="feed-container">
-
-      <div ng-if="c.isLoading" class="feed-loading-overlay">
+      <div ng-if="c.loadingSingle" class="text-center p-20" style="padding: 20px;">
         <i class="fa fa-spinner fa-spin fa-2x text-muted"></i>
       </div>
 
-      <ul class="list-group feed-content" ng-class="{'content-faded': c.isLoading}">
-        <li ng-repeat="recognition in c.data.filteredRecognitions track by recognition.id"
-          class="list-group-item feed-content-item">
-          <article class="media recognition-container">
+      <div ng-if="!c.loadingSingle && c.singleRecognition" style="padding: 20px;">
+        <div ng-init="recognition = c.singleRecognition">
+          <div ng-include="'recognition-card'"></div>
+        </div>
+      </div>
 
-            <div class="media-left">
-              <user-avatar image-id="recognition.senderImageId" initials="recognition.senderInitials"
-                user-name="recognition.senderDisplay">
-              </user-avatar>
-            </div>
+      <div ng-if="!c.loadingSingle && !c.singleRecognition" class="text-center" style="padding: 40px;">
+        <i class="fa fa-exclamation-circle fa-3x text-muted"></i>
+        <h4 class="text-muted">Recognition not found</h4>
+        <button class="btn btn-default mt-10" ng-click="c.goBackToFeed()">Return to Feed</button>
+      </div>
 
-            <div class="media-body p-5">
-              <h4 class="media-heading">
-                <a href>{{recognition.senderDisplay}}</a> gave
-                applause to
-                <a href>{{recognition.recipients.join(', ')}}</a>
-
-                <small class="text-muted pull-right">
-                  <span ng-if="recognition.isNew" class="label label-default new-badge">New</span>
-                  {{recognition.timeAgo}}
-                </small>
-              </h4>
-
-              <span class="recognition-indicators mb-5 pull-right">
-                <abbr title="Private Recognition" class="private-indicator initialism ml-10"
-                  ng-if="recognition.isPrivate">
-                  <i class="fa fa-lock" aria-hidden="true"></i>
-                </abbr>
-
-                <abbr title="Team Recognition" class="team-indicator initialism ml-10" ng-if="recognition.isTeam">
-                  <i class="fa fa-users" aria-hidden="true"></i>
-                </abbr>
-              </span>
-
-              <p ng-if="recognition.message" ng-bind-html="recognition.message"></p>
-
-              <span ng-repeat="occasion in recognition.occasions">
-                <small class="label label-default occasion-tag" title="{{occasion}}">
-                  <strong>{{occasion}}</strong> </small>&nbsp;
-              </span>
-
-              <div class="interaction-row">
-                <!-- Left: Like & Comment buttons -->
-                <div class="action-group">
-                  <button class="action-btn" ng-click="c.toggleReaction(recognition)"
-                    ng-class="{active: recognition.currentUserHasReacted, 'can-animate': recognition._allowReactionAnimation}"
-                    aria-label="{{ recognition.currentUserHasReacted ? 'Unlike' : 'Like' }}">
-                    <i class="fa"
-                      ng-class="{'fa-thumbs-up': recognition.currentUserHasReacted,'fa-thumbs-o-up': !recognition.currentUserHasReacted}"></i>
-                    <span>Like</span>
-                  </button>
-
-                  <button class="action-btn" ng-click="c.toggleComments(recognition)"
-                    ng-class="{active: recognition.showComments}" data-toggle-comments-for="{{::recognition.id}}">
-                    <i class=" fa"
-                      ng-class="{'fa-comment': recognition.showComments, 'fa-comment-o': !recognition.showComments}"></i>
-                    <span>
-                      {{ recognition.comments.length > 0 ? recognition.comments.length + ' Comment' +
-                      (recognition.comments.length > 1 ?'s' : '') : 'Comment' }}
-                    </span>
-                  </button>
-
-                </div>
-
-
-                <div class="meta-info">
-                  <span class="reaction-count" ng-if="recognition.reactions.length > 0">
-                    {{ recognition.reactions.length }} <i class="fa fa-thumbs-o-up icon-small"></i>
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div class="comments-section slide-animation" ng-show="recognition.showComments"
-                data-comment-input-for-parent="{{::recognition.id}}">
-                <div ng-if="recognition.comments.length > 0" class="comments-list mt-20">
-                  <article ng-repeat="comment in recognition.comments" class="comment-item media"
-                    ng-class="{'is-saving': comment.isSaving}">
-                    <div class="media-left">
-                      <user-avatar image-id="comment.authorImage" initials="comment.authorInitials"
-                        user-name="comment.authorName" class="avatar-sm"></user-avatar>
-                    </div>
-
-                    <div class="media-body comment-body">
-                      <h4 class="media-heading"><a href="" class="ng-binding">{{comment.authorName}}</a></h4>
-                      <span class="text-muted pull-right">{{comment.timeAgo}}</span>
-                      <p class="comment-text">{{comment.text}}</p>
-
-
-                      <div class="interaction-row">
-                        <!-- Left: Like & Comment buttons -->
-                        <div class="action-group">
-                          <button class="action-btn" ng-click="c.toggleCommentReaction(comment)"
-                            ng-class="{active: comment.currentUserHasReacted, 'can-animate': comment._allowReactionAnimation}"
-                            aria-label="{{ comment.currentUserHasReacted ? 'Unlike' : 'Like' }}">
-                            <i class="fa"
-                              ng-class="{'fa-thumbs-up': comment.currentUserHasReacted,'fa-thumbs-o-up': !comment.currentUserHasReacted}"></i>
-                            <span>Like</span>
-                          </button>
-                        </div>
-
-                        <!-- Right: Total reactions-->
-                        <div class="meta-info">
-                          <span class="reaction-count" ng-if="comment.likeCount > 0">
-                            {{ comment.likeCount }} <i class="fa fa-thumbs-o-up icon-small"></i>
-                          </span>
-                        </div>
-
-                      </div>
-                    </div>
-                  </article>
-                </div>
-
-                <div class="comment-input-container mt-10">
-                  <user-avatar initials="c.currentUserInitials" user-name="c.currentUser.name" image-id="c.userImage"
-                    class="avatar-sm"></user-avatar>
-                  <div class="comment-input-wrapper">
-                    <input type="text" class="form-control" placeholder="Write a comment..."
-                      ng-model="recognition.newCommentText"
-                      ng-keyup="$event.keyCode === 13 && c.submitComment(recognition)"
-                      data-comment-input-for="{{::recognition.id}}">
-
-                    <button class="btn-send" ng-if="recognition.newCommentText.trim()"
-                      ng-click="c.submitComment(recognition)" aria-label="Post comment">
-                      <i class="fa fa-paper-plane" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-
-          </article>
-
-
-        </li>
-
-        <li class="text-center" ng-if="c.data.filteredRecognitions.length > 0">
-          <div class="well well-sm text-center mb-0 feed-footer">
-            <p class="text-muted small">
-              Showing
-              <strong>{{c.data.filteredRecognitions.length}}</strong>
-              {{c.data.filteredRecognitions.length === 1 ?
-              'recognition' : 'recognitions'}}
-            </p>
-
-            <div ng-if="c.canLoadMore">
-              <button class="btn btn-primary btn-sm" ng-click="c.loadMore()" ng-disabled="c.isLoadingMore">
-                <i class="fa" ng-class="{'fa-spin fa-spinner': c.isLoadingMore, 'fa-arrow-down': !c.isLoadingMore}"></i>
-                {{c.isLoadingMore ? 'Loading...' : 'Load More'}}
-              </button>
-            </div>
-
-            <p ng-if="!c.canLoadMore && c.data.filteredRecognitions.length > 0"
-              class="text-center text-muted small m-0">
-              <em>— You've reached the end of the list —</em>
-            </p>
-          </div>
-        </li>
-
-        <li ng-if="!c.data.filteredRecognitions.length" class="list-group-item text-center pt-20 pb-20">
-          <div class="p-20">
-            <p class="text-muted">
-              <i class="fa fa-trophy fa-3x" aria-hidden="true"></i>
-            </p>
-            <h4 class="text-muted">No Recognitions Found</h4>
-            <p class="small text-muted">
-              Try adjusting your filters or check back later.
-            </p>
-          </div>
-        </li>
-      </ul>
-    </section>
+    </div>
   </div>
 </main>]]></template>
     </sp_widget>

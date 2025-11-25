@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sn_ex_sp_notifs_portal_notification_content_config">
+    <sn_ex_sp_notifs_portal_notification_content_config action="INSERT_OR_UPDATE">
+        <action_url><![CDATA[/pc?recognition_id=${recognition.sys_id}#all]]></action_url>
+        <active>true</active>
+        <actor/>
+        <advanced>false</advanced>
+        <content_params><![CDATA[${user.name}]]></content_params>
+        <content_script><![CDATA[(function(current, eventName, eventParm1, eventParm2, previousActors) {
+     /**
+     * Generates a notification object based on the provided parameters.
+     * @param {GlideRecord} current - Reference to the table record
+     * @param {string} eventName - Name of the event that triggered the notification.
+     * @param {string} eventParm1 - First parameter related to the event.
+     * @param {string} eventParm2 - Second parameter related to the event.
+     * @param {Array} previousActors - List of previous actors who have triggered this notification.
+     * 
+     * @returns {Object} Notification object containing the following properties:
+     * - actor: Sys ID of the user who triggered this notification.
+     * - messageContentTemplate: A translatable template for the notification message content.
+     * - messageContentParams: An string parameters to be inserted into the message content template.
+     * - aggregatedContentTemplate: A translatable template for aggregated notification content.
+     * - aggregatedContentParams: An array of parameters to be inserted into the aggregated content template.
+     * - actionUrl: URL for navigation when the notification is clicked.
+     */
+     return {
+         actor: '',
+         messageContentTemplate: '',
+         messageContentParams: [],
+         aggregatedContentTemplate: '',
+         aggregatedContentParams: [],
+         actionUrl: ''
+     };
+ })(current, eventName, eventParm1, eventParm2, previousActors);
+]]></content_script>
+        <content_template>{0} liked your recognition post!</content_template>
+        <custom_icon/>
+        <icon>thumbs-o-up</icon>
+        <icon_background>#D3D6DC</icon_background>
+        <invert_icon_color>false</invert_icon_color>
+        <is_default>false</is_default>
+        <name>Recognition Liked - Individual</name>
+        <notification display_value="Recognition Liked - Individual">50e32cbdc355fa1075ea722ed40131f3</notification>
+        <order>100</order>
+        <portals>8ae319a2c31b621075ea722ed401313b</portals>
+        <sys_class_name>sn_ex_sp_notifs_portal_notification_content_config</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-11-19 09:37:29</sys_created_on>
+        <sys_id>0156a8f1c395fa1075ea722ed401310b</sys_id>
+        <sys_mod_count>3</sys_mod_count>
+        <sys_name>Recognition Liked - Individual</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sn_ex_sp_notifs_portal_notification_content_config_0156a8f1c395fa1075ea722ed401310b</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-11-25 03:54:27</sys_updated_on>
+        <use_custom_icon>false</use_custom_icon>
+    </sn_ex_sp_notifs_portal_notification_content_config>
+</record_update>

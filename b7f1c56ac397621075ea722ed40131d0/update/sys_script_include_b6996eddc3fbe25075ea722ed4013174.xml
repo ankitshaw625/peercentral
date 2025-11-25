@@ -9,12 +9,14 @@
         <mobile_callable>false</mobile_callable>
         <name>RecognitionUtils</name>
         <sandbox_callable>false</sandbox_callable>
-        <script><![CDATA[var RecognitionUtils = Class.create();
+        <script><![CDATA[
+var RecognitionUtils = Class.create();
 RecognitionUtils.prototype = {
   initialize: function () {
     this.userTeam = null;
-    this.RECOGNITION_TABLE = 'x_1794402_peerce_0_peer_recognition';
-    this.RECOGNITION_RECIPIENT_TABLE = 'x_1794402_peerce_0_recognition_recipient';
+    this.RECOGNITION_TABLE = RecognitionUtils.tables.RECOGNITION_TABLE;
+    this.RECOGNITION_RECIPIENT_TABLE = RecognitionUtils.tables.RECOGNITION_RECIPIENT_TABLE;
+
   },
 
   canReadPrivateRecognition: function (grRecognition, userId) {
@@ -74,14 +76,14 @@ RecognitionUtils.prototype = {
   },
 
   getGroupMembers: function (groupIds) {
-    var groupMembers = new Set();
+    const groupMembers = new Set();
 
-    var grGroupMember = new GlideRecord('sys_user_grmember');
+    const grGroupMember = new GlideRecord('sys_user_grmember');
     grGroupMember.addQuery('group', 'IN', groupIds.toString());
     grGroupMember.query();
 
     while (grGroupMember.next()) {
-      groupMembers.add(grGroupMember.user.toString());
+      groupMembers.add(grGroupMember.getValue('user'));
     }
 
     return Array.from(groupMembers);
@@ -238,19 +240,219 @@ RecognitionUtils.prototype = {
     return initials.join('');
   },
 
+
+
+  // Generate and send the recognition digest email for a manager
+  processManagerDigest: function (userId, reportIds) {
+    const daysAgo = 7;
+
+    const since = new GlideDateTime();
+    since.addDaysUTC(-1 * daysAgo);
+
+    const digestData = {
+      given: [],
+      received: [],
+      stats: {
+        given_count: 0,
+        received_count: 0,
+        top_contributor: 'N/A'
+      }
+    };
+
+
+    const givers = new Map();
+    const grRecognitions = new GlideRecord(this.RECOGNITION_TABLE);
+    grRecognitions.addQuery('sender', 'IN', reportIds);
+    grRecognitions.addQuery('sys_created_on', '>=', since);
+    grRecognitions.query();
+
+    while (grRecognitions.next()) {
+      const senderDisplay = grRecognitions.getDisplayValue('sender');
+      // Collect given recognitions for reportees
+      digestData.given.push({
+        sender: senderDisplay,
+        message: grRecognitions.getValue('message'),
+        recipient_summary: this.getRecipientSummary(grRecognitions.getValue('sys_id'))
+      });
+
+      // Count recognitions per sender for top contributor calculation
+      const senderId = grRecognitions.getValue('sender');
+      if (!givers.has(senderId)) {
+        givers.set(senderId, { name: senderDisplay, count: 0 });
+      }
+
+      // Increment the count for this sender
+      givers.get(senderId).count += 1;
+    }
+
+    digestData.stats.given_count = digestData.given.length;
+
+    if (givers.size > 0) {
+      // Find the max count of recognitions given
+      let maxCount = 0;
+      for (const data of givers.values()) {
+        if (data.count > maxCount) {
+          maxCount = data.count;
+        }
+      }
+
+      // Get all givers with the max count
+      const maxGivers = [];
+      for (const data of givers.values()) {
+        if (data.count === maxCount) {
+          maxGivers.push(data.name);
+        }
+      }
+
+      // Sort the users with most recognitions given alphabetically and join them.
+      maxGivers.sort();
+
+      digestData.stats.top_contributor = maxGivers.join(', ');
+    }
+
+
+    const managedGroupIds = this._getManagedGroups(userId);
+
+    const receivedRecognitions = new Map();
+    let totalReceivedCount = 0;
+
+    // Collect received recognitions for reportees and managed groups
+    const grRecognitionRecipients = new GlideRecord(this.RECOGNITION_RECIPIENT_TABLE);
+    grRecognitionRecipients
+      .addQuery('recipient_user', 'IN', reportIds)
+      .addOrCondition('recipient_group', 'IN', managedGroupIds);
+    grRecognitionRecipients.addQuery('sys_created_on', '>=', since);
+    grRecognitionRecipients.query();
+
+    while (grRecognitionRecipients.next()) {
+      totalReceivedCount++;
+
+      const recognitionId = grRecognitionRecipients.getValue('recognition');
+
+      let recipientName = grRecognitionRecipients.getDisplayValue('recipient_user');
+      if (!grRecognitionRecipients.recipient_group.nil())
+        recipientName = grRecognitionRecipients.getDisplayValue('recipient_group') + ' (Team)';
+
+
+      if (!receivedRecognitions.has(recognitionId)) {
+        receivedRecognitions.set(recognitionId, {
+          recipient: recipientName,
+          message: grRecognitionRecipients.getDisplayValue('recognition.message'),
+          sender: grRecognitionRecipients.getDisplayValue('recognition.sender')
+        });
+      } else {
+        const existingRecognition = receivedRecognitions.get(recognitionId);
+        existingRecognition.recipient += ', ' + recipientName;
+      }
+    }
+
+    digestData.received = Array.from(receivedRecognitions.values());
+    digestData.stats.received_count = totalReceivedCount;
+
+    gs.info("RecognitionUtils: Prepared digest data for manager " + userId + ": " + JSON.stringify(digestData, null, 2));
+
+    // Send the digest email if there are any recognitions
+    if (digestData.given.length > 0 || digestData.received.length > 0) {
+      gs.eventQueue('x_1794402_peerce_0.manager.digest', null, userId, JSON.stringify(digestData));
+      gs.info("RecognitionUtils: Queued digest email for manager " + userId);
+    }
+  },
+
+  // Generate a summary string of recognition recipients
+  getRecipientSummary: function (recognitionId) {
+    const recipients = [];
+
+    const grRecipient = new GlideRecord(this.RECOGNITION_RECIPIENT_TABLE);
+    grRecipient.addQuery('recognition', recognitionId);
+    grRecipient.query();
+
+    while (grRecipient.next()) {
+
+      if (!grRecipient.recipient_user.nil())
+        recipients.push(grRecipient.getDisplayValue('recipient_user'));
+
+
+      if (!grRecipient.recipient_group.nil())
+        recipients.push(grRecipient.getDisplayValue('recipient_group'));
+    }
+
+    const recipientCount = recipients.length;
+    if (recipientCount === 0) return 'N/A';
+    if (recipientCount === 1) return recipients[0];
+
+    return recipients[0] + ' and ' + (recipientCount - 1) + ' other(s)';
+  },
+
+  // Get all users managed by the given user (direct reports + managed group members)
+  getManagedUsers: function (userId) {
+    userId = userId || gs.getUserID();
+
+    const directReports = this._getDirectReports(userId);
+
+    const managedGroups = this._getManagedGroups(userId);
+
+    let groupMembers = [];
+    if (managedGroups.length > 0) {
+      groupMembers = this.getGroupMembers(managedGroups);
+    }
+
+    const allTeamMembers = directReports.concat(groupMembers);
+
+    return Array.from(new Set(allTeamMembers));
+  },
+
+  // Get direct reports of the given user
+  _getDirectReports: function (userId) {
+    const reports = [];
+
+    const userGR = new GlideRecord('sys_user');
+    userGR.addActiveQuery();
+    userGR.addQuery('manager', userId);
+    userGR.query();
+
+    while (userGR.next()) {
+      reports.push(userGR.getValue('sys_id'));
+    }
+
+    return reports;
+  },
+
+  // Get groups managed by the given user
+  _getManagedGroups: function (userId) {
+    const groupIds = [];
+
+    const groupGR = new GlideRecord('sys_user_group');
+    groupGR.addActiveQuery();
+    groupGR.addQuery('manager', userId);
+    groupGR.query();
+
+    while (groupGR.next()) {
+      groupIds.push(groupGR.getValue('sys_id'));
+    }
+
+    return groupIds;
+  },
+
   type: 'RecognitionUtils'
-};]]></script>
+};
+
+
+RecognitionUtils.tables = {
+  RECOGNITION_TABLE: 'x_1794402_peerce_0_peer_recognition',
+  RECOGNITION_RECIPIENT_TABLE: 'x_1794402_peerce_0_recognition_recipient'
+};
+]]></script>
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-04 16:33:59</sys_created_on>
         <sys_id>b6996eddc3fbe25075ea722ed4013174</sys_id>
-        <sys_mod_count>25</sys_mod_count>
+        <sys_mod_count>46</sys_mod_count>
         <sys_name>RecognitionUtils</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_b6996eddc3fbe25075ea722ed4013174</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-09-25 07:49:05</sys_updated_on>
+        <sys_updated_on>2025-11-23 13:11:54</sys_updated_on>
     </sys_script_include>
 </record_update>

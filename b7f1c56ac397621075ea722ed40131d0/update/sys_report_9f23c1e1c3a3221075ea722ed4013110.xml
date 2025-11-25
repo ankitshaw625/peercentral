@@ -48,7 +48,8 @@
         <exp_report_attrs>true</exp_report_attrs>
         <field>occasion</field>
         <field_list>sys_created_on,occasion_text,occasion,recognition</field_list>
-        <filter table="x_1794402_peerce_0_applied_recognition_occasion">sys_created_onONLast 90 days@javascript:gs.beginningOfLast90Days()@javascript:gs.endOfLast90Days()<item endquery="false" field="sys_created_on" goto="false" newquery="false" operator="ON" or="false" value="Last 90 days@javascript:gs.beginningOfLast90Days()@javascript:gs.endOfLast90Days()"/>
+        <filter table="x_1794402_peerce_0_applied_recognition_occasion">sys_created_onONLast 90 days@javascript:gs.beginningOfLast90Days()@javascript:gs.endOfLast90Days()^EQ<item endquery="false" field="sys_created_on" goto="false" newquery="false" operator="ON" or="false" value="Last 90 days@javascript:gs.beginningOfLast90Days()@javascript:gs.endOfLast90Days()"/>
+            <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
         </filter>
         <formatting_configuration>{"table":"incident","stringFormattingProperties":{},"durationFormattingProperties":{},"dateFormattingProperties":{},"numberFormattingProperties":{}}</formatting_configuration>
         <from/>
@@ -81,7 +82,7 @@
         <pivot_expanded>true</pivot_expanded>
         <report_drilldown display_value="Breakdown by Sender">4d08140dc3fb625075ea722ed40131f9</report_drilldown>
         <report_source/>
-        <roles>snc_internal</roles>
+        <roles>x_1794402_peerce_0.user</roles>
         <row/>
         <sc_groupby_item_id/>
         <sc_groupby_variable_id/>
@@ -109,16 +110,16 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 17:14:08</sys_created_on>
         <sys_id>9f23c1e1c3a3221075ea722ed4013110</sys_id>
-        <sys_mod_count>23</sys_mod_count>
-        <sys_name>Recognitions by Occasions (Last 90 Days)</sys_name>
+        <sys_mod_count>25</sys_mod_count>
+        <sys_name>Recognitions by Values (Last 90 Days)</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_report_9f23c1e1c3a3221075ea722ed4013110</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-03 20:02:33</sys_updated_on>
+        <sys_updated_on>2025-11-05 10:21:14</sys_updated_on>
         <table>x_1794402_peerce_0_applied_recognition_occasion</table>
-        <title>Recognitions by Occasions (Last 90 Days)</title>
+        <title>Recognitions by Values (Last 90 Days)</title>
         <title_horizontal_alignment>center</title_horizontal_alignment>
         <title_vertical_alignment>top</title_vertical_alignment>
         <to/>

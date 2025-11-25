@@ -6,8 +6,8 @@
         <element label="Comment" max_length="256" name="comment" type="string_full_utf8"/>
         <element choice="1" label="Type" max_length="40" name="type" type="choice">
             <choice>
-                <element inactive_on_update="false" label="reaction" sequence="0" value="reaction"/>
-                <element inactive_on_update="false" label="comment" sequence="1" value="comment"/>
+                <element inactive_on_update="false" label="Reaction" sequence="0" value="reaction"/>
+                <element inactive_on_update="false" label="Comment" sequence="1" value="comment"/>
             </choice>
         </element>
         <element label="Parent" max_length="32" name="parent" reference="x_1794402_peerce_0_rec_interaction" type="reference"/>

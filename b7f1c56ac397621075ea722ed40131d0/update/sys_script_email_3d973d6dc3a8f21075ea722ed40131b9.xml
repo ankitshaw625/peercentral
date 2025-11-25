@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_email">
+    <sys_script_email action="INSERT_OR_UPDATE">
+        <name>includeRecognitionCCRecipients</name>
+        <new_lines_to_html>false</new_lines_to_html>
+        <script><![CDATA[(function runMailScript( /* GlideRecord */ current, /* TemplatePrinter */ template,
+    /* Optional EmailOutbound */
+    email, /* Optional GlideRecord */ email_action,
+    /* Optional GlideRecord */
+    event) {
+
+    var isPrivate = current.getElement('recognition.is_private').getValue();
+
+    var managerEmail;
+    var managerName;
+
+    if (current.getValue('recipient_user')) {
+        managerEmail = current.getDisplayValue('recipient_user.manager.email');
+        managerName = current.getDisplayValue('recipient_user.manager');
+    } else if (current.getValue('recipient_group')) {
+        managerEmail = current.getDisplayValue('recipient_group.manager.email');
+        managerName = current.getDisplayValue('recipient_group.manager');
+    }
+
+    if (managerEmail && isPrivate == '0') {
+        email.addAddress('cc', managerEmail, managerName);
+    }
+
+    var notifyToUserIds = current.getElement('recognition.notify_to').getValue();
+
+    if (notifyToUserIds) {
+        var grUser = new GlideRecord('sys_user');
+        grUser.addQuery('sys_id', 'IN', notifyToUserIds);
+        grUser.addNotNullQuery('email');
+        grUser.query();
+
+        while (grUser.next()) {
+            email.addAddress('cc', grUser.getValue('email'), grUser.getDisplayValue('name'));
+        }
+    }
+
+})(current, template, email, email_action, event);]]></script>
+        <sys_class_name>sys_script_email</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2025-10-12 14:49:06</sys_created_on>
+        <sys_id>3d973d6dc3a8f21075ea722ed40131b9</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>includeRecognitionCCRecipients</sys_name>
+        <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
+        <sys_policy/>
+        <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
+        <sys_update_name>sys_script_email_3d973d6dc3a8f21075ea722ed40131b9</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2025-10-12 14:54:28</sys_updated_on>
+    </sys_script_email>
+</record_update>

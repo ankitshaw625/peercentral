@@ -9,14 +9,16 @@
   c.selectedOccasions = [];
   c.timeframe = 'all';
   c.hiddenGroups = [];
+  c.hiddenEdgeTypes = [];
   c.selectedNode = null;
-  // c.selectedNodeBalance = null;
+  c.displayedMetrics = {};
   c.showMyNetwork = false;
   c.isCurrentUserInGraph = false;
 
   let networkInstance = null;
   let originalNodes = [];
   const nodeMap = {};
+
 
   // This function runs automatically when the widget initializes
   c.$onInit = function () {
@@ -33,7 +35,7 @@
       occasions: c.selectedOccasions,
       timeframe: c.timeframe
     }).then(function (response) {
-      console.log('Graph data loaded:', response.data);
+      // console.log('Graph data loaded:', response.data);
 
       // Once the data comes back, store it
       c.data.nodes = response.data.nodes;
@@ -46,15 +48,20 @@
 
       originalNodes = c.data.nodes.map(n => {
         nodeMap[n.id] = n; // Store a node map for quicker lookups
-        return { ...n };
+        return {
+          ...n
+        };
       });
 
       c.isCurrentUserInGraph = nodeMap[c.data.currentUserId] !== undefined;
 
       c.computeRoleThresholds();
 
-      // Turn off the loading indicator
-      c.isLoading = false;
+      c.calculateMetrics(c.data.nodes, c.data.edges);
+
+      if (!c.data.nodes || c.data.nodes.length === 0) {
+        c.isLoading = false;
+      }
 
       // Now, initialize the graph (inside a $timeout to ensure the container is visible)
       $timeout(function () {
@@ -66,6 +73,55 @@
     });
   };
 
+  c.calculateMetrics = function (visibleNodes, visibleEdges) {
+    // Calculate network metrics
+    const nodeCount = visibleNodes.length;
+    const actualEdges = visibleEdges.length;
+
+    c.displayedMetrics.participationCount = nodeCount;
+
+    // Calculate network density percentage
+    const possibleEdges = nodeCount > 1 ? nodeCount * (nodeCount - 1) : 1;
+    const density = nodeCount > 0 ? Math.min(1, actualEdges / possibleEdges) : 0;
+    c.displayedMetrics.networkDensity = parseFloat(density.toFixed(3));
+
+    // Calculate network reciprocity percentage
+    let mutualEdges = 0;
+    const uniqueConnections = new Set();
+
+    visibleEdges.forEach(function (edge) {
+      if (edge.reciprocal)
+        mutualEdges++;
+
+      // Create a unique, sorted key for each pair to count unique user pairs
+      const key = [edge.from, edge.to].sort().join('-');
+      uniqueConnections.add(key);
+    });
+
+    const mutualPairs = mutualEdges / 2; // Each mutual pair has two reciprocal edges
+    const reciprocityRate = (uniqueConnections.size > 0) ? (mutualPairs / uniqueConnections.size) : 0;
+
+    c.displayedMetrics.reciprocityRate = parseFloat(reciprocityRate.toFixed(3));
+
+    // Calculate Cross-Team Ties Percentage
+    const userDepartmentMap = {};
+    visibleNodes.forEach(function (node) {
+      userDepartmentMap[node.id] = node.group;
+    });
+
+    let crossTeamTies = 0;
+    visibleEdges.forEach(function (edge) {
+      if (userDepartmentMap[edge.from] !== userDepartmentMap[edge.to])
+        crossTeamTies++;
+
+    });
+
+    const crossTeamRate = (actualEdges > 0) ? (crossTeamTies / actualEdges) : 0;
+    c.displayedMetrics.crossTeamRate = parseFloat(crossTeamRate.toFixed(3));
+
+    // console.log('Calculated displayed metrics:', c.displayedMetrics);
+  };
+
   c.updateScale = function (scale) {
     if (!networkInstance || !originalNodes.length) return;
 
@@ -74,36 +130,19 @@
 
     // First, update tooltips instantly (no need to animate text)
     const currentNodes = networkInstance.body.data.nodes;
-    var targetValues = {};
+    const targetValues = {};
 
     originalNodes.forEach(function (node) {
-      var value, tooltip;
 
-      if (scaleBy === 'sent') {
-        value = node.sent || 0;
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)';
-
-      } else if (scaleBy === 'received') {
-        value = node.received || 0;
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-      } else {
-        value = (node.sent || 0) + (node.received || 0);
-        tooltip = node.label + ' (' + node.group + ')' +
-          '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
-          '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-      }
+      const metrics = getNodeMetrics(node, scaleBy);
 
       // Update tooltip immediately
       currentNodes.update({
         id: node.id,
-        title: tooltip
+        title: metrics.tooltip
       });
 
-      targetValues[node.id] = value;
+      targetValues[node.id] = metrics.value;
     });
 
     // Animate size change over 600ms
@@ -135,58 +174,102 @@
     if (!networkInstance || !originalNodes.length) return;
 
     const nodesDataset = networkInstance.body.data.nodes;
-    let nodesToHide = new Set();
+    const edgesDataset = networkInstance.body.data.edges;
 
-    // 1. Hide by department groups
-    const nodesToHideByGroup = new Set(
-      originalNodes
-        .filter(node => c.hiddenGroups.includes(node.group))
-        .map(node => node.id)
-    );
-    nodesToHideByGroup.forEach(id => nodesToHide.add(id));
-
-    // 2. If "My Network" is active, restrict to first-degree connections
-    if (c.showMyNetwork) {
-      const currentUser = c.data.currentUserId;
-      const userInGraph = originalNodes.some(n => n.id === currentUser);
-
-      if (userInGraph) {
-        const connectedNodeIds = new Set([currentUser]); // include self
-        c.data.edges.forEach(edge => {
-          if (edge.from === currentUser || edge.to === currentUser) {
-            connectedNodeIds.add(edge.from);
-            connectedNodeIds.add(edge.to);
-          }
-        });
-
-        // Hide anyone NOT in the connected set
-        originalNodes.forEach(node => {
-          if (!connectedNodeIds.has(node.id)) {
-            nodesToHide.add(node.id);
-          }
-        });
+    // Determine which nodes MUST be hidden based on group or network filters.
+    const nodesToHide = new Set();
+    originalNodes.forEach(node => {
+      if (c.hiddenGroups.includes(node.group)) {
+        nodesToHide.add(node.id);
       }
-      // If user not in graph, all nodes will be hidden → acceptable
-    }
-
-    // 3. Hide nodes with no visible edges (your existing logic)
-    const visibleEdges = c.data.edges.filter(edge =>
-      !nodesToHide.has(edge.from) && !nodesToHide.has(edge.to)
-    );
-
-    const nodesWithVisibleEdges = new Set();
-    visibleEdges.forEach(edge => {
-      nodesWithVisibleEdges.add(edge.from);
-      nodesWithVisibleEdges.add(edge.to);
     });
 
-    // 4. Apply final visibility
-    const nodeUpdates = originalNodes.map(node => ({
-      id: node.id,
-      hidden: nodesToHide.has(node.id) || !nodesWithVisibleEdges.has(node.id)
-    }));
 
+    if (c.showMyNetwork && c.isCurrentUserInGraph) {
+      const currentUser = c.data.currentUserId;
+
+      const connectedNodeIds = new Set([currentUser]);
+      c.data.edges.forEach(edge => {
+        if (edge.from === currentUser || edge.to === currentUser) {
+          connectedNodeIds.add(edge.from);
+          connectedNodeIds.add(edge.to);
+        }
+      });
+
+      originalNodes.forEach(node => {
+        if (!connectedNodeIds.has(node.id)) {
+          nodesToHide.add(node.id);
+        }
+      });
+    }
+
+    // Process all edge visibility and build collections in a SINGLE PASS.
+    const edgeUpdates = [];
+    const visibleEdges = [];
+    const nodesWithVisibleEdges = new Set();
+
+    c.data.edges.forEach(edge => {
+      const isMutual = edge.reciprocal;
+
+      const isTypeHidden = (isMutual && c.hiddenEdgeTypes.includes('mutual')) ||
+        (!isMutual && c.hiddenEdgeTypes.includes('oneway'));
+      const isEndpointHidden = nodesToHide.has(edge.from) || nodesToHide.has(edge.to);
+
+      const isHidden = isTypeHidden || isEndpointHidden;
+
+      edgeUpdates.push({
+        id: edge.id,
+        hidden: isHidden
+      });
+
+      // If the edge is visible, add it and its nodes to our collections.
+      if (!isHidden) {
+        visibleEdges.push(edge);
+        nodesWithVisibleEdges.add(edge.from);
+        nodesWithVisibleEdges.add(edge.to);
+      }
+    });
+
+    // Update the graph with the final edge visibility.
+    edgesDataset.update(edgeUpdates);
+
+    // Determine final node visibility, including "isolates".
+    const nodeUpdates = [];
+    const visibleNodes = [];
+    originalNodes.forEach(node => {
+      // A node is hidden if it's in a hidden group OR it no longer has any visible edges.
+      const isHidden = nodesToHide.has(node.id) || !nodesWithVisibleEdges.has(node.id);
+
+      nodeUpdates.push({
+        id: node.id,
+        hidden: isHidden
+      });
+
+      // Simultaneously, build our final list of visible nodes.
+      if (!isHidden) {
+        visibleNodes.push(node);
+      }
+    });
+
+    // Update the graph with the final node visibility.
     nodesDataset.update(nodeUpdates);
+
+    // Recalculate the metrics with our efficiently built lists.
+    c.calculateMetrics(visibleNodes, visibleEdges);
+  };
+
+  c.isEdgeTypeHidden = function (edgeType) {
+    return c.hiddenEdgeTypes.includes(edgeType);
+  };
+
+  c.toggleEdgeType = function (edgeType) {
+    if (c.isEdgeTypeHidden(edgeType)) {
+      c.hiddenEdgeTypes = c.hiddenEdgeTypes.filter(t => t !== edgeType);
+    } else {
+      c.hiddenEdgeTypes.push(edgeType);
+    }
+
+    c.applyVisibilityFilters();
   };
 
   c.isGroupHidden = function (groupName) {
@@ -214,7 +297,7 @@
   c.hasActiveFilters = function () {
     return c.currentScale !== 'total' ||
       c.selectedOccasions.length > 0 ||
-      c.timeframe !== 'all' || c.hiddenGroups.length > 0 || c.showMyNetwork === true;
+      c.timeframe !== 'all' || c.hiddenGroups.length > 0 || c.showMyNetwork === true || c.hiddenEdgeTypes.length > 0;
   };
 
   c.resetFilters = function () {
@@ -225,6 +308,7 @@
     c.selectedOccasions = [];
     c.timeframe = 'all';
     c.hiddenGroups = [];
+    c.hiddenEdgeTypes = [];
     c.showMyNetwork = false;
 
     c.loadGraphData();
@@ -232,7 +316,10 @@
 
   c.computeRoleThresholds = function () {
     if (!c.data.nodes || c.data.nodes.length === 0) {
-      c.roleThresholds = { outDegree: 1, inDegree: 1 };
+      c.roleThresholds = {
+        outDegree: 1,
+        inDegree: 1
+      };
       return;
     }
 
@@ -292,13 +379,22 @@
     const inDegree = node.inDegree || 0;
 
     if (outDegree === 0 && inDegree === 0)
-      return { label: 'No Activity', ratio: null };
+      return {
+        label: 'No Activity',
+        ratio: null
+      };
 
     if (outDegree === 0)
-      return { label: 'Only Receiving', ratio: null };
+      return {
+        label: 'Only Receiving',
+        ratio: null
+      };
 
     if (inDegree === 0)
-      return { label: 'Only Giving', ratio: null };
+      return {
+        label: 'Only Giving',
+        ratio: null
+      };
 
     const ratio = inDegree / outDegree;
     let label = 'Balanced';
@@ -346,9 +442,8 @@
     return networkInstance.groups.get(groupName).color.background;
   };
 
-  c.closeModal = function () {
+  c.closeSidebar = function () {
     c.selectedNode = null;
-    // c.selectedNodeBalance = null;
   };
 
   function animateNodeSizes(targetValues, duration) {
@@ -371,7 +466,10 @@
         const end = targetValues[node.id];
         const value = start + (end - start) * progress;
 
-        nodes.update({ id: node.id, value });
+        nodes.update({
+          id: node.id,
+          value
+        });
       });
 
       if (progress < 1) requestAnimationFrame(step);
@@ -442,31 +540,34 @@
 
   const groupColors = {
     // Core Blues
-    'Development': '#005F9E',      // Strong Blue
-    'Product Management': '#00A4E0',// Bright Cyan-Blue
+    'Development': '#005F9E', // Strong Blue
+    'Product Management': '#00A4E0', // Bright Cyan-Blue
 
     // Core Greens
     'Customer Support': '#00847B', // Teal
-    'Sales': '#8BC53F',            // Lime Green
+    'Sales': '#8BC53F', // Lime Green
 
     // Accent & Neutral
-    'HR': '#E04E39',               // Muted Red/Terracotta
-    'IT': '#7E8C9A',               // Slate Gray
-    'N/A': '#D1D7DD'               // Light Gray
+    'HR': '#E04E39', // Muted Red/Terracotta
+    'IT': '#7E8C9A', // Slate Gray
+    'N/A': '#D1D7DD' // Light Gray
   };
 
   const graphOptions = {
     nodes: {
       size: 15,
       font: {
-        size: 14, face: 'Source Sans Pro', color: '#333'
+        size: 14,
+        face: 'Source Sans Pro',
+        color: '#333'
       },
 
       borderWidth: 6,
       borderWidthSelected: 8,
 
       scaling: {
-        min: 15, max: 40,
+        min: 15,
+        max: 40,
       },
 
       shapeProperties: {
@@ -476,30 +577,65 @@
 
     edges: {
       scaling: {
-        min: 2, max: 4,
+        min: 2,
+        max: 4,
       },
-      // color: { inherit: 'from' },
-      smooth: { type: 'continuous' },
-      arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+
+      smooth: {
+        type: 'dynamic',
+        forceDirection: 'none',
+        roundness: 0.5
+      },
+      arrows: {
+        to: {
+          enabled: true,
+          scaleFactor: 0.5
+        }
+      }
     },
+
 
     physics: {
       solver: 'barnesHut',
-
       barnesHut: {
-        gravitationalConstant: -2000,
-        centralGravity: 0.3,
+        gravitationalConstant: -3000,
+        centralGravity: 0.8,
         springLength: 100,
-        avoidOverlap: 1.5
+        springConstant: 0.15,
+        avoidOverlap: 1.0,
+        damping: 0.8
       },
 
-      stabilization: { iterations: 2000 }
+      stabilization: {
+        enabled: true,
+        iterations: 250, // Previous value - 1000
+        fit: true
+      }
     },
+
+    // physics: {
+    //   solver: 'barnesHut',
+    //   barnesHut: {
+    //     gravitationalConstant: -4000,
+    //     centralGravity: 0.75,  // Weaken the pull to the center
+    //     springLength: 120,     // Allow slightly longer connections
+    //     springConstant: 0.08,
+    //     avoidOverlap: 1.0,
+    //     damping: 0.6
+    //   },
+
+    //   stabilization: {
+    //     enabled: true,
+    //     iterations: 300, // Drastically reduced for performance
+    //     fit: true
+    //   }
+    // },
 
     interaction: {
       tooltipDelay: 200,
       navigationButtons: true,
-      hover: true
+      hover: true,
+      hoverConnectedEdges: true
     },
 
     groups: {
@@ -507,61 +643,101 @@
         color: {
           border: groupColors['Development'],
           background: groupColors['Development'],
-          highlight: { border: '#003E6B', background: '#005F9E' },
-          hover: { border: '#003E6B', background: '#005F9E' }
+          highlight: {
+            border: '#003E6B',
+            background: '#005F9E'
+          },
+          hover: {
+            border: '#003E6B',
+            background: '#005F9E'
+          }
         }
       },
       'Product Management': {
         color: {
           border: groupColors['Product Management'],
           background: groupColors['Product Management'],
-          highlight: { border: '#007BAA', background: '#00A4E0' },
-          hover: { border: '#007BAA', background: '#00A4E0' }
+          highlight: {
+            border: '#007BAA',
+            background: '#00A4E0'
+          },
+          hover: {
+            border: '#007BAA',
+            background: '#00A4E0'
+          }
         }
       },
       'Customer Support': {
         color: {
           border: groupColors['Customer Support'],
           background: groupColors['Customer Support'],
-          highlight: { border: '#005851', background: '#00847B' },
-          hover: { border: '#005851', background: '#00847B' }
+          highlight: {
+            border: '#005851',
+            background: '#00847B'
+          },
+          hover: {
+            border: '#005851',
+            background: '#00847B'
+          }
         }
       },
       'Sales': {
         color: {
           border: groupColors['Sales'],
           background: groupColors['Sales'],
-          highlight: { border: '#679A2B', background: '#8BC53F' },
-          hover: { border: '#679A2B', background: '#8BC53F' }
+          highlight: {
+            border: '#679A2B',
+            background: '#8BC53F'
+          },
+          hover: {
+            border: '#679A2B',
+            background: '#8BC53F'
+          }
         }
       },
       'HR': {
         color: {
           border: groupColors['HR'],
           background: groupColors['HR'],
-          highlight: { border: '#B33E2C', background: '#E04E39' },
-          hover: { border: '#B33E2C', background: '#E04E39' }
+          highlight: {
+            border: '#B33E2C',
+            background: '#E04E39'
+          },
+          hover: {
+            border: '#B33E2C',
+            background: '#E04E39'
+          }
         }
       },
       'IT': {
         color: {
           border: groupColors['IT'],
           background: groupColors['IT'],
-          highlight: { border: '#5A636C', background: '#7E8C9A' },
-          hover: { border: '#5A636C', background: '#7E8C9A' }
+          highlight: {
+            border: '#5A636C',
+            background: '#7E8C9A'
+          },
+          hover: {
+            border: '#5A636C',
+            background: '#7E8C9A'
+          }
         }
       },
       'N/A': {
         color: {
           border: groupColors['N/A'],
           background: groupColors['N/A'],
-          highlight: { border: '#A9B1B8', background: '#D1D7DD' },
-          hover: { border: '#A9B1B8', background: '#D1D7DD' }
+          highlight: {
+            border: '#A9B1B8',
+            background: '#D1D7DD'
+          },
+          hover: {
+            border: '#A9B1B8',
+            background: '#D1D7DD'
+          }
         }
       },
     }
-
-    // layout: { hierarchical: { enabled: true } }
   };
 
   function initializeGraph() {
@@ -573,31 +749,18 @@
     }
 
     const processedNodes = c.data.nodes.map(function (node) {
-      const newNode = { ...node };
+      const metrics = getNodeMetrics(node);
 
-      newNode.value = node.sent + node.received;
+      return {
+        ...node,
+        value: metrics.value,
+        title: metrics.tooltip,
+        shape: 'circularImage',
+        image: createInitialsAvatar(node.initials)
+      };
 
-      newNode.title = node.label + ' (' + node.group + ')' +
-        '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)' +
-        '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
-
-
-      // if (node.userImage) {
-      //   // If an image exists, use it
-      //   newNode.shape = 'circularImage';
-      //   newNode.image = node.userImage;
-      //   // newNode.label = ''; // Hide the external label
-      // } else {
-      //   // If no image, use initials inside the dot
-      //   newNode.shape = 'dot';
-      //   // newNode.label = node.initials; // Use initials as the label inside the node
-      // }
-
-      newNode.shape = 'circularImage';
-      newNode.image = createInitialsAvatar(node.initials);
-
-      return newNode;
     });
+
 
     const processedEdges = c.data.edges.map(edge => ({
       ...edge,
@@ -605,11 +768,14 @@
       dashes: !edge.reciprocal
     }));
 
-    var nodes = new vis.DataSet(processedNodes);
-    var edges = new vis.DataSet(processedEdges);
+    const nodes = new vis.DataSet(processedNodes);
+    const edges = new vis.DataSet(processedEdges);
 
-    var container = document.getElementById('recognition-graph-container');
-    var data = { nodes, edges };
+    const container = document.getElementById('recognition-graph-container');
+    const data = {
+      nodes,
+      edges
+    };
 
 
     networkInstance = new vis.Network(container, data, graphOptions);
@@ -617,12 +783,11 @@
     // Load real images in the background after initial render
     loadRealImages(nodes);
 
-
     // Event listeners for network graph
     networkInstance.on('click', function (params) {
       // If the click was on the empty canvas (not a node), close the sidebar.
       if (params.nodes.length === 0) {
-        c.closeModal();
+        c.closeSidebar();
         $scope.$applyAsync();
       }
     });
@@ -662,26 +827,98 @@
     });
 
 
-    networkInstance.once('stabilizationIterationsDone', centerNetworkView);
+    networkInstance.once('stabilizationIterationsDone', () => {
+      centerNetworkView();
+
+      // Turn off the loading indicator after stabilization and centering
+      $timeout(function () {
+        c.isLoading = false;
+      });
+    });
   }
 
+  $timeout(function () {
+    if (c.isLoading && c.data.nodes.length > 0) {
+      console.warn("Graph stabilization took too long, forcing display.");
+      c.isLoading = false;
+    }
+  }, 4000);
 
+  function getNodeMetrics(node, scaleBy = 'total') {
+    let value;
+    let sentPart = '';
+    let receivedPart = '';
+
+    const baseTooltip = node.label + ' (' + node.group + ')';
+
+    if (node.sent > 0) {
+      sentPart = '\n• Recognized ' + node.outDegree + ' people (' + node.sent + ' recognitions)';
+    }
+
+    if (node.received > 0) {
+      receivedPart = '\n• Recognized by ' + node.inDegree + ' people (' + node.received + ' recognitions)';
+    }
+
+    if (scaleBy === 'sent') {
+      value = node.sent || 0;
+      return {
+        value: value,
+        tooltip: (baseTooltip + sentPart).trim()
+      };
+    }
+
+    if (scaleBy === 'received') {
+      value = node.received || 0;
+      return {
+        value: value,
+        tooltip: (baseTooltip + receivedPart).trim()
+      };
+    }
+
+    value = (node.sent || 0) + (node.received || 0);
+    return {
+      value: value,
+      tooltip: (baseTooltip + sentPart + receivedPart).trim()
+    };
+  }
 
   function centerNetworkView() {
     const positions = networkInstance.getPositions();
-    let sumX = 0, sumY = 0, count = 0;
 
-    for (const id in positions) {
-      sumX += positions[id].x;
-      sumY += positions[id].y;
-      count++;
+    const scale = 0.75;
+    const currentUserId = $scope.user.sys_id;
+    let center = null;
+
+    if (c.isCurrentUserInGraph && positions[currentUserId]) {
+      center = positions[currentUserId];
+      networkInstance.setSelection({
+        nodes: [currentUserId],
+        edges: []
+      }, {
+        highlightEdges: true,
+        unselectAll: true
+      });
+    } else {
+      let sumX = 0,
+        sumY = 0,
+        count = 0;
+
+      for (const id in positions) {
+        sumX += positions[id].x;
+        sumY += positions[id].y;
+        count++;
+      }
+
+      center = {
+        x: sumX / count,
+        y: sumY / count
+      };
+
     }
-
-    const center = { x: sumX / count, y: sumY / count };
 
     networkInstance.moveTo({
       position: center,
-      scale: 0.85,
+      scale: scale,
       animation: {
         duration: 800,
         easingFunction: "easeOutCubic"
@@ -719,8 +956,8 @@
 }
 
 .graph-container {
-    height: 70vh;
-    min-height: 400px;
+    height: 75vh;
+    min-height: 448px;
 }
 
 .graph-filter {
@@ -818,6 +1055,10 @@
     transition: opacity 0.2s ease-in-out;
 }
 
+.legend-item:hover {
+    opacity: 0.8;
+}
+
 .legend-color-box {
     width: 12px;
     height: 12px;
@@ -830,10 +1071,6 @@
     opacity: 0.4;
     text-decoration: line-through;
     cursor: pointer;
-}
-
-.edge-legend {
-    cursor: auto;
 }
 
 .empty-state-container {
@@ -943,6 +1180,48 @@
     font-weight: 500;
     font-size: 11px;
 }
+
+.graph-hidden-rendering {
+    visibility: hidden !important;
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: -1;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    text-align: center;
+}
+
+.graph-wrapper {
+    position: relative;
+    height: 75vh;
+    min-height: 448px;
+    width: 100%;
+    background: #fff;
+}
+
+.graph-container {
+    height: 100%;
+    width: 100%;
+}
+
+.loading-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    text-align: center;
+    color: #666;
+}
 </css>
         <data_table>sp_instance</data_table>
         <demo_data/>
@@ -968,54 +1247,6 @@
     data.edges = graphData.edges || [];
 
     data.legendData = graphData.groups || [];
-
-    // Calculate network metrics
-    const nodeCount = graphData.nodes.length;
-    const actualEdges = graphData.edges.length;
-
-    data.participationCount = nodeCount;
-
-    // Calculate network density percentage
-    const possibleEdges = nodeCount > 1 ? nodeCount * (nodeCount - 1) : 1;
-    const density = nodeCount > 0 ? Math.min(1, actualEdges / possibleEdges) : 0;
-    data.networkDensity = parseFloat(density.toFixed(3));
-
-    // Calculate network reciprocity percentage
-    let mutualEdges = 0;
-    const uniqueConnections = new Set();
-
-    data.edges.forEach(function (edge) {
-      if (edge.reciprocal)
-        mutualEdges++;
-
-      // Create a unique, sorted key for each pair to count unique user pairs
-      const key = [edge.from, edge.to].sort().join('-');
-      uniqueConnections.add(key);
-    });
-
-    const mutualPairs = mutualEdges / 2; // Each mutual pair has two reciprocal edges
-    const reciprocityRate = (uniqueConnections.size > 0) ? (mutualPairs / uniqueConnections.size) : 0;
-
-    data.reciprocityRate = parseFloat(reciprocityRate.toFixed(3));
-
-    // Calculate Cross-Team Ties Percentage
-    const userDepartmentMap = {};
-    data.nodes.forEach(function (node) {
-      userDepartmentMap[node.id] = node.group;
-    });
-
-    let crossTeamTies = 0;
-    data.edges.forEach(function (edge) {
-
-      if (userDepartmentMap[edge.from] !== userDepartmentMap[edge.to])
-        crossTeamTies++;
-
-    });
-
-    const totalTies = data.edges.length;
-    const crossTeamRate = (totalTies > 0) ? (crossTeamTies / totalTies) : 0;
-
-    data.crossTeamRate = parseFloat(crossTeamRate.toFixed(3));
 
     return;
   }
@@ -1062,7 +1293,7 @@
   data.occasionFilterWidget = $sp.getWidget(
     'multi-select-slushbucket-filter',
     {
-      title: 'Occasions',
+      title: 'Value',
       eventName: 'graph.occasion.filter.updated',
       choices: recognitionOccasions,
       initialSelection: '',
@@ -1075,14 +1306,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-09-05 12:42:38</sys_created_on>
         <sys_id>09b1cbe5c3b3665075ea722ed401316c</sys_id>
-        <sys_mod_count>418</sys_mod_count>
+        <sys_mod_count>529</sys_mod_count>
         <sys_name>Recognition Network Graph</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09b1cbe5c3b3665075ea722ed401316c</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-10-03 19:57:29</sys_updated_on>
+        <sys_updated_on>2025-11-23 19:22:49</sys_updated_on>
         <template><![CDATA[<div class="panel panel-primary network-container">
 
   <div class="panel-heading">
@@ -1102,7 +1333,7 @@
         <div class="metrics-container">
           <div class="metric-item">
             <abbr title="Number of users who sent or received at least one recognition">
-              ]]>👥<![CDATA[ Participants: <strong>{{c.data.participationCount}}</strong>
+              ]]>👥<![CDATA[ Participants: <strong>{{c.displayedMetrics.participationCount}}</strong>
             </abbr>
 
           </div>
@@ -1110,21 +1341,21 @@
           <div class="metric-item">
             <abbr
               title="Proportion of all possible directed recognition ties that exist (range: 0–100%). Higher = more interconnected.">
-              ]]>🔗<![CDATA[ Density: <strong>{{(c.data.networkDensity * 100) | number:1}}%</strong>
+              ]]>🔗<![CDATA[ Density: <strong>{{(c.displayedMetrics.networkDensity * 100) | number:1}}%</strong>
             </abbr>
           </div>
 
           <div class="metric-item">
             <abbr
               title="Percent of connected user pairs with bidirectional recognition (i.e., A recognized B and B recognized A).">
-              ]]>🤝<![CDATA[ Reciprocity: <strong>{{(c.data.reciprocityRate * 100) | number:1}}%</strong>
+              ]]>🤝<![CDATA[ Reciprocity: <strong>{{(c.displayedMetrics.reciprocityRate * 100) | number:1}}%</strong>
             </abbr>
           </div>
 
           <div class="col-xs-6 col-sm-3 metric-item">
             <abbr
               title="Percentage of recognition given across different departments (higher = more cross-department collaboration).">
-              ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.data.crossTeamRate * 100) | number:1}}%</strong>
+              ]]>🌐<![CDATA[ Cross-Department: <strong>{{(c.displayedMetrics.crossTeamRate * 100) | number:1}}%</strong>
             </abbr>
 
           </div>
@@ -1169,12 +1400,14 @@
 
 
         <h4 class="legend-header">Edge Types</h4>
-        <div class="legend-item edge-legend" title="Mutual recognition (both users recognized each other)">
+        <div class="legend-item" title="Mutual recognition (both users recognized each other)"
+          ng-click="c.toggleEdgeType('mutual')" ng-class="{'legend-item-hidden': c.isEdgeTypeHidden('mutual')}">
           <span class="legend-color-box" style="background-color: #28a745;"></span>
           Mutual
         </div>
 
-        <div class="legend-item edge-legend" title="One-way recognition (only one user recognized the other)">
+        <div class="legend-item" title="One-way recognition (only one user recognized the other)"
+          ng-click="c.toggleEdgeType('oneway')" ng-class="{'legend-item-hidden': c.isEdgeTypeHidden('oneway')}">
           <span class="legend-color-box" style="background-color: #007bff;"></span>
           One-way
         </div>
@@ -1185,10 +1418,7 @@
 
 
 
-  <div ng-if="c.isLoading" class="text-center mt-10">
-    <i class="fa fa-spinner fa-spin fa-2x"></i>
-    <p>Loading graph data...</p>
-  </div>
+
 
   <div ng-if="!c.isLoading && c.data.nodes.length === 0" class="empty-state-container text-center text-muted">
     <i class="fa fa-info-circle fa-3x" aria-hidden="true"></i>
@@ -1199,14 +1429,26 @@
     </p>
   </div>
 
-  <div ng-if="!c.isLoading && c.data.nodes.length > 0" id="recognition-graph-container" class="graph-container">
-  </div>
 
+
+  <!-- <div ng-if="!c.isLoading && c.data.nodes.length > 0" id="recognition-graph-container" class="graph-container">
+  </div> -->
+
+  <div class="graph-wrapper">
+    <div ng-show="c.isLoading" class="loading-overlay">
+      <i class="fa fa-spinner fa-spin fa-2x"></i>
+      <p>Loading graph data...</p>
+    </div>
+
+    <div ng-show="c.data.nodes.length > 0" ng-class="{'graph-hidden-rendering': c.isLoading}"
+      id="recognition-graph-container" class="graph-container">
+    </div>
+  </div>
 
   <div class="sidebar-container" ng-class="{'sidebar-open': c.selectedNode}">
     <div class="sidebar-header">
       <h4 class="sidebar-title">{{c.selectedNode.label}}</h4>
-      <button type="button" class="close" ng-click="c.closeModal()">&times;</button>
+      <button type="button" class="close" ng-click="c.closeSidebar()">&times;</button>
     </div>
 
     <div class="sidebar-body">
