@@ -55,7 +55,7 @@
     c.server.get(newRecognition).then(function (response) {
       var status = response.data.output.status;
       if (status == 'success') {
-        spUtil.addInfoMessage(c.data.successMessage);
+        spUtil.addTrivialMessage(c.data.successMessage);
       }
 
       $('#recognition-modal').modal('hide');
@@ -164,7 +164,7 @@
 
   data.successMessage = gs.getMessage('Thank you! Your recognition has been sent.');
 
-  const grUserGroup = new GlideRecord('sys_user_grmember');
+  const grUserGroup = new GlideRecord('sys_user_group');
   grUserGroup.addActiveQuery();
   grUserGroup.addQuery('manager', currentUserId);
   grUserGroup.setLimit(1);
@@ -184,14 +184,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 11:22:22</sys_created_on>
         <sys_id>a65c596ec31b621075ea722ed4013181</sys_id>
-        <sys_mod_count>214</sys_mod_count>
+        <sys_mod_count>216</sys_mod_count>
         <sys_name>Recognition Header</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_a65c596ec31b621075ea722ed4013181</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-23 14:39:06</sys_updated_on>
+        <sys_updated_on>2025-11-25 03:28:42</sys_updated_on>
         <template><![CDATA[<header class="recognition-header">
   <h1>Recognize your teams and peers</h1>
   <p>

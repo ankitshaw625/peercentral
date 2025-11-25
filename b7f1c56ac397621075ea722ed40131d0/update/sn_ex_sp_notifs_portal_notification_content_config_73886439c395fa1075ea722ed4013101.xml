@@ -4,7 +4,7 @@
         <active>true</active>
         <actor/>
         <advanced>false</advanced>
-        <content_params><![CDATA[${user}]]></content_params>
+        <content_params><![CDATA[${user.name}]]></content_params>
         <content_script><![CDATA[(function(current, eventName, eventParm1, eventParm2, previousActors) {
      /**
      * Generates a notification object based on the provided parameters.
@@ -46,14 +46,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-11-19 09:46:46</sys_created_on>
         <sys_id>73886439c395fa1075ea722ed4013101</sys_id>
-        <sys_mod_count>1</sys_mod_count>
+        <sys_mod_count>2</sys_mod_count>
         <sys_name>Recognition Comment Added - Individual</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sn_ex_sp_notifs_portal_notification_content_config_73886439c395fa1075ea722ed4013101</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-22 09:21:05</sys_updated_on>
+        <sys_updated_on>2025-11-25 03:54:35</sys_updated_on>
         <use_custom_icon>false</use_custom_icon>
     </sn_ex_sp_notifs_portal_notification_content_config>
 </record_update>

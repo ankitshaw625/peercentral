@@ -138,6 +138,8 @@ RecognitionDAO.prototype = {
 
 
   getRecognitionsForFeed: function (feedType, limit, offset, filters) {
+    gs.info('User: ' + gs.getUserDisplayName() + '. RecognitionDAO.getRecognitionsForFeed called with feedType: ' + feedType + ', limit: ' + limit + ', offset: ' + offset + ', filters: ' + JSON.stringify(filters));
+
     limit = limit || 15;
     offset = offset || 0;
 
@@ -154,6 +156,7 @@ RecognitionDAO.prototype = {
     grRecognitions.chooseWindow(offset, offset + limit);
     grRecognitions.query();
 
+    gs.info('User: ' + gs.getUserDisplayName() + '. Encoded Query: ' + grRecognitions.getEncodedQuery());
 
     while (grRecognitions.next()) {
 
@@ -363,10 +366,30 @@ RecognitionDAO.prototype = {
         grRecognitions
           .addQuery('sender', 'IN', userTeam.teamMembers)
           .addOrCondition('sys_id', 'IN', teamReceivedIds);
+
         break;
       }
 
       case 'all':
+        // Include only public recognitions
+        const mainQuery = grRecognitions.addQuery('is_private', false);
+
+        // Except those sent by the current user
+        mainQuery.addOrCondition('sender', this.currentUserId);
+
+        // Or where the current user is in the notify_to list
+        mainQuery.addOrCondition('notify_to', 'CONTAINS', this.currentUserId);
+
+        // Get current user's groups
+        const myGroups = this.utils.getUserGroups(this.currentUserId);
+
+        // Get all recognition sys_id's where user is Direct Recipient OR Group Recipient
+        const myRelatedRecognitions = this._getRecognitionIdsForRecipients(this.currentUserId, myGroups);
+
+        if (myRelatedRecognitions.length > 0) {
+          mainQuery.addOrCondition('sys_id', 'IN', myRelatedRecognitions);
+        }
+
         break;
 
       default:
@@ -691,6 +714,7 @@ RecognitionDAO.prototype = {
       id: newCommentId,
       text: grInteractionComment.getValue('comment'),
       authorName: grInteractionComment.getDisplayValue('user'),
+      authorImage: grInteractionComment.getElement('user.photo').getValue(),
       userId: userId,
       created: grInteractionComment.getValue('sys_created_on'),
       likeCount: 0
@@ -799,13 +823,13 @@ RecognitionDAO.prototype = {
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-23 11:20:40</sys_created_on>
         <sys_id>afe03b9dc3e3225075ea722ed40131ea</sys_id>
-        <sys_mod_count>152</sys_mod_count>
+        <sys_mod_count>159</sys_mod_count>
         <sys_name>RecognitionDAO</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy>read</sys_policy>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sys_script_include_afe03b9dc3e3225075ea722ed40131ea</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-22 07:55:34</sys_updated_on>
+        <sys_updated_on>2025-11-25 03:40:02</sys_updated_on>
     </sys_script_include>
 </record_update>

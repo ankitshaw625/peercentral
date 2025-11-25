@@ -204,6 +204,7 @@
       id: tempId,
       text: text,
       authorName: $scope.user.name,
+      authorImage: c.userImage,
       userInitials: c.currentUserInitials,
       userId: c.currentUserSysId,
       timeAgo: 'Just now',
@@ -514,9 +515,9 @@
   function formatTimeAgo(dateTime) {
     if (!dateTime) return '';
 
-    var m = moment(dateTime, "YYYY-MM-DD HH:mm:ss");
+    var m = moment.utc(dateTime, "YYYY-MM-DD HH:mm:ss");
 
-    return m.fromNow();
+    return m.local().fromNow();
   }
 
 
@@ -1153,23 +1154,6 @@
         filters
       ) || [];
 
-    // const currentUserId = gs.getUserID();
-
-    // recognitions.forEach((rec) => {
-    //   // Display 'You' instead of the current user's name in the feed
-    //   if (rec.senderId === currentUserId) rec.senderDisplay = 'You';
-
-    //   // If current user is among the recipients, replace their name with 'You' and move to the front of the list
-    //   if (rec.recipientIds && rec.recipients) {
-    //     const currentUserIndex = rec.recipientIds.indexOf(currentUserId);
-    //     if (currentUserIndex > -1) {
-    //       rec.recipients.splice(currentUserIndex, 1);
-    //       rec.recipients.unshift('You');
-    //     }
-    //   }
-    // });
-
-    // data.recognitions = recognitions;
     return;
   }
 
@@ -1346,14 +1330,14 @@
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2025-08-14 13:19:41</sys_created_on>
         <sys_id>09377deec39b621075ea722ed4013146</sys_id>
-        <sys_mod_count>750</sys_mod_count>
+        <sys_mod_count>754</sys_mod_count>
         <sys_name>Recognition Feed</sys_name>
         <sys_package display_value="PeerCentral" source="x_1794402_peerce_0">b7f1c56ac397621075ea722ed40131d0</sys_package>
         <sys_policy/>
         <sys_scope display_value="PeerCentral">b7f1c56ac397621075ea722ed40131d0</sys_scope>
         <sys_update_name>sp_widget_09377deec39b621075ea722ed4013146</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
-        <sys_updated_on>2025-11-23 12:47:01</sys_updated_on>
+        <sys_updated_on>2025-11-25 03:52:36</sys_updated_on>
         <template><![CDATA[<main>
   <div class="panel panel-primary">
     <section class="panel-heading">
